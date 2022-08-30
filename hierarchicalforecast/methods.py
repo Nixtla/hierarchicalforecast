@@ -617,6 +617,16 @@ class ERM:
             y_hat_insample: np.ndarray, # Insample forecasts of size (`base`, `insample_size`)
             idx_bottom: np.ndarray # Indices corresponding to the bottom level of `S`, size (`bottom`)
         ):
+        """ERM Reconciliation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `y_insample`: Insample values of size (`base`, `insample_size`).<br>
+        `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
+        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        """
         return erm(S=S, y_hat=y_hat, 
                    y_insample=y_insample,
                    y_hat_insample=y_hat_insample,
