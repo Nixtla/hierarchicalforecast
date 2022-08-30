@@ -387,8 +387,6 @@ class MinTrace:
     minimizes the squared errors for the coherent forecasts under an unbiasedness assumption; the solution has a 
     closed form.<br>
     
-    $$\mathbf{P}=[\mathbf{p}_{\mathrm{[b]}}\;|\;\mathbf{0}_{\mathrm{[b][a,b\;-1]}}]$$
-
     $$\mathbf{P}_{\text{MinT}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1} \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
 
     **Parameters:**<br>
