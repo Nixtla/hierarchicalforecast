@@ -22,7 +22,12 @@ def _build_fn_name(fn) -> str:
 
 # %% ../nbs/core.ipynb 5
 class HierarchicalReconciliation:
-    
+    """Hierarchical Reconciliation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/core.py).
+
+    **Parameters:**<br>
+    `reconcilers`: Reconciliation classes of the `methods` module .<br>
+    """
     def __init__(
             self, 
             reconcilers: List[Callable] # Reconciliation classes of the `methods` module 
@@ -38,6 +43,16 @@ class HierarchicalReconciliation:
             S: pd.DataFrame,    #  Summing matrix of size `(base, bottom)`.
             tags: Dict[str, np.ndarray] # Each key is a level and its value contains tags associated to that level.
         ):
+        """Hierarchical Reconciliation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/core.py).
+
+        **Parameters:**<br>
+        `Y_h`: Base forecasts with columns `ds` and models to reconcile indexed by `unique_id`.<br>
+        `Y_df`: Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`.
+        If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.<br>
+        `S`: Summing matrix of size `(base, bottom)`.<br>
+        `tags`: Each key is a level and its value contains tags associated to that level.<br>
+        """
         drop_cols = ['ds', 'y'] if 'y' in Y_h.columns else ['ds']
         model_names = Y_h.drop(columns=drop_cols, axis=1).columns.to_list()
         uids = Y_h.index.unique()
