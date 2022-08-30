@@ -32,6 +32,23 @@ def bottom_up(S: np.ndarray,
 
 # %% ../nbs/methods.ipynb 6
 class BottomUp:
+    """Bottom Up Reconciliation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+    The most basic hierarchical reconciliation is performed using an Bottom-Up strategy. It was proposed for 
+    the first time by Orcutt in 1968.
+    The corresponding hierarchical "projection" matrix is defined as:
+
+    $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
+
+    
+    **Parameters:**<br>
+    None
+    
+    **References:**<br>
+    - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). Data aggregation and information loss. The American 
+    Economic Review, 58 , 773{787)](http://www.jstor.org/stable/1815532).
+    """
     
     def reconcile(
             self,
@@ -39,6 +56,15 @@ class BottomUp:
             y_hat: np.ndarray, # Forecast values of size (`base`, `horizon`)
             idx_bottom: np.ndarray # Indices corresponding to the bottom level of `S`, size (`bottom`)
         ):
+        """Bottom Up Reconciliation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+
+        """
         return bottom_up(S=S, y_hat=y_hat, idx_bottom=idx_bottom)
     
     __call__ = reconcile
@@ -136,7 +162,25 @@ def top_down(S: np.ndarray,
 
 # %% ../nbs/methods.ipynb 18
 class TopDown:
+    """Top Down Reconciliation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+    The Top Down hierarchical reconciliation method, distributes the total aggregate predictions and decomposes 
+    it down the hierarchy using proportions $\mathbf{p}_{\mathrm{[b]}}$ that can be actual historical values 
+    or estimated.
     
+    $$\mathbf{P}=[\mathbf{p}_{\mathrm{[b]}}\;|\;\mathbf{0}_{\mathrm{[b][a,b\;-1]}}]$$
+
+    **Parameters:**<br>
+    `method`: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.<br>
+    
+    **References:**<br>
+    - [Disaggregation methods to expedite product line forecasting. Journal of Forecasting, 9 , 233–254. 
+    doi:10.1002/for.3980090304](https://onlinelibrary.wiley.com/doi/abs/10.1002/for.3980090304).<br>
+    - [An investigation of aggregate variable time series forecast strategies with specific subaggregate 
+    time series statistical correlation. Computers and Operations Research, 26 , 1133–1149. 
+    doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9).
+    """
     def __init__(
             self, 
             method: str # One of `forecast_proportions`, `average_proportions` and `proportion_averages`
@@ -150,6 +194,16 @@ class TopDown:
             y_insample: np.ndarray, # Insample values of size (`base`, `insample_size`)
             levels: Dict[str, np.ndarray] # Each key is a level and each value its `S` indices
         ):
+        """Top Down Reconciliation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `y_insample`: Insample values of size (`base`, `insample_size`).<br>
+        `levels`: Each key is a level and each value its `S` indices.<br>
+
+        """
         return top_down(S=S, y_hat=y_hat, 
                         y_insample=y_insample, 
                         levels=levels,
@@ -225,7 +279,18 @@ def middle_out(S: np.ndarray,
 
 # %% ../nbs/methods.ipynb 25
 class MiddleOut:
+    """Middle Out Reconciliation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+    This method is only available for strictly hierarchical structures. It anchors the base predictions in 
+    a middle level. The levels above the base predictions use the bottom-up approach, while the levels below 
+    use a top-down.
+
+    **Parameters:**<br>
+    `level`: Middle level.<br>
+    `top_down_method`: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.<br>
     
+    """
     def __init__(
             self, 
             level: str, # Middle level 
@@ -241,6 +306,16 @@ class MiddleOut:
             y_insample: np.ndarray, # Insample values of size (`base`, `insample_size`)
             levels: Dict[str, np.ndarray] # Each key is a level and each value its `S` indices
         ):
+        """Middle Out Reconciliation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `y_insample`: Insample values of size (`base`, `insample_size`).<br>
+        `levels`: Each key is a level and each value its `S` indices.<br>
+
+        """
         return middle_out(S=S, y_hat=y_hat, 
                           y_insample=y_insample, 
                           levels=levels,
@@ -304,7 +379,26 @@ def min_trace(S: np.ndarray,
 
 # %% ../nbs/methods.ipynb 33
 class MinTrace:
+    """MinTrace Reconciliation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+    This reconciliation algorithm proposed by Wickramasuriya et al. depends on a generalized least squares estimator 
+    and an estimator of the covariance matrix of the coherency errors $\mathbf{W}_{h}$. The Min Trace algorithm 
+    minimizes the squared errors for the coherent forecasts under an unbiasedness assumption; the solution has a 
+    closed form.<br>
     
+    $$\mathbf{P}=[\mathbf{p}_{\mathrm{[b]}}\;|\;\mathbf{0}_{\mathrm{[b][a,b\;-1]}}]$$
+
+    $$\mathbf{P}_{\text{MinT}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1} \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
+
+    **Parameters:**<br>
+    `method`: One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_co`.<br>
+    
+    **References:**<br>
+    - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). Optimal forecast reconciliation for
+    hierarchical and grouped time series through trace minimization. Journal of the American Statistical Association, 
+    114 , 804–819. doi:10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/).
+    """
     def __init__(
             self, 
             method: str # One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_co`
@@ -318,6 +412,16 @@ class MinTrace:
             y_insample: np.ndarray, # Insample values of size (`base`, `insample_size`)
             y_hat_insample: np.ndarray # Insample forecasts of size (`base`, `insample_size`)
         ):
+        """MinTrace Reconciliation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `y_insample`: Insample values of size (`base`, `insample_size`).<br>
+        `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
+
+        """
         return min_trace(S=S, y_hat=y_hat, 
                          y_insample=y_insample,
                          y_hat_insample=y_hat_insample,
@@ -339,7 +443,27 @@ def optimal_combination(S: np.ndarray,
 
 # %% ../nbs/methods.ipynb 40
 class OptimalCombination:
+    """Optimal Combination Reconciliation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+    This reconciliation algorithm was proposed by Hyndman et al. 2011, the method uses generalized least squares 
+    estimator using the coherency errors covariance matrix. Consider the covariance of the base forecast 
+    $\textrm{Var}(\epsilon_{h}) = \Sigma_{h}$, the $\mathbf{P}$ matrix of this method is defined by:
+
+    $$ \mathbf{P} = \left(\mathbf{S}^{\intercal}\Sigma_{h}^{\dagger}\mathbf{S}\right)^{-1}\mathbf{S}^{\intercal}\Sigma^{\dagger}_{h}$$
+
+    where $\Sigma_{h}^{\dagger}$ denotes the variance pseudo-inverse. The method was later proven equivalent to 
+    `MinTrace` variants.
+
+    **Parameters:**<br>
+    `method`: Allowed Optimal Combination Methods: 'ols', 'wls_struct'.<br>
     
+    **References:**<br>
+    - [Rob J. Hyndman, Roman A. Ahmed, George Athanasopoulos, Han Lin Shang. "Optimal Combination Forecasts for 
+    Hierarchical Time Series" (2010).](https://robjhyndman.com/papers/Hierarchical6.pdf).<br>
+    - [Shanika L. Wickramasuriya, George Athanasopoulos and Rob J. Hyndman. "Optimal Combination Forecasts for 
+    Hierarchical Time Series" (2010).](https://robjhyndman.com/papers/MinT.pdf).
+    """
     def __init__(
             self, 
             method: str # Allowed Optimal Combination Methods: 'ols', 'wls_struct'
@@ -357,6 +481,16 @@ class OptimalCombination:
             y_insample: np.ndarray = None, # Insample values of size (`base`, `insample_size`)
             y_hat_insample: np.ndarray = None # Insample forecasts of size (`base`, `insample_size`)
         ):
+        """Optimal Combination Reconciliation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `y_insample`: Insample values of size (`base`, `insample_size`).<br>
+        `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
+
+        """
         return optimal_combination(S=S, 
                                    y_hat=y_hat, 
                                    y_insample=y_insample, 
@@ -443,7 +577,32 @@ def erm(S: np.ndarray,
 
 # %% ../nbs/methods.ipynb 48
 class ERM:
+    """Optimal Combination Reconciliation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+
+    The Empirical Risk Minimization reconciliation strategy relaxes the unbiasedness assumptions from
+    previous reconciliation methods like MinT and optimizes square errors between the reconciled predictions
+    and the validation data to obtain an optimal reconciliation matrix P.
+
+    The exact solution for $\mathbf{P}$ (`method='closed'`) follows the expression:
+
+    $$\mathbf{P}^{*} = \left(\mathbf{S}^{\intercal}\mathbf{S}\right)^{-1}\mathbf{Y}^{\intercal}\hat{\mathbf{Y}}\left(\hat{\mathbf{Y}}\hat{\mathbf{Y}}\right)^{-1}$$
+
+    The alternative Lasso regularized $\mathbf{P}$ solution (`method='reg_bu'`) is useful when the observations 
+    of validation data is limited or the exact solution has low numerical stability.
+
+    $$\mathbf{P}^{*} = \text{argmin}_{\mathbf{P}} ||\mathbf{Y}-\mathbf{S} \mathbf{P} \hat{Y} ||^{2}_{2} + \lambda ||\mathbf{P}-\mathbf{P}_{\text{BU}}||_{1}$$
+
+    **Parameters:**<br>
+    `method`: one of `closed`, `reg` and `reg_bu`.<br>
+    `lambda_reg`: l1 regularizer for `reg` and `reg_bu`.<br>
     
+    **References:**<br>
+    - [Ben Taieb, S., & Koo, B. (2019). Regularized regression for hierarchical forecasting without 
+    unbiasedness conditions. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge 
+    Discovery & Data Mining KDD '19 (p. 1337{1347). New York, NY, USA: Association for Computing Machinery.]
+    (https://doi.org/10.1145/3292500.3330976).<br>
+    """
     def __init__(
             self, 
             method: str, # one of `closed`, `reg` and `reg_bu`
