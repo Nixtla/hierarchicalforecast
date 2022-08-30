@@ -42,7 +42,7 @@ def aggregate(
     """
     max_len_idx = np.argmax([len(hier) for hier in spec])
     bottom_comb = spec[max_len_idx]
-    orig_cols = df.drop(labels=['ds', 'y'], axis=1).columns.to_list()
+    #orig_cols = df.drop(labels=['ds', 'y'], axis=1).columns.to_list()
     df_hiers = []
     for hier in spec:
         df_hier = df.groupby(hier + ['ds'])['y'].apply(agg_fn).reset_index()

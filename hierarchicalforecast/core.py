@@ -4,9 +4,8 @@
 __all__ = ['HierarchicalReconciliation']
 
 # %% ../nbs/core.ipynb 2
-from functools import partial
 from inspect import signature
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 import numpy as np
 import pandas as pd

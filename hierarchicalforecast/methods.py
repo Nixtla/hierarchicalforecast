@@ -6,7 +6,7 @@ __all__ = ['BottomUp', 'TopDown', 'MiddleOut', 'MinTrace', 'OptimalCombination',
 # %% ../nbs/methods.ipynb 2
 from collections import OrderedDict
 from copy import deepcopy
-from typing import Dict, List, Union
+from typing import Dict, List
 
 import numpy as np
 from numba import njit
@@ -19,7 +19,7 @@ def _reconcile(S: np.ndarray, P: np.ndarray, W: np.ndarray,
         SP = S @ P
     return np.matmul(SP, y_hat)
 
-# %% ../nbs/methods.ipynb 5
+# %% ../nbs/methods.ipynb 6
 def bottom_up(S: np.ndarray,
               y_hat: np.ndarray,
               idx_bottom: List[int]):
@@ -30,7 +30,7 @@ def bottom_up(S: np.ndarray,
     W = np.eye(n_hiers, dtype=np.float32)
     return _reconcile(S, P, W, y_hat)
 
-# %% ../nbs/methods.ipynb 6
+# %% ../nbs/methods.ipynb 7
 class BottomUp:
     """Bottom Up Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -39,7 +39,7 @@ class BottomUp:
     the first time by Orcutt in 1968.
     The corresponding hierarchical "projection" matrix is defined as:
 
-    $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
+    $$\mathbf{P}_{\\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
 
     
     **Parameters:**<br>
@@ -69,7 +69,7 @@ class BottomUp:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 13
+# %% ../nbs/methods.ipynb 12
 def is_strictly_hierarchical(S: np.ndarray, 
                              levels: Dict[str, np.ndarray]):
     # main idea:
@@ -87,9 +87,8 @@ def is_strictly_hierarchical(S: np.ndarray,
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
-# %% ../nbs/methods.ipynb 15
+# %% ../nbs/methods.ipynb 14
 def _get_child_nodes(S: np.ndarray, levels: Dict[str, np.ndarray]):
-    childs = {}
     level_names = list(levels.keys())
     nodes = OrderedDict()
     for i_level, level in enumerate(level_names[:-1]):
@@ -106,7 +105,7 @@ def _get_child_nodes(S: np.ndarray, levels: Dict[str, np.ndarray]):
         nodes[level] = nodes_level
     return nodes        
 
-# %% ../nbs/methods.ipynb 16
+# %% ../nbs/methods.ipynb 15
 def _reconcile_fcst_proportions(S: np.ndarray, y_hat: np.ndarray,
                                 levels: Dict[str, np.ndarray],
                                 nodes: Dict[str, Dict[int, np.ndarray]],
@@ -211,7 +210,7 @@ class TopDown:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 24
+# %% ../nbs/methods.ipynb 23
 def middle_out(S: np.ndarray, 
                y_hat: np.ndarray,
                y_insample: np.ndarray,
@@ -277,7 +276,7 @@ def middle_out(S: np.ndarray,
     return reconciled
         
 
-# %% ../nbs/methods.ipynb 25
+# %% ../nbs/methods.ipynb 24
 class MiddleOut:
     """Middle Out Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -324,11 +323,11 @@ class MiddleOut:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 31
+# %% ../nbs/methods.ipynb 29
 def crossprod(x):
     return x.T @ x
 
-# %% ../nbs/methods.ipynb 32
+# %% ../nbs/methods.ipynb 31
 def min_trace(S: np.ndarray, 
               y_hat: np.ndarray,
               y_insample: np.ndarray,
@@ -377,7 +376,7 @@ def min_trace(S: np.ndarray,
     
     return _reconcile(S, P, W, y_hat)
 
-# %% ../nbs/methods.ipynb 33
+# %% ../nbs/methods.ipynb 32
 class MinTrace:
     """MinTrace Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -387,7 +386,8 @@ class MinTrace:
     minimizes the squared errors for the coherent forecasts under an unbiasedness assumption; the solution has a 
     closed form.<br>
     
-    $$\mathbf{P}_{\text{MinT}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1} \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
+    $$\mathbf{P}_{\\text{MinT}}=\\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\\right)^{-1}
+    \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
 
     **Parameters:**<br>
     `method`: One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_co`.<br>
@@ -427,7 +427,7 @@ class MinTrace:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 39
+# %% ../nbs/methods.ipynb 37
 def optimal_combination(S: np.ndarray, 
                         y_hat: np.ndarray,
                         method: str,
@@ -439,7 +439,7 @@ def optimal_combination(S: np.ndarray,
                          y_hat_insample=y_hat_insample,
                          method=method)
 
-# %% ../nbs/methods.ipynb 40
+# %% ../nbs/methods.ipynb 38
 class OptimalCombination:
     """Optimal Combination Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -497,7 +497,7 @@ class OptimalCombination:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 46
+# %% ../nbs/methods.ipynb 42
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -529,7 +529,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 47
+# %% ../nbs/methods.ipynb 44
 def erm(S: np.ndarray,
         y_hat: np.ndarray,
         y_insample: np.ndarray,
@@ -573,7 +573,7 @@ def erm(S: np.ndarray,
     
     return _reconcile(S, P, W, y_hat)
 
-# %% ../nbs/methods.ipynb 48
+# %% ../nbs/methods.ipynb 45
 class ERM:
     """Optimal Combination Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
