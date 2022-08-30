@@ -12,7 +12,12 @@ import pandas as pd
 
 # %% ../nbs/evaluation.ipynb 4
 class HierarchicalEvaluation:
-    
+    """Hierarchical Evaluation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py).
+
+    **Parameters:**<br>
+    `evaluators`: functions with arguments `y`, `y_hat`.<br>
+    """
     def __init__(
             self, 
             evaluators: List[Callable] # functions with arguments `y`, `y_hat` 
@@ -27,6 +32,16 @@ class HierarchicalEvaluation:
             Y_df: Optional[pd.DataFrame] = None,# Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`
             benchmark: Optional[str] = None # If passed, evaluators are scaled by the error of this benchark.
         ):
+        """Hierarchical Evaluation Method.
+        [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py).
+
+        **Parameters:**<br>
+        `Y_h`: Forecasts with columns `['ds']` and models to evaluate.<br>
+        `Y_test`: True values with columns `['ds', 'y']`.<br>
+        `tags`: Each key is a level and its value contains tags associated to that level.<br>
+        `Y_df`: Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`.<br>
+        `benchmark`: If passed, evaluators are scaled by the error of this benchark.<br>
+        """
         drop_cols = ['ds', 'y'] if 'y' in Y_h.columns else ['ds']
         h = len(Y_h.loc[Y_h.index[0]])
         model_names = Y_h.drop(columns=drop_cols, axis=1).columns.to_list()

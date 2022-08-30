@@ -30,8 +30,8 @@ def aggregate(
         spec: List[List[str]], # List of levels. Each element of the list contains a list of columns of `df` to aggregate.
         agg_fn: Callable = np.sum# Function used to aggregate `'y'`.
     ):
-    """Aggregation Class.
-    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
+    """Utils Aggregation Class.
+    [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py).
 
     Aggregates `df` according to `spec` using `agg_fn`.
 
