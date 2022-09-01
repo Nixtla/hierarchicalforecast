@@ -65,7 +65,7 @@ class BottomUp:
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         
         **Returns:**<br>
-        Returns a reconciliated y_hat using the Bottom Up approach.
+        `y_tilde`: Reconciliated y_hat using the Bottom Up approach.
 
         """
         return bottom_up(S=S, y_hat=y_hat, idx_bottom=idx_bottom)
@@ -206,7 +206,7 @@ class TopDown:
         `levels`: Each key is a level and each value its `S` indices.<br>
         
         **Returns:**<br>
-        Returns a reconciliated y_hat using the Top Down approach.
+        `y_tilde`: Reconciliated y_hat using the Top Down approach.
 
         """
         return top_down(S=S, y_hat=y_hat, 
@@ -295,6 +295,11 @@ class MiddleOut:
     `level`: Middle level.<br>
     `top_down_method`: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.<br>
     
+    **References:**<br>
+    - [Hyndman, R.J., & Athanasopoulos, G. (2021). “Forecasting: principles and practice, 3rd edition: 
+    Chapter 11: Forecasting hierarchical and grouped series.”. OTexts: Melbourne, Australia. OTexts.com/fpp3 
+    Accessed on July 2022.](https://otexts.com/fpp3/hierarchical.html)
+    
     """
     def __init__(
             self, 
@@ -321,7 +326,7 @@ class MiddleOut:
         `levels`: Each key is a level and each value its `S` indices.<br>
         
         **Returns:**<br>
-        Returns a reconciliated y_hat using the Middle Out approach.
+        `y_tilde`: Reconciliated y_hat using the Middle Out approach.
 
         """
         return middle_out(S=S, y_hat=y_hat, 
@@ -332,11 +337,11 @@ class MiddleOut:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 29
+# %% ../nbs/methods.ipynb 28
 def crossprod(x):
     return x.T @ x
 
-# %% ../nbs/methods.ipynb 31
+# %% ../nbs/methods.ipynb 30
 def min_trace(S: np.ndarray, 
               y_hat: np.ndarray,
               y_insample: np.ndarray,
@@ -385,7 +390,7 @@ def min_trace(S: np.ndarray,
     
     return _reconcile(S, P, W, y_hat)
 
-# %% ../nbs/methods.ipynb 32
+# %% ../nbs/methods.ipynb 31
 class MinTrace:
     """MinTrace Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -429,7 +434,7 @@ class MinTrace:
         `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
         
         **Returns:**<br>
-        Returns a reconciliated y_hat using the MinTrace approach.
+        `y_tilde`: Reconciliated y_hat using the MinTrace approach.
 
         """
         return min_trace(S=S, y_hat=y_hat, 
@@ -439,7 +444,7 @@ class MinTrace:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 37
+# %% ../nbs/methods.ipynb 36
 def optimal_combination(S: np.ndarray, 
                         y_hat: np.ndarray,
                         method: str,
@@ -451,7 +456,7 @@ def optimal_combination(S: np.ndarray,
                          y_hat_insample=y_hat_insample,
                          method=method)
 
-# %% ../nbs/methods.ipynb 38
+# %% ../nbs/methods.ipynb 37
 class OptimalCombination:
     """Optimal Combination Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -501,7 +506,7 @@ class OptimalCombination:
         `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
         
         **Returns:**<br>
-        Returns a reconciliated y_hat using the Optimal Combination approach.
+        `y_tilde`: Reconciliated y_hat using the Optimal Combination approach.
 
         """
         return optimal_combination(S=S, 
@@ -512,7 +517,7 @@ class OptimalCombination:
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 42
+# %% ../nbs/methods.ipynb 41
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -544,7 +549,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 44
+# %% ../nbs/methods.ipynb 43
 def erm(S: np.ndarray,
         y_hat: np.ndarray,
         y_insample: np.ndarray,
@@ -588,7 +593,7 @@ def erm(S: np.ndarray,
     
     return _reconcile(S, P, W, y_hat)
 
-# %% ../nbs/methods.ipynb 45
+# %% ../nbs/methods.ipynb 44
 class ERM:
     """Optimal Combination Reconciliation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -613,8 +618,7 @@ class ERM:
     **References:**<br>
     - [Ben Taieb, S., & Koo, B. (2019). Regularized regression for hierarchical forecasting without 
     unbiasedness conditions. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge 
-    Discovery & Data Mining KDD '19 (p. 1337{1347). New York, NY, USA: Association for Computing Machinery.]
-    (https://doi.org/10.1145/3292500.3330976).<br>
+    Discovery & Data Mining KDD '19 (p. 1337{1347). New York, NY, USA: Association for Computing Machinery.](https://doi.org/10.1145/3292500.3330976).<br>
     """
     def __init__(
             self, 
@@ -643,7 +647,7 @@ class ERM:
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         
         **Returns:**<br>
-        Returns a reconciliated y_hat using the ERM approach.
+        `y_tilde`: Reconciliated y_hat using the ERM approach.
         """
         return erm(S=S, y_hat=y_hat, 
                    y_insample=y_insample,

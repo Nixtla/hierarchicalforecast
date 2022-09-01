@@ -29,18 +29,16 @@ class HierarchicalReconciliation:
     """
     def __init__(
             self, 
-            reconcilers: List[Callable] # Reconciliation classes of the `methods` module 
+            reconcilers: List[Callable] 
         ):
         self.reconcilers = reconcilers
         
     def reconcile(
             self, 
-            Y_h: pd.DataFrame, # Base forecasts with columns `ds` and models to reconcile indexed by `unique_id`.
-            Y_df: pd.DataFrame, # Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`
-                                # If a class of `self.reconciles` receives
-                                # `y_hat_insample`, `Y_df` must include them as columns.
-            S: pd.DataFrame,    #  Summing matrix of size `(base, bottom)`.
-            tags: Dict[str, np.ndarray] # Each key is a level and its value contains tags associated to that level.
+            Y_h: pd.DataFrame, 
+            Y_df: pd.DataFrame, 
+            S: pd.DataFrame,    
+            tags: Dict[str, np.ndarray] 
         ):
         """Hierarchical Reconciliation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/core.py).
@@ -51,6 +49,9 @@ class HierarchicalReconciliation:
         If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.<br>
         `S`: Summing matrix of size `(base, bottom)`.<br>
         `tags`: Each key is a level and its value contains tags associated to that level.<br>
+        
+        **Parameters:**<br>
+        `y_tilde`: pd.DataFrame, with reconciled predictions.
         """
         drop_cols = ['ds', 'y'] if 'y' in Y_h.columns else ['ds']
         model_names = Y_h.drop(columns=drop_cols, axis=1).columns.to_list()

@@ -20,17 +20,17 @@ class HierarchicalEvaluation:
     """
     def __init__(
             self, 
-            evaluators: List[Callable] # functions with arguments `y`, `y_hat` 
+            evaluators: List[Callable] 
         ):
         self.evaluators = evaluators
         
     def evaluate(
             self, 
-            Y_h: pd.DataFrame, # Forecasts with columns `['ds']` and models to evaluate.
-            Y_test: pd.DataFrame, # True values with columns `['ds', 'y']`
-            tags: Dict[str, np.ndarray], # Each key is a level and its value contains tags associated to that level.
-            Y_df: Optional[pd.DataFrame] = None,# Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`
-            benchmark: Optional[str] = None # If passed, evaluators are scaled by the error of this benchark.
+            Y_h: pd.DataFrame, 
+            Y_test: pd.DataFrame, 
+            tags: Dict[str, np.ndarray], 
+            Y_df: Optional[pd.DataFrame] = None,
+            benchmark: Optional[str] = None 
         ):
         """Hierarchical Evaluation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py).
@@ -41,6 +41,9 @@ class HierarchicalEvaluation:
         `tags`: Each key is a level and its value contains tags associated to that level.<br>
         `Y_df`: Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`.<br>
         `benchmark`: If passed, evaluators are scaled by the error of this benchark.<br>
+        
+        **Returns:**<br>
+        `evaluation`: pd.DataFrame with accuracy measurements across hierarchical levels.
         """
         drop_cols = ['ds', 'y'] if 'y' in Y_h.columns else ['ds']
         h = len(Y_h.loc[Y_h.index[0]])

@@ -26,9 +26,9 @@ def _to_summing_matrix(S_df: pd.DataFrame):
 
 # %% ../nbs/utils.ipynb 5
 def aggregate(
-        df: pd.DataFrame, # DataFrame with columns `['ds', 'y']` and columns to aggregate
-        spec: List[List[str]], # List of levels. Each element of the list contains a list of columns of `df` to aggregate.
-        agg_fn: Callable = np.sum# Function used to aggregate `'y'`.
+        df: pd.DataFrame, 
+        spec: List[List[str]], 
+        agg_fn: Callable = np.sum
     ):
     """Utils Aggregation Class.
     [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py).
@@ -36,9 +36,13 @@ def aggregate(
     Aggregates `df` according to `spec` using `agg_fn`.
 
     **Parameters:**<br>
-    `df`: DataFrame with columns `['ds', 'y']` and columns to aggregate.<br>
+    `df`: pd.DataFrame with columns `['ds', 'y']` and columns to aggregate.<br>
     `spec`: List of levels. Each element of the list contains a list of columns of `df` to aggregate.<br>
     `agg_fn`: Function used to aggregate `'y'`.<br>
+    
+    **Returns:**<br>
+    `y_df, S, tags`: tuple with hierarchically aggregated series, summing matrix, and 
+    hierarchical aggregation indexes.
     """
     max_len_idx = np.argmax([len(hier) for hier in spec])
     bottom_comb = spec[max_len_idx]
