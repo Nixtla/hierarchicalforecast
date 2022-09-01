@@ -52,9 +52,9 @@ class BottomUp:
     
     def reconcile(
             self,
-            S: np.ndarray, # Summing matrix of size (`base`, `bottom`)
-            y_hat: np.ndarray, # Forecast values of size (`base`, `horizon`)
-            idx_bottom: np.ndarray # Indices corresponding to the bottom level of `S`, size (`bottom`)
+            S: np.ndarray, 
+            y_hat: np.ndarray, 
+            idx_bottom: np.ndarray
         ):
         """Bottom Up Reconciliation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -182,16 +182,16 @@ class TopDown:
     """
     def __init__(
             self, 
-            method: str # One of `forecast_proportions`, `average_proportions` and `proportion_averages`
+            method: str 
         ):
         self.method = method
     
     def reconcile(
             self, 
-            S: np.ndarray, # Summing matrix of size (`base`, `bottom`)
-            y_hat: np.ndarray, # Forecast values of size (`base`, `horizon`)
-            y_insample: np.ndarray, # Insample values of size (`base`, `insample_size`)
-            levels: Dict[str, np.ndarray] # Each key is a level and each value its `S` indices
+            S: np.ndarray, 
+            y_hat: np.ndarray, 
+            y_insample: np.ndarray, 
+            levels: Dict[str, np.ndarray] 
         ):
         """Top Down Reconciliation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -292,18 +292,18 @@ class MiddleOut:
     """
     def __init__(
             self, 
-            level: str, # Middle level 
-            top_down_method: str # One of `forecast_proportions`, `average_proportions` and `proportion_averages`
+            level: str, 
+            top_down_method: str 
         ):
         self.level = level
         self.top_down_method = top_down_method 
     
     def reconcile(
             self, 
-            S: np.ndarray, # Summing matrix of size (`base`, `bottom`)
-            y_hat: np.ndarray, # Forecast values of size (`base`, `horizon`)
-            y_insample: np.ndarray, # Insample values of size (`base`, `insample_size`)
-            levels: Dict[str, np.ndarray] # Each key is a level and each value its `S` indices
+            S: np.ndarray, 
+            y_hat: np.ndarray,
+            y_insample: np.ndarray, 
+            levels: Dict[str, np.ndarray] 
         ):
         """Middle Out Reconciliation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -399,16 +399,16 @@ class MinTrace:
     """
     def __init__(
             self, 
-            method: str # One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_co`
+            method: str 
         ):
         self.method = method
         
     def reconcile(
             self, 
-            S: np.ndarray, # Summing matrix of size (`base`, `bottom`)
-            y_hat: np.ndarray, # Forecast values of size (`base`, `horizon`)
-            y_insample: np.ndarray, # Insample values of size (`base`, `insample_size`)
-            y_hat_insample: np.ndarray # Insample forecasts of size (`base`, `insample_size`)
+            S: np.ndarray, 
+            y_hat: np.ndarray, 
+            y_insample: np.ndarray, 
+            y_hat_insample: np.ndarray 
         ):
         """MinTrace Reconciliation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -464,7 +464,7 @@ class OptimalCombination:
     """
     def __init__(
             self, 
-            method: str # Allowed Optimal Combination Methods: 'ols', 'wls_struct'
+            method: str
         ):
         comb_methods = ['ols', 'wls_struct']
         if method not in comb_methods:
@@ -474,10 +474,10 @@ class OptimalCombination:
     
     def reconcile(
             self,
-            S: np.ndarray, # Summing matrix of size (`base`, `bottom`)
-            y_hat: np.ndarray, # Forecast values of size (`base`, `horizon`)
-            y_insample: np.ndarray = None, # Insample values of size (`base`, `insample_size`)
-            y_hat_insample: np.ndarray = None # Insample forecasts of size (`base`, `insample_size`)
+            S: np.ndarray, 
+            y_hat: np.ndarray, 
+            y_insample: np.ndarray = None, 
+            y_hat_insample: np.ndarray = None 
         ):
         """Optimal Combination Reconciliation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
@@ -603,19 +603,19 @@ class ERM:
     """
     def __init__(
             self, 
-            method: str, # one of `closed`, `reg` and `reg_bu`
-            lambda_reg: float = 1e-2 # l1 regularizer for `reg` and `reg_bu`
+            method: str, 
+            lambda_reg: float = 1e-2 
         ):
         self.method = method
         self.lambda_reg = lambda_reg
         
     def reconcile(
             self, 
-            S: np.ndarray, # Summing matrix of size (`base`, `bottom`)
-            y_hat: np.ndarray, # Forecast values of size (`base`, `horizon`)
-            y_insample: np.ndarray, # Insample values of size (`base`, `insample_size`)
-            y_hat_insample: np.ndarray, # Insample forecasts of size (`base`, `insample_size`)
-            idx_bottom: np.ndarray # Indices corresponding to the bottom level of `S`, size (`bottom`)
+            S: np.ndarray, 
+            y_hat: np.ndarray, 
+            y_insample: np.ndarray, 
+            y_hat_insample: np.ndarray, 
+            idx_bottom: np.ndarray 
         ):
         """ERM Reconciliation Method.
         [Source code](https://github.com/dluuo/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py).
