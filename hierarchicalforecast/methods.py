@@ -63,6 +63,9 @@ class BottomUp:
         `S`: Summing matrix of size (`base`, `bottom`).<br>
         `y_hat`: Forecast values of size (`base`, `horizon`).<br>
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        
+        **Returns:**<br>
+        Returns a reconciliated y_hat using the Bottom Up approach.
 
         """
         return bottom_up(S=S, y_hat=y_hat, idx_bottom=idx_bottom)
@@ -201,6 +204,9 @@ class TopDown:
         `y_hat`: Forecast values of size (`base`, `horizon`).<br>
         `y_insample`: Insample values of size (`base`, `insample_size`).<br>
         `levels`: Each key is a level and each value its `S` indices.<br>
+        
+        **Returns:**<br>
+        Returns a reconciliated y_hat using the Top Down approach.
 
         """
         return top_down(S=S, y_hat=y_hat, 
@@ -313,6 +319,9 @@ class MiddleOut:
         `y_hat`: Forecast values of size (`base`, `horizon`).<br>
         `y_insample`: Insample values of size (`base`, `insample_size`).<br>
         `levels`: Each key is a level and each value its `S` indices.<br>
+        
+        **Returns:**<br>
+        Returns a reconciliated y_hat using the Middle Out approach.
 
         """
         return middle_out(S=S, y_hat=y_hat, 
@@ -418,6 +427,9 @@ class MinTrace:
         `y_hat`: Forecast values of size (`base`, `horizon`).<br>
         `y_insample`: Insample values of size (`base`, `insample_size`).<br>
         `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
+        
+        **Returns:**<br>
+        Returns a reconciliated y_hat using the MinTrace approach.
 
         """
         return min_trace(S=S, y_hat=y_hat, 
@@ -487,6 +499,9 @@ class OptimalCombination:
         `y_hat`: Forecast values of size (`base`, `horizon`).<br>
         `y_insample`: Insample values of size (`base`, `insample_size`).<br>
         `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
+        
+        **Returns:**<br>
+        Returns a reconciliated y_hat using the Optimal Combination approach.
 
         """
         return optimal_combination(S=S, 
@@ -626,6 +641,9 @@ class ERM:
         `y_insample`: Insample values of size (`base`, `insample_size`).<br>
         `y_hat_insample`: Insample forecasts of size (`base`, `insample_size`).<br>
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        
+        **Returns:**<br>
+        Returns a reconciliated y_hat using the ERM approach.
         """
         return erm(S=S, y_hat=y_hat, 
                    y_insample=y_insample,
