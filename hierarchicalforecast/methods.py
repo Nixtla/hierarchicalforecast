@@ -296,8 +296,8 @@ class MiddleOut:
     `top_down_method`: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.<br>
     
     **References:**<br>
-    - [Hyndman, R.J., & Athanasopoulos, G. (2021). “Forecasting: principles and practice, 3rd edition: 
-    Chapter 11: Forecasting hierarchical and grouped series.”. OTexts: Melbourne, Australia. OTexts.com/fpp3 
+    - [Hyndman, R.J., & Athanasopoulos, G. (2021). "Forecasting: principles and practice, 3rd edition: 
+    Chapter 11: Forecasting hierarchical and grouped series.". OTexts: Melbourne, Australia. OTexts.com/fpp3 
     Accessed on July 2022.](https://otexts.com/fpp3/hierarchical.html)
     
     """
