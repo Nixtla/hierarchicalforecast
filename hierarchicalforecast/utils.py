@@ -65,7 +65,7 @@ def _to_summing_matrix(S_df: pd.DataFrame):
     return S, tags
 
 # %% ../nbs/utils.ipynb 7
-def _to_summing_dataframe(Y_bottom_df: pd.DataFrame,
+def _to_summing_dataframe(df: pd.DataFrame,
                           spec: List[List[str]]):
     #------------------------------- Wrangling -----------------------------#
     # Keep unique levels, preserving first aparison order
@@ -73,7 +73,7 @@ def _to_summing_dataframe(Y_bottom_df: pd.DataFrame,
     all_levels = [*dict.fromkeys(all_levels)]
 
     # Create hierarchical labels
-    S_df = Y_bottom_df[all_levels].copy()
+    S_df = df[all_levels].copy()
     S_df = S_df.drop_duplicates()
 
     max_len_idx = np.argmax([len(hier) for hier in spec])
@@ -83,7 +83,7 @@ def _to_summing_dataframe(Y_bottom_df: pd.DataFrame,
         if hier == bottom_comb:
             hier_col = 'unique_id'
             bottom_col = '/'.join(hier)
-            Y_bottom_df['unique_id'] = Y_bottom_df[hier].agg('/'.join, axis=1)
+            df['unique_id'] = df[hier].agg('/'.join, axis=1)
         else:
             hier_col = '/'.join(hier) 
         S_df[hier_col] = S_df[hier].agg('/'.join, axis=1)
@@ -107,12 +107,11 @@ def _to_summing_dataframe(Y_bottom_df: pd.DataFrame,
     S_df = pd.DataFrame(S, columns=bottom_ids,
                         index=list(chain(*categories))+bottom_ids)
 
-    print('S_df.shape', S_df.shape)
-    assert 1<0
-
-    # Match index ordering of S_df and Y_bottom_df
+    # Match index ordering of S_df and collapse df to Y_bottom_df
+    Y_bottom_df = df.copy()
     Y_bottom_df.unique_id = Y_bottom_df.unique_id.astype('category')
     Y_bottom_df.unique_id = Y_bottom_df.unique_id.cat.set_categories(S_df.columns)
+    Y_bottom_df = Y_bottom_df.groupby(['unique_id', 'ds'])['y'].sum().reset_index()
     return Y_bottom_df, S_df, tags
 
 # %% ../nbs/utils.ipynb 9
@@ -176,9 +175,8 @@ def aggregate(df: pd.DataFrame,
     summing dataframe `S_df`, and hierarchical aggregation indexes `tags`.
     """
     #-------------------------------- Wrangling --------------------------------#
-    # Y_bottom_df's unique_id enrichment, and constraints S_df
-    Y_bottom_df, S_df, tags = _to_summing_dataframe(Y_bottom_df=df,
-                                                    spec=spec)
+    # constraints S_df and collapsed Y_bottom_df with 'unique_id'
+    Y_bottom_df, S_df, tags = _to_summing_dataframe(df=df, spec=spec)
 
     # Create balanced/sorted dataset for numpy aggregation (nan=0)
     # TODO: investigate potential memory speed tradeoff
@@ -201,7 +199,9 @@ def aggregate(df: pd.DataFrame,
     #------------------------------- Aggregation -------------------------------#
     n_agg = S_df.shape[0] - S_df.shape[1]
     Agg = S_df.values[:n_agg, :]
-    y_bottom = balanced_df.y.values.reshape(len(S_df.columns), len(dates))
+    y_bottom = balanced_df.y.values
+
+    y_bottom = y_bottom.reshape(len(S_df.columns), len(dates))
     y_agg = Agg @ y_bottom
 
     # Create long format hierarchical dataframe
