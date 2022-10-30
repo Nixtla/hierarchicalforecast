@@ -5,6 +5,7 @@ __all__ = ['aggregate', 'HierarchicalPlot']
 
 # %% ../nbs/utils.ipynb 2
 import sys
+import timeit
 from itertools import chain
 from typing import Callable, Dict, List, Optional
 
@@ -18,6 +19,39 @@ from mycolorpy import colorlist as mcp
 plt.rcParams['font.family'] = 'serif'
 
 # %% ../nbs/utils.ipynb 4
+class CodeTimer:
+    def __init__(self, name=None, verbose=True):
+        self.name = " '"  + name + "'" if name else ''
+        self.verbose = verbose
+
+    def __enter__(self):
+        self.start = timeit.default_timer()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.took = (timeit.default_timer() - self.start)
+        if self.verbose:
+            print('Code block' + self.name + \
+                  ' took:\t{0:.5f}'.format(self.took) + ' seconds')
+
+# %% ../nbs/utils.ipynb 5
+def numpy_balance(*arrs):
+    """
+    Fast NumPy implementation of balance function.
+    The function creates all the interactions between
+    the NumPy arrays provided.
+
+    **Parameters:**<br>
+    `arrs`: NumPy arrays.<br>
+
+    **Returns:**<br>
+    `out`: NumPy array.<br>
+    """
+    N = len(arrs)
+    out =  np.transpose(np.meshgrid(*arrs, indexing='ij'),
+                        np.roll(np.arange(N + 1), -1)).reshape(-1, N)
+    return out
+
+# %% ../nbs/utils.ipynb 6
 def _to_summing_matrix(S_df: pd.DataFrame):
     """Transforms the DataFrame `df` of hierarchies to a summing matrix S."""
     categories = [S_df[col].unique() for col in S_df.columns]
@@ -30,8 +64,56 @@ def _to_summing_matrix(S_df: pd.DataFrame):
     tags = dict(zip(S_df.columns, categories))
     return S, tags
 
-# %% ../nbs/utils.ipynb 6
-def aggregate(df: pd.DataFrame,
+# %% ../nbs/utils.ipynb 7
+def _to_summing_dataframe(Y_bottom_df: pd.DataFrame,
+                          spec: List[List[str]]):
+    #------------------------------- Wrangling -----------------------------#
+    # Keep unique levels, preserving first aparison order
+    all_levels = list(chain.from_iterable(spec))
+    all_levels = [*dict.fromkeys(all_levels)]
+
+    # Create hierarchical labels
+    S_df = Y_bottom_df[all_levels].copy()
+    S_df = S_df.drop_duplicates()
+
+    max_len_idx = np.argmax([len(hier) for hier in spec])
+    bottom_comb = spec[max_len_idx]
+    hiers_cols = []
+    for hier in spec:
+        if hier == bottom_comb:
+            hier_col = 'unique_id'
+            bottom_col = '/'.join(hier)
+            Y_bottom_df['unique_id'] = Y_bottom_df[hier].agg('/'.join, axis=1)
+        else:
+            hier_col = '/'.join(hier) 
+        S_df[hier_col] = S_df[hier].agg('/'.join, axis=1)
+        hiers_cols.append(hier_col)
+    S_df = S_df.sort_values(by=bottom_comb)
+    S_df = S_df[hiers_cols]
+
+    #------------------------------- Encoding ------------------------------#
+    # One hot encode only aggregate levels
+    # TODO: option to only operate with sparse matrices
+    bottom_ids = list(S_df.unique_id)
+    del S_df['unique_id']
+    categories = [S_df[col].unique() for col in S_df.columns]
+    tags = dict(zip(S_df.columns, categories))
+    tags[bottom_col] = bottom_ids
+
+    encoder = OneHotEncoder(categories=categories,
+                            sparse=False, dtype=np.float32)
+    S = encoder.fit_transform(S_df).T
+    S = np.concatenate([S, np.eye(len(bottom_ids))], axis=0)
+    S_df = pd.DataFrame(S, columns=bottom_ids,
+                        index=list(chain(*categories))+bottom_ids)
+
+    # Match index ordering of S_df and Y_bottom_df
+    Y_bottom_df.unique_id = Y_bottom_df.unique_id.astype('category')
+    Y_bottom_df.unique_id = Y_bottom_df.unique_id.cat.set_categories(S_df.columns)
+    return Y_bottom_df, S_df, tags
+
+# %% ../nbs/utils.ipynb 9
+def aggregate_before(df: pd.DataFrame,
               spec: List[List[str]],
               agg_fn: Callable = np.sum):
     """Utils Aggregation Function.
@@ -73,6 +155,63 @@ def aggregate(df: pd.DataFrame,
     return Y_df, S, tags
 
 # %% ../nbs/utils.ipynb 10
+def aggregate(df: pd.DataFrame,
+              spec: List[List[str]],
+              is_balanced: bool=False):
+    """ Utils Aggregation Function.
+
+    Aggregates bottom level series contained in the pd.DataFrame `df` according 
+    to levels defined in the `spec` list applying the `agg_fn` (sum, mean).
+
+    **Parameters:**<br>
+    `df`: pd.DataFrame with columns `['ds', 'y']` and columns to aggregate.<br>
+    `spec`: List of levels. Each element of the list contains a list of columns of `df` to aggregate.<br>
+    `is_balanced`: bool=False, wether `Y_bottom_df` is balanced, if not we balance.<br>
+
+    **Returns:**<br>
+    `Y_df, S_df, tags`: tuple with hierarchically structured series `Y_df` ($\mathbf{y}_{[a,b]}$),
+    summing dataframe `S_df`, and hierarchical aggregation indexes `tags`.
+    """
+    #-------------------------------- Wrangling --------------------------------#
+    # Y_bottom_df's unique_id enrichment, and constraints S_df
+    Y_bottom_df, S_df, tags = _to_summing_dataframe(Y_bottom_df=df,
+                                                    spec=spec)
+
+    # Create balanced/sorted dataset for numpy aggregation (nan=0)
+    # TODO: investigate potential memory speed tradeoff
+    if not is_balanced:
+        dates         = Y_bottom_df['ds'].unique()
+        balanced_prod = numpy_balance(S_df.columns, dates)
+        balanced_df   = pd.DataFrame(balanced_prod, columns=['unique_id', 'ds'])
+        balanced_df['ds'] = balanced_df['ds'].astype(Y_bottom_df['ds'].dtype)
+
+        Y_bottom_df.set_index(['unique_id', 'ds'], inplace=True)
+        balanced_df.set_index(['unique_id', 'ds'], inplace=True)
+        balanced_df   = balanced_df.merge(Y_bottom_df[['y']],
+                                          how='left', left_on=['unique_id', 'ds'],
+                                          right_index=True).reset_index()
+        balanced_df['y'].fillna(0, inplace=True)
+        Y_bottom_df.reset_index(inplace=True)
+    else:
+        balanced_df = Y_bottom_df.copy()
+
+    #------------------------------- Aggregation -------------------------------#
+    n_agg = S_df.shape[0] - S_df.shape[1]
+    Agg = S_df.values[:n_agg, :]
+    y_bottom = balanced_df.y.values.reshape(len(S_df.columns), len(dates))
+    y_agg = Agg @ y_bottom
+
+    # Create long format hierarchical dataframe
+    y_agg = y_agg.flatten()
+    y_bottom = y_bottom.flatten()
+    Y_df = pd.DataFrame(dict(
+                unique_id = np.repeat(S_df.index, len(dates)),
+                ds = np.tile(dates, len(S_df.index)),
+                y = np.concatenate([y_agg, y_bottom], axis=0)))
+    Y_df = Y_df.set_index('unique_id')
+    return Y_df, S_df, tags
+
+# %% ../nbs/utils.ipynb 15
 class HierarchicalPlot:
     """ Hierarchical Plot
 
@@ -87,7 +226,7 @@ class HierarchicalPlot:
     def __init__(self,
                  S: pd.DataFrame,
                  tags: Dict[str, np.ndarray]):
-        self.S = S
+        self.S_df = S
         self.tags = tags
 
     def plot_summing_matrix(self):
@@ -97,7 +236,7 @@ class HierarchicalPlot:
         constraints matrix $\mathbf{S}$.
         """
         plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor='w')
-        plt.spy(self.S)
+        plt.spy(self.S_df)
         plt.show()
         plt.close()
 
@@ -118,7 +257,7 @@ class HierarchicalPlot:
         **Returns:**<br>
         Single series plot with filtered models and prediction interval level.<br><br>
         """
-        if series not in self.S.index:
+        if series not in self.S_df.index:
             raise Exception(f'time series {series} not found')
         fig, ax = plt.subplots(1, 1, figsize = (20, 7))
         df_plot = Y_df.loc[series].set_index('ds')
@@ -171,9 +310,9 @@ class HierarchicalPlot:
         Collection of hierarchilly linked series plots associated with the `bottom_series`
         and filtered models and prediction interval level.<br><br>
         """
-        if bottom_series not in self.S.columns:
+        if bottom_series not in self.S_df.columns:
             raise Exception(f'bottom time series {bottom_series} not found')
-        linked_series = self.S[bottom_series].loc[lambda x: x == 1.].index
+        linked_series = self.S_df[bottom_series].loc[lambda x: x == 1.].index
         fig, axs = plt.subplots(len(linked_series), 1, figsize=(20, 2 * len(linked_series)))
         cols = models if models is not None else Y_df.drop(['ds'], axis=1)
         cols_wo_levels = [col for col in cols if ('lo' not in col and 'hi' not in col)]
@@ -219,8 +358,8 @@ class HierarchicalPlot:
     def plot_hierarchical_predictions_gap(self,
                                           Y_df: pd.DataFrame,
                                           models: Optional[List[str]] = None,
-                                          xlabel: Optional=None,
-                                          ylabel: Optional=None,
+                                          xlabel: Optional[str]=None,
+                                          ylabel: Optional[str]=None,
                                           ):
         """ Hierarchically Predictions Gap plot
 
@@ -244,7 +383,7 @@ class HierarchicalPlot:
         fig, ax = plt.subplots(figsize=(8, 5))
         
         if 'y' in Y_df.columns:
-            idx_top = S.sum(axis=1).idxmax()
+            idx_top = self.S_df.sum(axis=1).idxmax()
             y_plot = Y_df.loc[idx_top].y.values
             plt.plot(horizon_dates, y_plot, label='True')
 

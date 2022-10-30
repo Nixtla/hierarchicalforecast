@@ -203,8 +203,8 @@ class PERMBU:
         temp = array.argsort(axis=1)
         ranks = np.empty_like(temp)
         a_range = np.arange(temp.shape[1])
-        for iRow in range(temp.shape[0]):
-            ranks[iRow, temp[iRow,:]] = a_range
+        for i_row in range(temp.shape[0]):
+            ranks[i_row, temp[i_row,:]] = a_range
         return ranks
 
     def _permutate_samples(self, samples, permutations):
