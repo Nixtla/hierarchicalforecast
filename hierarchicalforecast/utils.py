@@ -107,6 +107,9 @@ def _to_summing_dataframe(Y_bottom_df: pd.DataFrame,
     S_df = pd.DataFrame(S, columns=bottom_ids,
                         index=list(chain(*categories))+bottom_ids)
 
+    print('S_df.shape', S_df.shape)
+    assert 1<0
+
     # Match index ordering of S_df and Y_bottom_df
     Y_bottom_df.unique_id = Y_bottom_df.unique_id.astype('category')
     Y_bottom_df.unique_id = Y_bottom_df.unique_id.cat.set_categories(S_df.columns)
