@@ -10,5 +10,6 @@ dependencies:
   - pip
   - pip:
     - nbdev
+    - tqdm
     - mycolorpy
     - quadprog
