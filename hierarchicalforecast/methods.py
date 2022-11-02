@@ -11,6 +11,7 @@ from typing import Callable, Dict, List, Optional
 
 import numpy as np
 from numba import njit
+from scipy import sparse
 from quadprog import solve_qp
 
 # %% ../nbs/methods.ipynb 5
@@ -20,11 +21,16 @@ def _reconcile(S: np.ndarray,
                y_hat: np.ndarray,
                SP: np.ndarray = None,
                level: Optional[List[int]] = None,
-               sampler: Optional[Callable] = None):
+               sampler: Optional[Callable] = None,
+               sparsity: Optional[bool] = False):
 
     # Mean reconciliation
-    res = {'mean': np.matmul(S @ P, y_hat)}
-    sampler_name = type(sampler).__name__
+    if sparsity:
+        S = sparse.csc_matrix(S)
+        P = sparse.csc_matrix(P)
+        res = {'mean': S.dot(P.dot(y_hat))}
+    else:
+        res = {'mean': np.matmul(S @ P, y_hat)}
 
     # Probabilistic reconciliation
     # TODO: instantiate the samplers after mean reconciliation.
@@ -33,6 +39,7 @@ def _reconcile(S: np.ndarray,
     # I suggest to do it in `core.HierarchicalForecast.reconcile`
     # after this call `fcsts_model = reconcile_fn(y_hat=y_hat_model, **kwargs)`
 
+    sampler_name = type(sampler).__name__
     if level is not None and \
         sampler_name in ['Normality', 'Bootstrap', 'PERMBU']:
 
@@ -71,7 +78,8 @@ class BottomUp:
                   y_hat: np.ndarray,
                   idx_bottom: np.ndarray,
                   level: Optional[List[int]] = None,
-                  sampler: Optional[Callable] = None):
+                  sampler: Optional[Callable] = None,
+                  sparsity: Optional[bool] = True):
         """Bottom Up Reconciliation Method.
 
         **Parameters:**<br>
@@ -80,6 +88,7 @@ class BottomUp:
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         `level`: float list 0-100, confidence levels for prediction intervals.<br>
         `sampler`: Sampler for prediction intevals, one of Normality(), Bootstrap(), PERMBU().<br>
+        `sparsity`: bool=True, wether or not use sparse matrix computations.<br>
 
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the Bottom Up approach.
@@ -90,11 +99,11 @@ class BottomUp:
         P = P.T
         W = np.eye(n_hiers, dtype=np.float32)
         return _reconcile(S, P, W, y_hat, level=level, 
-                          sampler=sampler)
+                          sampler=sampler, sparsity=sparsity)
     
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 16
+# %% ../nbs/methods.ipynb 18
 def is_strictly_hierarchical(S: np.ndarray, 
                              tags: Dict[str, np.ndarray]):
     # main idea:
@@ -112,7 +121,7 @@ def is_strictly_hierarchical(S: np.ndarray,
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
-# %% ../nbs/methods.ipynb 18
+# %% ../nbs/methods.ipynb 20
 def _get_child_nodes(S: np.ndarray, tags: Dict[str, np.ndarray]):
     level_names = list(tags.keys())
     nodes = OrderedDict()
@@ -128,9 +137,9 @@ def _get_child_nodes(S: np.ndarray, tags: Dict[str, np.ndarray]):
             idx_node, = np.where(idx_node.sum(axis=1) > 0)
             nodes_level[idx_parent_node] = [idx for idx in idx_child if idx in idx_node]
         nodes[level] = nodes_level
-    return nodes        
+    return nodes
 
-# %% ../nbs/methods.ipynb 20
+# %% ../nbs/methods.ipynb 22
 def _reconcile_fcst_proportions(S: np.ndarray, y_hat: np.ndarray,
                                 tags: Dict[str, np.ndarray],
                                 nodes: Dict[str, Dict[int, np.ndarray]],
@@ -147,7 +156,7 @@ def _reconcile_fcst_proportions(S: np.ndarray, y_hat: np.ndarray,
                 reconciled[idx_child] = y_hat[idx_child] * fcst_parent / childs_sum
     return reconciled
 
-# %% ../nbs/methods.ipynb 21
+# %% ../nbs/methods.ipynb 23
 class TopDown:
     """Top Down Reconciliation Class.
 
@@ -177,7 +186,8 @@ class TopDown:
                   tags: Dict[str, np.ndarray],
                   y_insample: Optional[np.ndarray] = None,
                   level: Optional[List[int]] = None,
-                  sampler: Optional[np.ndarray] = None):
+                  sampler: Optional[np.ndarray] = None,
+                  sparsity: Optional[bool] = True):
         """Top Down Reconciliation Method.
 
         **Parameters:**<br>
@@ -188,6 +198,7 @@ class TopDown:
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         `level`: float list 0-100, confidence levels for prediction intervals.<br>
         `sampler`: Sampler for prediction intevals, one of Normality(), Bootstrap(), PERMBU().<br>
+        `sparsity`: bool=True, wether or not use sparse matrix computations.<br>
 
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the Top Down approach.
@@ -224,10 +235,10 @@ class TopDown:
         P[:, idx_top] = prop
         W = np.eye(n_hiers, dtype=np.float32)
         return _reconcile(S, P, W, y_hat, level=level,
-                          sampler=sampler)
+                          sampler=sampler, sparsity=sparsity)
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 27
+# %% ../nbs/methods.ipynb 30
 class MiddleOut:
     """Middle Out Reconciliation Class.
     
@@ -330,11 +341,11 @@ class MiddleOut:
         return {'mean': reconciled}
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 32
+# %% ../nbs/methods.ipynb 35
 def crossprod(x):
     return x.T @ x
 
-# %% ../nbs/methods.ipynb 33
+# %% ../nbs/methods.ipynb 36
 def cov2corr(cov, return_std=False):
     """ convert covariance matrix to correlation matrix
 
@@ -353,7 +364,7 @@ def cov2corr(cov, return_std=False):
     else:
         return corr
 
-# %% ../nbs/methods.ipynb 34
+# %% ../nbs/methods.ipynb 37
 class MinTrace:
     """MinTrace Reconciliation Class.
 
@@ -514,7 +525,7 @@ class MinTrace:
 
     __call__ = reconcile
 
-# %% ../nbs/methods.ipynb 42
+# %% ../nbs/methods.ipynb 45
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -549,7 +560,7 @@ class OptimalCombination(MinTrace):
         self.nonnegative = nonnegative
         self.insample = False
 
-# %% ../nbs/methods.ipynb 48
+# %% ../nbs/methods.ipynb 51
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -581,7 +592,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 49
+# %% ../nbs/methods.ipynb 52
 class ERM:
     """Optimal Combination Reconciliation Class.
 

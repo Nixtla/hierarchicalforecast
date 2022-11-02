@@ -11,6 +11,7 @@ from typing import Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
@@ -134,7 +135,7 @@ class HierarchicalReconciliation:
             reconciler_args['y_insample'] = Y_df.pivot(columns='ds', values='y').loc[uids].values.astype(np.float32)
 
         fcsts = Y_hat_df.copy()
-        for reconcile_fn in self.reconcilers:
+        for reconcile_fn in tqdm(self.reconcilers):
             reconcile_fn_name = _build_fn_name(reconcile_fn)
             has_fitted = 'y_hat_insample' in signature(reconcile_fn).parameters
             has_level = 'level' in signature(reconcile_fn).parameters
