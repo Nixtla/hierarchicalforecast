@@ -24,7 +24,6 @@ def _reconcile(S: np.ndarray,
 
     # Mean reconciliation
     res = {'mean': np.matmul(S @ P, y_hat)}
-    sampler_name = type(sampler).__name__
 
     # Probabilistic reconciliation
     # TODO: instantiate the samplers after mean reconciliation.
@@ -33,20 +32,12 @@ def _reconcile(S: np.ndarray,
     # I suggest to do it in `core.HierarchicalForecast.reconcile`
     # after this call `fcsts_model = reconcile_fn(y_hat=y_hat_model, **kwargs)`
 
+    sampler_name = type(sampler).__name__
     if level is not None and \
         sampler_name in ['Normality', 'Bootstrap', 'PERMBU']:
-
-        if sampler_name == 'Normality':
-            res = sampler.get_prediction_levels(P=P, W=W,
-                                                res=res, level=level)
-
-        if sampler_name == 'Bootstrap':
-            res = sampler.get_prediction_levels(P=P,
-                                                res=res, level=level)
-
-        if sampler_name == 'PERMBU':
-            res = sampler.get_prediction_levels(res=res, level=level)
-
+        sampler.P = P
+        sampler.W = W
+        res = sampler.get_prediction_levels(res=res, level=level)
     return res
 
 # %% ../nbs/methods.ipynb 7
@@ -65,6 +56,14 @@ class BottomUp:
     Economic Review, 58 , 773{787)](http://www.jstor.org/stable/1815532).
     """
     insample = False
+
+    def get_PW(self, S, idx_bottom):
+        n_hiers, n_bottom = S.shape
+        P = np.zeros_like(S, dtype=np.float32)
+        P[idx_bottom] = S[idx_bottom]
+        self.P = P.T
+        self.W = np.eye(n_hiers, dtype=np.float32)
+        return self
     
     def reconcile(self,
                   S: np.ndarray,
@@ -84,12 +83,8 @@ class BottomUp:
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the Bottom Up approach.
         """
-        n_hiers, n_bottom = S.shape
-        P = np.zeros_like(S, dtype=np.float32)
-        P[idx_bottom] = S[idx_bottom]
-        P = P.T
-        W = np.eye(n_hiers, dtype=np.float32)
-        return _reconcile(S, P, W, y_hat, level=level, 
+        self.get_PW(S, idx_bottom)
+        return _reconcile(S, self.P, self.W, y_hat, level=level, 
                           sampler=sampler)
     
     __call__ = reconcile
@@ -128,7 +123,7 @@ def _get_child_nodes(S: np.ndarray, tags: Dict[str, np.ndarray]):
             idx_node, = np.where(idx_node.sum(axis=1) > 0)
             nodes_level[idx_parent_node] = [idx for idx in idx_child if idx in idx_node]
         nodes[level] = nodes_level
-    return nodes        
+    return nodes
 
 # %% ../nbs/methods.ipynb 20
 def _reconcile_fcst_proportions(S: np.ndarray, y_hat: np.ndarray,

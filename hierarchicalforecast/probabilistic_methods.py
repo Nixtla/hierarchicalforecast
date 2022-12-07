@@ -40,19 +40,23 @@ class Normality:
     """
     def __init__(self,
                  S: np.ndarray,
-                 sigmah: np.ndarray):
+                 sigmah: np.ndarray,
+                 P: np.ndarray=None,
+                 W: np.ndarray=None):
         self.S = S
+        self.P = P
+        self.W = W
         self.sigmah = sigmah
 
-    def get_prediction_levels(self, res, level, P, W):
+    def get_prediction_levels(self, res, level):
         """ Adds reconciled forecast levels to results dictionary """
 
         # Errors normality implies independence/diagonal covariance
-        R1 = cov2corr(W)
+        R1 = cov2corr(self.W)
         W_h = [np.diag(sigma) @ R1 @ np.diag(sigma).T for sigma in self.sigmah.T]
 
         # Reconciled covariances across forecast horizon
-        SP = self.S @ P
+        SP = self.S @ self.P
         sigmah_rec = np.hstack([np.sqrt(np.diag(SP @ W @ SP.T))[:, None] for W in W_h])
 
         res['sigmah'] = sigmah_rec
@@ -101,11 +105,15 @@ class Bootstrap:
                  y_hat_insample: np.ndarray,
                  y_hat: np.ndarray,
                  num_samples: int,
-                 seed: int = 0):
+                 seed: int = 0,
+                 P: np.ndarray = None,
+                 W: np.ndarray = None):
         self.S = S
+        self.P = P
+        self.W = W
+        self.y_hat = y_hat
         self.y_insample = y_insample
         self.y_hat_insample = y_hat_insample
-        self.y_hat = y_hat
         self.num_samples = num_samples
         self.seed = seed
 
@@ -119,16 +127,15 @@ class Bootstrap:
         state = np.random.RandomState(self.seed)
         samples_idx = state.choice(sample_idx, size=self.num_samples)
         samples = [self.y_hat + residuals[:, idx:(idx + h)] for idx in samples_idx]
-        return np.stack(samples)
-
-    def get_prediction_levels(self, res, level, P):
-        """ Adds reconciled forecast levels to results dictionary """
-        SP = self.S @ P
-        samples = self.get_samples()
+        SP = self.S @ self.P
         samples = np.apply_along_axis(lambda path: np.matmul(SP, path),
                                       axis=1, arr=samples)
-        
-        res = {'mean': samples.mean(axis=0)}
+        return np.stack(samples)
+
+    def get_prediction_levels(self, res, level):
+        """ Adds reconciled forecast levels to results dictionary """
+        samples = self.get_samples()
+        #res = {'mean': samples.mean(axis=0)}
         for lv in level:
             min_q = (100 - lv) / 200
             max_q = min_q + lv / 100
@@ -172,15 +179,19 @@ class PERMBU:
     def __init__(self,
                  S: np.ndarray,
                  tags: Dict[str, np.ndarray],
+                 y_hat: np.ndarray,
                  y_insample: np.ndarray,
                  y_hat_insample: np.ndarray,
                  sigmah: np.ndarray,
                  num_samples: int=None,
-                 seed: int=0):
+                 seed: int=0,
+                 P: np.ndarray = None):
         # PERMBU only works for strictly hierarchical structures
         if not is_strictly_hierarchical(S, tags):
             raise ValueError('PERMBU probabilistic reconciliation requires strictly hierarchical structures.')
         self.S = S
+        self.P = P
+        self.y_hat = y_hat
         self.y_insample = y_insample
         self.y_hat_insample = y_hat_insample
         self.sigmah = sigmah
@@ -203,8 +214,8 @@ class PERMBU:
         temp = array.argsort(axis=1)
         ranks = np.empty_like(temp)
         a_range = np.arange(temp.shape[1])
-        for iRow in range(temp.shape[0]):
-            ranks[iRow, temp[iRow,:]] = a_range
+        for i_row in range(temp.shape[0]):
+            ranks[i_row, temp[i_row,:]] = a_range
         return ranks
 
     def _permutate_samples(self, samples, permutations):
@@ -249,7 +260,7 @@ class PERMBU:
         """
         # Apply permutation throughout forecast horizon
         permutated_predictionum_samples = predictionum_samples.copy()
-        
+
         _, n_horizon, _ = predictionum_samples.shape
         for t in range(n_horizon):
             permutated_predictionum_samples[:,t,:] = \
@@ -260,7 +271,7 @@ class PERMBU:
     def _nonzero_indexes_by_row(self, M):
         return [np.nonzero(M[row,:])[0] for row in range(len(M))]
 
-    def get_samples(self, y_hat: np.ndarray):
+    def get_samples(self):
         """PERMBU Sample Reconciliation Method.
 
         Applies PERMBU reconciliation method as defined by Taieb et. al 2017.
@@ -280,18 +291,18 @@ class PERMBU:
         #removing nas from residuals
         residuals = residuals[:, np.isnan(residuals).sum(axis=0) == 0]
         rank_permutations = self._obtain_ranks(residuals)
-        
+
         # Sample h step-ahead base marginal distributions
         if self.num_samples is None:
             num_samples = residuals.shape[1]
         else:
             num_samples = self.num_samples
         state = np.random.RandomState(self.seed)
-        n_series, n_horizon = y_hat.shape
+        n_series, n_horizon = self.y_hat.shape
 
         base_samples = np.array([
             state.normal(loc=m, scale=s, size=num_samples) for m, s in \
-            zip(y_hat.flatten(), self.sigmah.flatten())
+            zip(self.y_hat.flatten(), self.sigmah.flatten())
         ])
         base_samples = base_samples.reshape(n_series, n_horizon, num_samples)
 
@@ -337,11 +348,10 @@ class PERMBU:
 
     def get_prediction_levels(self, res, level):
         """ Adds reconciled forecast levels to results dictionary """
-        samples = self.get_samples(y_hat=res['mean'])
-
-        res = {'mean': samples.mean(axis=0)}
+        samples = self.get_samples()
+        #res = {'mean': samples.mean(axis=0)}
         for lv in level:
-            min_q = (100 - lv) / 200 
+            min_q = (100 - lv) / 200
             max_q = min_q + lv / 100
             res[f'lo-{lv}'] = np.quantile(samples, min_q, axis=0)
             res[f'hi-{lv}'] = np.quantile(samples, max_q, axis=0)
