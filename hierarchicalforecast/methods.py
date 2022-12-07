@@ -230,7 +230,7 @@ class TopDown:
 # %% ../nbs/methods.ipynb 27
 class MiddleOut:
     """Middle Out Reconciliation Class.
-    
+
     This method is only available for **strictly hierarchical structures**. It anchors the base predictions 
     in a middle level. The levels above the base predictions use the Bottom-Up approach, while the levels 
     below use a Top-Down.

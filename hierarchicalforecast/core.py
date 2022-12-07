@@ -187,7 +187,7 @@ class HierarchicalReconciliation:
                             y_insample=reconciler_args['y_insample'], 
                             y_hat_insample=y_hat_insample,
                             sigmah=sigmah,
-                            n_samples=None
+                            num_samples=None
                         )
                     elif intervals_method == 'normality':
                         reconciler_args['sampler'] = Normality(S=reconciler_args['S'], sigmah=sigmah)
@@ -203,7 +203,7 @@ class HierarchicalReconciliation:
                                 y_insample=reconciler_args['y_insample'],
                                 y_hat_insample=y_hat_insample, 
                                 y_hat=y_hat_model, 
-                                n_samples=1_000
+                                num_samples=1_000
                             )
                             reconciler_args['level'] = level
                     else:
