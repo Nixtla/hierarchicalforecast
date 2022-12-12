@@ -35,7 +35,7 @@ def _build_fn_name(fn) -> str:
     return fn_name
 
 # %% ../nbs/core.ipynb 9
-def _reverse_engineer_sigmah(Y_hat_df, y_hat_model, model_name, uids):
+def _reverse_engineer_sigmah(Y_hat_df, y_hat, model_name, uids):
     """
     This function assumes that the model creates prediction intervals
     under a normality assumption with the following the Equation:
@@ -59,7 +59,7 @@ def _reverse_engineer_sigmah(Y_hat_df, y_hat_model, model_name, uids):
     level_col = float(level_col[0])
     z = norm.ppf(0.5 + level_col / 200)
     sigmah = Y_hat_df.pivot(columns='ds', values=pi_col).loc[uids].values
-    sigmah = sign * (sigmah - y_hat_model) / z
+    sigmah = sign * (sigmah - y_hat) / z
 
     return sigmah
 
@@ -172,7 +172,8 @@ class HierarchicalReconciliation:
             # This change affects y_hat_model, y_insample, y_hat_insample, sigmah
             # change pivot for df.values and reshapes.
             for model_name in model_names:
-                y_hat_model = Y_hat_df.pivot(columns='ds', values=model_name).loc[uids].values
+                y_hat = Y_hat_df.pivot(columns='ds', values=model_name).loc[uids].values
+                reconciler_args['y_hat'] = y_hat
 
                 if (self.insample and has_fitted) or intervals_method in ['bootstrap', 'permbu']:
                     y_hat_insample = Y_df.pivot(columns='ds', values=model_name).loc[uids].values
@@ -184,7 +185,7 @@ class HierarchicalReconciliation:
 
                     if intervals_method in ['normality', 'permbu']:
                         sigmah = _reverse_engineer_sigmah(Y_hat_df=Y_hat_df,
-                                    y_hat_model=y_hat_model, model_name=model_name, uids=uids)
+                                    y_hat=y_hat, model_name=model_name, uids=uids)
 
                     if intervals_method == 'normality':
                         reconciler_args['sampler'] = Normality(
@@ -193,7 +194,7 @@ class HierarchicalReconciliation:
                     elif intervals_method == 'permbu':
                         reconciler_args['sampler'] = PERMBU(
                                                         S=reconciler_args['S'],
-                                                        y_hat=y_hat_model,
+                                                        y_hat=reconciler_args['y_hat'],
                                                         tags=reconciler_args['tags'],
                                                         y_insample=reconciler_args['y_insample'], 
                                                         y_hat_insample=reconciler_args['y_hat_insample'],
@@ -202,7 +203,7 @@ class HierarchicalReconciliation:
                     elif intervals_method == 'bootstrap':
                         reconciler_args['sampler'] = Bootstrap(
                                                         S=reconciler_args['S'],
-                                                        y_hat=y_hat_model,
+                                                        y_hat=reconciler_args['y_hat'],
                                                         y_insample=reconciler_args['y_insample'],
                                                         y_hat_insample=reconciler_args['y_hat_insample'],
                                                         num_samples=1_000)
@@ -210,7 +211,7 @@ class HierarchicalReconciliation:
                 # Mean reconciliation
                 kwargs = [key for key in signature(reconcile_fn).parameters if key in reconciler_args.keys()]
                 kwargs = {key: reconciler_args[key] for key in kwargs}
-                fcsts_model = reconcile_fn(y_hat=y_hat_model, **kwargs)
+                fcsts_model = reconcile_fn(**kwargs)
 
                 # TODO: instantiate prob reconcilers after mean reconc 
                 # and use _prob_reconcile function from probabilistic_methods.py
