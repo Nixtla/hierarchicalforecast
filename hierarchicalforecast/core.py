@@ -168,50 +168,44 @@ class HierarchicalReconciliation:
             has_fitted = 'y_hat_insample' in signature(reconcile_fn).parameters
             has_level = 'level' in signature(reconcile_fn).parameters
             
+            # TODO: maybe sort in advance by uids and avoid .loc[uids]
+            # This change affects y_hat_model, y_insample, y_hat_insample, sigmah
+            # change pivot for df.values and reshapes.
             for model_name in model_names:
-                # Remember: pivot sorts uid
                 y_hat_model = Y_hat_df.pivot(columns='ds', values=model_name).loc[uids].values
 
-                # Recover sigmah and add it to reconciler_args
-                if has_level and level is not None and intervals_method in ['normality', 'permbu']:
-                    sigmah = _reverse_engineer_sigmah(Y_hat_df=Y_hat_df,
-                                y_hat_model=y_hat_model, model_name=model_name, uids=uids)
+                if (self.insample and has_fitted) or intervals_method in ['bootstrap', 'permbu']:
+                    y_hat_insample = Y_df.pivot(columns='ds', values=model_name).loc[uids].values
+                    y_hat_insample = y_hat_insample.astype(np.float32)
+                    reconciler_args['y_hat_insample'] = y_hat_insample
 
+                if has_level and (level is not None):
                     reconciler_args['level'] = level
-                    if intervals_method == 'permbu':
-                        y_hat_insample = Y_df.pivot(columns='ds', values=model_name).loc[uids].values
-                        y_hat_insample = y_hat_insample.astype(np.float32)
+
+                    if intervals_method in ['normality', 'permbu']:
+                        sigmah = _reverse_engineer_sigmah(Y_hat_df=Y_hat_df,
+                                    y_hat_model=y_hat_model, model_name=model_name, uids=uids)
+
+                    if intervals_method == 'normality':
+                        reconciler_args['sampler'] = Normality(
+                                                        S=reconciler_args['S'], 
+                                                        sigmah=sigmah)
+                    elif intervals_method == 'permbu':
                         reconciler_args['sampler'] = PERMBU(
-                            S=reconciler_args['S'],
-                            y_hat=y_hat_model,
-                            tags=reconciler_args['tags'],
-                            y_insample=reconciler_args['y_insample'], 
-                            y_hat_insample=y_hat_insample,
-                            sigmah=sigmah,
-                            num_samples=None
-                        )
-                    elif intervals_method == 'normality':
-                        reconciler_args['sampler'] = Normality(S=reconciler_args['S'], sigmah=sigmah)
-                if (self.insample and has_fitted) or (intervals_method in ['bootstrap']):
-                    if model_name in Y_df:
-                        y_hat_insample = Y_df.pivot(columns='ds', values=model_name).loc[uids].values
-                        y_hat_insample = y_hat_insample.astype(np.float32)
-                        if has_fitted:
-                            reconciler_args['y_hat_insample'] = y_hat_insample 
-                        if intervals_method == 'bootstrap' and has_level:
-                            reconciler_args['sampler'] = Bootstrap(
-                                S=reconciler_args['S'],
-                                y_hat=y_hat_model,
-                                y_insample=reconciler_args['y_insample'],
-                                y_hat_insample=y_hat_insample,
-                                num_samples=1_000
-                            )
-                            reconciler_args['level'] = level
-                    else:
-                        # some methods have the residuals argument
-                        # but they don't need them
-                        # ej MinTrace(method='ols')
-                        reconciler_args['y_hat_insample'] = None
+                                                        S=reconciler_args['S'],
+                                                        y_hat=y_hat_model,
+                                                        tags=reconciler_args['tags'],
+                                                        y_insample=reconciler_args['y_insample'], 
+                                                        y_hat_insample=reconciler_args['y_hat_insample'],
+                                                        sigmah=sigmah,
+                                                        num_samples=None)
+                    elif intervals_method == 'bootstrap':
+                        reconciler_args['sampler'] = Bootstrap(
+                                                        S=reconciler_args['S'],
+                                                        y_hat=y_hat_model,
+                                                        y_insample=reconciler_args['y_insample'],
+                                                        y_hat_insample=reconciler_args['y_hat_insample'],
+                                                        num_samples=1_000)
 
                 # Mean reconciliation
                 kwargs = [key for key in signature(reconcile_fn).parameters if key in reconciler_args.keys()]
