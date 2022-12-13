@@ -14,6 +14,7 @@ from numba import njit
 from quadprog import solve_qp
 
 # %% ../nbs/methods.ipynb 4
+from .utils import is_strictly_hierarchical, cov2corr
 from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
 # %% ../nbs/methods.ipynb 6
@@ -36,9 +37,6 @@ def _reconcile(S: np.ndarray,
 
     if (level is not None) and (sampler is not None):
         res = sampler.get_prediction_levels(res=res, level=level)
-        print('ENTRA')
-
-    print('AQUI')
 
     return res
 
@@ -53,7 +51,7 @@ def _get_sampler(intervals_method,
                       W=W, sigmah=sigmah)
     elif intervals_method == 'permbu':
         sampler = PERMBU(
-                      S=S,
+                      S=S, P=P,
                       y_hat=y_hat,
                       tags=tags,
                       y_insample=y_insample, 
@@ -62,7 +60,7 @@ def _get_sampler(intervals_method,
                       num_samples=None)
     elif intervals_method == 'bootstrap':
         sampler = Bootstrap(
-                      S=S,
+                      S=S, P=P, 
                       y_hat=y_hat,
                       y_insample=y_insample,
                       y_hat_insample=y_hat_insample,
@@ -153,24 +151,6 @@ class BottomUp:
                           level=level, sampler=self.sampler)
 
     __call__ = fit_predict
-
-# %% ../nbs/methods.ipynb 15
-def is_strictly_hierarchical(S: np.ndarray, 
-                             tags: Dict[str, np.ndarray]):
-    # main idea:
-    # if S represents a strictly hierarchical structure
-    # the number of paths before the bottom level
-    # should be equal to the number of nodes
-    # of the previuos level
-    levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
-    # removing bottom level
-    levels_.popitem()
-    # making S categorical
-    hiers = [np.argmax(S[idx], axis=0) + 1 for _, idx in levels_.items()]
-    hiers = np.vstack(hiers)
-    paths = np.unique(hiers, axis=1).shape[1] 
-    nodes = levels_.popitem()[1].size
-    return paths == nodes
 
 # %% ../nbs/methods.ipynb 17
 def _get_child_nodes(S: np.ndarray, tags: Dict[str, np.ndarray]):
@@ -380,6 +360,7 @@ class MiddleOut:
             raise ValueError('Middle out reconciliation requires strictly hierarchical structures.')
         if self.middle_level not in tags.keys():
             raise ValueError('You have to provide a `middle_level` in `tags`.')
+
         levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
         reconciled = np.full_like(y_hat, fill_value=np.nan)
         cut_nodes = levels_[self.middle_level]
@@ -444,25 +425,6 @@ def crossprod(x):
     return x.T @ x
 
 # %% ../nbs/methods.ipynb 31
-def cov2corr(cov, return_std=False):
-    """ convert covariance matrix to correlation matrix
-
-    **Parameters:**<br>
-    `cov`: array_like, 2d covariance matrix.<br>
-    `return_std`: bool=False, if True returned std.<br>
-
-    **Returns:**<br>
-    `corr`: ndarray (subclass) correlation matrix
-    """
-    cov = np.asanyarray(cov)
-    std_ = np.sqrt(np.diag(cov))
-    corr = cov / np.outer(std_, std_)
-    if return_std:
-        return corr, std_
-    else:
-        return corr
-
-# %% ../nbs/methods.ipynb 32
 class MinTrace:
     """MinTrace Reconciliation Class.
 
@@ -672,7 +634,7 @@ class MinTrace:
 
     __call__ = fit_predict
 
-# %% ../nbs/methods.ipynb 40
+# %% ../nbs/methods.ipynb 39
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -707,7 +669,7 @@ class OptimalCombination(MinTrace):
         self.nonnegative = nonnegative
         self.insample = False
 
-# %% ../nbs/methods.ipynb 46
+# %% ../nbs/methods.ipynb 45
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -739,7 +701,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 47
+# %% ../nbs/methods.ipynb 46
 class ERM:
     """Optimal Combination Reconciliation Class.
 
