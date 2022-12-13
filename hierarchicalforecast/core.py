@@ -187,26 +187,7 @@ class HierarchicalReconciliation:
                         sigmah = _reverse_engineer_sigmah(Y_hat_df=Y_hat_df,
                                     y_hat=y_hat, model_name=model_name, uids=uids)
 
-                    if intervals_method == 'normality':
-                        reconciler_args['sampler'] = Normality(
-                                                        S=reconciler_args['S'], 
-                                                        sigmah=sigmah)
-                    elif intervals_method == 'permbu':
-                        reconciler_args['sampler'] = PERMBU(
-                                                        S=reconciler_args['S'],
-                                                        y_hat=reconciler_args['y_hat'],
-                                                        tags=reconciler_args['tags'],
-                                                        y_insample=reconciler_args['y_insample'], 
-                                                        y_hat_insample=reconciler_args['y_hat_insample'],
-                                                        sigmah=sigmah,
-                                                        num_samples=None)
-                    elif intervals_method == 'bootstrap':
-                        reconciler_args['sampler'] = Bootstrap(
-                                                        S=reconciler_args['S'],
-                                                        y_hat=reconciler_args['y_hat'],
-                                                        y_insample=reconciler_args['y_insample'],
-                                                        y_hat_insample=reconciler_args['y_hat_insample'],
-                                                        num_samples=1_000)
+                    reconciler_args['intervals_method'] = intervals_method
 
                 # Mean reconciliation
                 kwargs = [key for key in signature(reconcile_fn).parameters if key in reconciler_args.keys()]
