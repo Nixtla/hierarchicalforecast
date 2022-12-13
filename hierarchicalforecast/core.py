@@ -5,14 +5,13 @@ __all__ = ['HierarchicalReconciliation']
 
 # %% ../nbs/core.ipynb 3
 import re
+import gc
 from inspect import signature
 from scipy.stats import norm
 from typing import Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-
-from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
 # %% ../nbs/core.ipynb 5
 def _build_fn_name(fn) -> str:
@@ -186,26 +185,24 @@ class HierarchicalReconciliation:
                     if intervals_method in ['normality', 'permbu']:
                         sigmah = _reverse_engineer_sigmah(Y_hat_df=Y_hat_df,
                                     y_hat=y_hat, model_name=model_name, uids=uids)
+                        reconciler_args['sigmah'] = sigmah
 
                     reconciler_args['intervals_method'] = intervals_method
 
-                # Mean reconciliation
+                # Mean and Probabilistic reconciliation
                 kwargs = [key for key in signature(reconcile_fn).parameters if key in reconciler_args.keys()]
                 kwargs = {key: reconciler_args[key] for key in kwargs}
                 fcsts_model = reconcile_fn(**kwargs)
 
-                # TODO: instantiate prob reconcilers after mean reconc 
-                # and use _prob_reconcile function from probabilistic_methods.py
-                # this will greatly simplify code above, and improve its readability
-                # this will require outputs of reconcile_fn to include P, W
-
+                # Parse final outputs
                 fcsts[f'{model_name}/{reconcile_fn_name}'] = fcsts_model['mean'].flatten()
                 if intervals_method in ['bootstrap', 'normality', 'permbu'] and level is not None:
                     for lv in level:
                         fcsts[f'{model_name}/{reconcile_fn_name}-lo-{lv}'] = fcsts_model[f'lo-{lv}'].flatten()
                         fcsts[f'{model_name}/{reconcile_fn_name}-hi-{lv}'] = fcsts_model[f'hi-{lv}'].flatten()
-                    del reconciler_args['level']
-                    del reconciler_args['sampler']
+
                 if self.insample and has_fitted:
                     del reconciler_args['y_hat_insample']
+                gc.collect()
+                    
         return fcsts
