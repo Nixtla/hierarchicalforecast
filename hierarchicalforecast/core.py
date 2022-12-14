@@ -205,7 +205,7 @@ class HierarchicalReconciliation:
                         fcsts[f'{model_name}/{reconcile_fn_name}-hi-{lv}'] = fcsts_model[f'hi-{lv}'].flatten()
                 
                 end = time.time()
-                self.execution_times[f'{model_name}/{reconcile_fn_name}']= end - start
+                self.execution_times[f'{model_name}/{reconcile_fn_name}'] = (end - start)
 
                 if self.insample and has_fitted:
                     del reconciler_args['y_hat_insample']
