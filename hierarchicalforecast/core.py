@@ -6,6 +6,7 @@ __all__ = ['HierarchicalReconciliation']
 # %% ../nbs/core.ipynb 3
 import re
 import gc
+import time
 from inspect import signature
 from scipy.stats import norm
 from typing import Callable, Dict, List, Optional
@@ -149,7 +150,7 @@ class HierarchicalReconciliation:
 
         # Same Y_hat_df/S_df/Y_df's unique_id order to prevent errors
         S_ = S.loc[uids]
-    
+
 
         #---------------------------------------- Predictions ----------------------------------------#
         # Initialize reconciler arguments
@@ -161,12 +162,14 @@ class HierarchicalReconciliation:
         if Y_df is not None:
             reconciler_args['y_insample'] = Y_df.pivot(columns='ds', values='y').loc[uids].values.astype(np.float32)
 
+        start = time.time()
+        self.execution_times = {}
         fcsts = Y_hat_df.copy()
         for reconcile_fn in self.reconcilers:
             reconcile_fn_name = _build_fn_name(reconcile_fn)
             has_fitted = 'y_hat_insample' in signature(reconcile_fn).parameters
             has_level = 'level' in signature(reconcile_fn).parameters
-            
+
             # TODO: maybe sort in advance by uids and avoid .loc[uids]
             # This change affects y_hat_model, y_insample, y_hat_insample, sigmah
             # change pivot for df.values and reshapes.
@@ -201,8 +204,11 @@ class HierarchicalReconciliation:
                         fcsts[f'{model_name}/{reconcile_fn_name}-lo-{lv}'] = fcsts_model[f'lo-{lv}'].flatten()
                         fcsts[f'{model_name}/{reconcile_fn_name}-hi-{lv}'] = fcsts_model[f'hi-{lv}'].flatten()
 
+                end = time.time()
+                self.execution_times[f'{model_name}/{reconcile_fn_name}'] = (end - start)
+
                 if self.insample and has_fitted:
                     del reconciler_args['y_hat_insample']
                 gc.collect()
-                    
+
         return fcsts
