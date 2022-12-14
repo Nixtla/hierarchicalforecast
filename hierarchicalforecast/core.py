@@ -203,6 +203,9 @@ class HierarchicalReconciliation:
                     for lv in level:
                         fcsts[f'{model_name}/{reconcile_fn_name}-lo-{lv}'] = fcsts_model[f'lo-{lv}'].flatten()
                         fcsts[f'{model_name}/{reconcile_fn_name}-hi-{lv}'] = fcsts_model[f'hi-{lv}'].flatten()
+                
+                end = time.time()
+                self.execution_times[f'{model_name}/{reconcile_fn_name}'] = (end - start)
 
                 end = time.time()
                 self.execution_times[f'{model_name}/{reconcile_fn_name}'] = (end - start)
