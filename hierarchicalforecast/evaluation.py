@@ -199,7 +199,7 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
     `y`: numpy array, Actual values of size (`n_series`, `horizon`).<br>
     `y_sample1`: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).<br>
     `y_sample2`: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).<br>
-    `beta`: float, defines the energy score's distance metric.<br>
+    `beta`: float in (0,2], defines the energy score's power for the euclidean metric.<br>
 
     **Returns:**<br>
     `loss`: float.
@@ -212,7 +212,17 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
     \"Probabilistic forecast reconciliation: Properties, evaluation and score optimisation\". 
     European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)    
     """
-    pass
+    if beta>2 or beta<0:
+        raise Exception("beta needs to be between 0 and 2.")
+
+    dif1 = (y_sample1 - y_sample2)
+    dif2 = (y[:,:,None] - y_sample1)
+
+    term1 = np.linalg.norm(dif1, axis=0) ** beta
+    term2 = np.linalg.norm(dif2, axis=0) ** beta
+
+    loss = np.mean(term2 - 0.5 * term1)
+    return loss
 
 # %% ../nbs/evaluation.ipynb 17
 class HierarchicalEvaluation:
