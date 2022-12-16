@@ -13,9 +13,11 @@ import pandas as pd
 # %% ../nbs/evaluation.ipynb 6
 def _metric_protections(y: np.ndarray, y_hat: np.ndarray, 
                         weights: Optional[np.ndarray]) -> None:
-    assert (weights is None) or (np.sum(weights) > 0), 'Sum of weights cannot be 0'
-    assert (weights is None) or (weights.shape == y.shape),\
-        f'Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}'
+    if not ((weights is None) or (np.sum(weights) > 0)):
+        raise Exception('Sum of `weights` cannot be 0')
+    if not ((weights is None) or (weights.shape == y.shape)):
+        raise Exception(
+        f'Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}')
 
 def mse(y: np.ndarray, y_hat: np.ndarray, 
         weights: Optional[np.ndarray] = None,
@@ -75,7 +77,7 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
     **Parameters:**<br>
     `y`: numpy array, Actual values.<br>
     `y_hat`: numpy array, Predicted values.<br>
-    `quantiles`: numpy array,(n_quantiles). Quantiles to estimate from the distribution of y.<br>
+    `quantiles`: numpy array. Quantiles between 0 and 1, to perform evaluation upon size (n_quantiles).<br>
     `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
  
     **Returns:**<br>
@@ -86,6 +88,8 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
     [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
     """
     if weights is None: weights = np.ones(y.shape)
+    if (np.sum(quantiles>1)>0 or np.sum(quantiles<0)>0):
+        raise Exception('`quantiles` need to be between 0 and 1')
         
     _metric_protections(y, y_hat, weights)
     n_q = len(quantiles)
