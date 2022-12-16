@@ -13,6 +13,7 @@ from typing import Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 # %% ../nbs/core.ipynb 5
 def _build_fn_name(fn) -> str:
@@ -151,7 +152,7 @@ class HierarchicalReconciliation:
         # TODO: Complete y_hat_insample protection
         if intervals_method in ['bootstrap', 'permbu']:
            if not (set(model_names) <= set(Y_df.columns)):
-               raise Exception(f'Check `Y_hat_df`, `Y_df` columns difference')
+               raise Exception('Check `Y_hat_df`, `Y_df` columns difference')
 
         # Same Y_hat_df/S_df/Y_df's unique_id order to prevent errors
         S_ = S.loc[uids]
@@ -170,7 +171,7 @@ class HierarchicalReconciliation:
         start = time.time()
         self.execution_times = {}
         fcsts = Y_hat_df.copy()
-        for reconcile_fn in self.reconcilers:
+        for reconcile_fn in tqdm(self.reconcilers):
             reconcile_fn_name = _build_fn_name(reconcile_fn)
             has_fitted = 'y_hat_insample' in signature(reconcile_fn).parameters
             has_level = 'level' in signature(reconcile_fn).parameters
