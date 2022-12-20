@@ -127,7 +127,7 @@ class Bootstrap:
     `P`: np.array, reconciliation matrix of size (`bottom`, `base`).<br>
     `y_hat`: Point forecasts values of size (`base`, `horizon`).<br>
     `y_insample`: Insample values of size (`base`, `insample_size`).<br>
-    `y_hat_insample`: Insample values of size (`base`, `insample_size`).<br>
+    `y_hat_insample`: Insample point forecasts of size (`base`, `insample_size`).<br>
     `num_samples`: int, number of bootstraped samples generated.<br>
     `seed`: int, random seed for numpy generator's replicability.<br>
 
@@ -227,7 +227,7 @@ class PERMBU:
     `S`: np.array, summing matrix of size (`base`, `bottom`).<br>
     `tags`: Each key is a level and each value its `S` indices.<br>
     `y_insample`: Insample values of size (`base`, `insample_size`).<br>
-    `y_hat_insample`: Insample values of size (`base`, `insample_size`).<br>
+    `y_hat_insample`: Insample point forecasts of size (`base`, `insample_size`).<br>
     `sigmah`: np.array, forecast standard dev. of size (`base`, `horizon`).<br>
     `num_samples`: int, number of normal prediction samples generated.<br>
     `seed`: int, random seed for numpy generator's replicability.<br>
