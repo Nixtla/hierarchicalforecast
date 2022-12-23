@@ -185,9 +185,10 @@ class HierarchicalReconciliation:
         if Y_df is not None:
             reconciler_args['y_insample'] = Y_df.pivot(columns='ds', values='y').loc[uids].values.astype(np.float32)
 
+        fcsts = Y_hat_df.copy()
         start = time.time()
         self.execution_times = {}
-        fcsts = Y_hat_df.copy()
+        self.level_names = {}
         #for reconcile_fn in tqdm(self.reconcilers):
         for reconcile_fn in self.reconcilers:
             reconcile_fn_name = _build_fn_name(reconcile_fn)
@@ -225,11 +226,13 @@ class HierarchicalReconciliation:
                 fcsts[f'{model_name}/{reconcile_fn_name}'] = fcsts_model['mean'].flatten()
                 if intervals_method in ['bootstrap', 'normality', 'permbu'] and level is not None:
                     level.sort()
-                    hi_names = [f'{model_name}/{reconcile_fn_name}-hi-{lv}' for lv in level]
                     lo_names = [f'{model_name}/{reconcile_fn_name}-lo-{lv}' for lv in reversed(level)]
+                    hi_names = [f'{model_name}/{reconcile_fn_name}-hi-{lv}' for lv in level]
+                    self.level_names[f'{model_name}/{reconcile_fn_name}'] = lo_names + hi_names
                     sorted_quantiles = np.reshape(fcsts_model['quantiles'], (len(fcsts),-1))
-                    intervals_df = pd.DataFrame(sorted_quantiles, 
-                                                columns=(lo_names+hi_names), index=fcsts.index)
+                    intervals_df = pd.DataFrame(sorted_quantiles,
+                                                columns=self.level_names[f'{model_name}/{reconcile_fn_name}'], 
+                                                index=fcsts.index)
                     fcsts = pd.concat([fcsts, intervals_df], axis=1)
 
                     del sorted_quantiles
