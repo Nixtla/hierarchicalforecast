@@ -352,8 +352,11 @@ class PERMBU:
 
         # Expand residuals to match num_samples [(a,b),T] -> [(a,b),num_samples]
         if num_samples > residuals.shape[1]:
-            residuals_expansion = np.random.choice(residuals.shape[1], size=num_samples)
-            residuals = residuals[:,residuals_expansion]
+            residuals_idxs = np.random.choice(residuals.shape[1], size=num_samples)
+        else:
+            residuals_idxs = np.random.choice(residuals.shape[1], size=num_samples, 
+                                              replace=False)
+        residuals = residuals[:,residuals_idxs]
         rank_permutations = self._obtain_ranks(residuals)
 
         # Sample h step-ahead base marginal distributions
@@ -385,17 +388,17 @@ class PERMBU:
             Agg = encoder.fit_transform(children_links).T
             Agg = Agg[:len(parent_idxs),:]
 
-            # Permute childrenum_samples for each prediction step
+            # Permute children_samples for each prediction step
             children_permutations = rank_permutations[children_idxs, :]
-            childrenum_samples = rec_samples[children_idxs,:,:]
-            childrenum_samples = self._permutate_predictions(
-                prediction_samples=childrenum_samples,
+            children_samples = rec_samples[children_idxs,:,:]
+            children_samples = self._permutate_predictions(
+                prediction_samples=children_samples,
                 permutations=children_permutations
             )
 
             # Overwrite hier_samples with BottomUp aggregation
             # and randomly shuffle parent predictions after aggregation
-            parent_samples = np.einsum('ab,bhs->ahs', Agg, childrenum_samples)
+            parent_samples = np.einsum('ab,bhs->ahs', Agg, children_samples)
             random_permutation = np.array([
                 np.random.permutation(np.arange(num_samples)) \
                 for serie in range(len(parent_samples))
