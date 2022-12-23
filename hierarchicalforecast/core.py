@@ -13,7 +13,6 @@ from typing import Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 
 # %% ../nbs/core.ipynb 5
 def _build_fn_name(fn) -> str:
@@ -91,7 +90,8 @@ class HierarchicalReconciliation:
                   tags: Dict[str, np.ndarray],
                   Y_df: Optional[pd.DataFrame] = None,
                   level: Optional[List[int]] = None,
-                  intervals_method: str = 'normality'):
+                  intervals_method: str = 'normality',
+                  sort_df: bool = True):
         """Hierarchical Reconciliation Method.
 
         The `reconcile` method is analogous to SKLearn `fit_predict` method, it 
@@ -115,11 +115,28 @@ class HierarchicalReconciliation:
         `tags`: Each key is a level and its value contains tags associated to that level.<br>
         `level`: float list 0-100, confidence levels for prediction intervals.<br>
         `intervals_method`: str, method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
+        `sort_df` : bool (default=True), iff True, sort `df` by [`unique_id`,`ds`].<br>
 
         **Returns:**<br>
         `y_tilde`: pd.DataFrame, with reconciled predictions.        
         """
         #----------------------------- Preliminary Wrangling/Protections -----------------------------#
+        if sort_df:
+            Y_hat_df = Y_hat_df.reset_index()
+            Y_hat_df.unique_id = Y_hat_df.unique_id.astype('category')
+            Y_hat_df.unique_id = Y_hat_df.unique_id.cat.set_categories(S.index)
+            Y_hat_df = Y_hat_df.sort_values(by=['unique_id', 'ds'])
+            Y_hat_df = Y_hat_df.set_index('unique_id')
+
+            if Y_df is not None:
+                Y_df = Y_df.reset_index()
+                Y_df.unique_id = Y_df.unique_id.astype('category')
+                Y_df.unique_id = Y_df.unique_id.cat.set_categories(S.index)
+                Y_df = Y_df.sort_values(by=['unique_id', 'ds'])
+                Y_df = Y_df.set_index('unique_id')
+
+            S.index = pd.CategoricalIndex(S.index)
+
         # Check input's validity
         if intervals_method not in ['normality', 'bootstrap', 'permbu']:
             raise ValueError(f'Unkwon interval method: {intervals_method}')
@@ -171,7 +188,8 @@ class HierarchicalReconciliation:
         start = time.time()
         self.execution_times = {}
         fcsts = Y_hat_df.copy()
-        for reconcile_fn in tqdm(self.reconcilers):
+        #for reconcile_fn in tqdm(self.reconcilers):
+        for reconcile_fn in self.reconcilers:
             reconcile_fn_name = _build_fn_name(reconcile_fn)
             has_fitted = 'y_hat_insample' in signature(reconcile_fn).parameters
             has_level = 'level' in signature(reconcile_fn).parameters
