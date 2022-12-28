@@ -135,7 +135,7 @@ class HierarchicalReconciliation:
                 Y_df = Y_df.sort_values(by=['unique_id', 'ds'])
                 Y_df = Y_df.set_index('unique_id')
 
-            S.index = pd.CategoricalIndex(S.index)
+            S.index = pd.CategoricalIndex(S.index, categories=S.index)
 
         # Check input's validity
         if intervals_method not in ['normality', 'bootstrap', 'permbu']:
