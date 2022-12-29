@@ -297,6 +297,8 @@ class TopDown(HReconciler):
             prop = np.mean(y_btm / y_top, axis=1)
         elif self.method == 'proportion_averages':
             prop = np.mean(y_btm, axis=1) / np.mean(y_top)
+        elif self.method == 'forecast_proportions':
+            raise Exception(f'Fit method not implemented for {self.method} yet')
         else:
             raise Exception(f'Unknown method {self.method}')
 
@@ -308,14 +310,14 @@ class TopDown(HReconciler):
     def fit(self, 
             S,
             y_hat,
-            y_insample,
-            y_hat_insample,
-            sigmah,
-            num_samples,
-            seed,
-            intervals_method,
-            tags,
-            idx_bottom):
+            y_insample: Optional[np.ndarray] = None,
+            y_hat_insample: Optional[np.ndarray] = None,
+            sigmah: Optional[np.ndarray] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,
+            intervals_method: Optional[str] = None,
+            tags: Dict[str, np.ndarray] = None,
+            idx_bottom: Optional[np.ndarray] = None):
         """TopDown Fit Method.
 
         **Parameters:**<br>
@@ -437,7 +439,9 @@ class MiddleOut(HReconciler):
                     S: np.ndarray,
                     y_hat: np.ndarray,
                     tags: Dict[str, np.ndarray],
-                    y_insample: Optional[np.ndarray] = None):
+                    y_insample: Optional[np.ndarray] = None,
+                    level: Optional[List[int]] = None,
+                    intervals_method: Optional[str] = None):
         """Middle Out Reconciliation Method.
 
         **Parameters:**<br>
@@ -630,14 +634,14 @@ class MinTrace(HReconciler):
     def fit(self,
             S,
             y_hat,
-            y_insample,
-            y_hat_insample,
-            sigmah,
-            num_samples,
-            seed,
-            intervals_method,
-            tags,
-            idx_bottom):
+            y_insample: Optional[np.ndarray] = None,
+            y_hat_insample: Optional[np.ndarray] = None,
+            sigmah: Optional[np.ndarray] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,
+            intervals_method: Optional[str] = None,
+            tags: Dict[str, np.ndarray] = None,
+            idx_bottom: Optional[np.ndarray] = None):
         """MinTrace Fit Method.
 
         **Parameters:**<br>
@@ -894,12 +898,12 @@ class ERM(HReconciler):
             y_hat,
             y_insample,
             y_hat_insample,
-            sigmah,
-            num_samples,
-            seed,
-            intervals_method,
-            tags,
-            idx_bottom):
+            sigmah: Optional[np.ndarray] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,
+            intervals_method: Optional[str] = None,
+            tags: Dict[str, np.ndarray] = None,
+            idx_bottom: Optional[np.ndarray] = None):
         """ERM Fit Method.
 
         **Parameters:**<br>
