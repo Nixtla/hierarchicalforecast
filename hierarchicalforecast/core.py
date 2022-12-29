@@ -235,7 +235,6 @@ class HierarchicalReconciliation:
                         reconciler_args['sigmah'] = sigmah
 
                     reconciler_args['intervals_method'] = intervals_method
-                    #reconciler_args['level'] = level
 
                 # Mean and Probabilistic reconciliation
                 kwargs = [key for key in signature(reconcile_fn).parameters if key in reconciler_args.keys()]
