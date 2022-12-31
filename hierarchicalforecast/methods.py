@@ -35,7 +35,7 @@ class HReconciler:
         elif intervals_method == 'permbu':
             sampler = PERMBU(
                         S=S, P=P,
-                        y_hat=y_hat,
+                        y_hat = (S @ (P @ y_hat)),
                         tags=tags,
                         y_insample=y_insample, 
                         y_hat_insample=y_hat_insample,
