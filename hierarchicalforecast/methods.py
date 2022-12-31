@@ -63,7 +63,7 @@ class HReconciler:
                    sampler: Optional[Callable] = None):
 
         # Mean reconciliation
-        res = {'mean': np.matmul(S @ P, y_hat)}
+        res = {'mean': (S @ (P @ y_hat))}
 
         # Probabilistic reconciliation
         if (level is not None) and (sampler is not None):
