@@ -18,60 +18,63 @@ from .utils import is_strictly_hierarchical, cov2corr
 from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
 # %% ../nbs/methods.ipynb 6
-def _reconcile(S: np.ndarray,
-               P: np.ndarray,
-               y_hat: np.ndarray,
-               SP: np.ndarray = None,
-               level: Optional[List[int]] = None,
-               sampler: Optional[Callable] = None):
-
-    # Mean reconciliation
-    res = {'mean': np.matmul(S @ P, y_hat)}
-
-    # Probabilistic reconciliation
-    if (level is not None) and (sampler is not None):
-        # Update results dictionary within
-        # Vectorized quantiles
-        quantiles = np.concatenate(
-            [[(100 - lv) / 200, ((100 - lv) / 200) + lv / 100] for lv in level])
-        quantiles = np.sort(quantiles)
-        res = sampler.get_prediction_quantiles(res, quantiles)
-
-    return res
-
-# %% ../nbs/methods.ipynb 7
-def _get_sampler(intervals_method, 
-                 S, P, y_hat, 
-                 y_insample, y_hat_insample, 
-                 W, sigmah, tags):
-    if intervals_method == 'normality':
-        sampler = Normality(
-                      S=S, P=P,
-                      y_hat=y_hat,
-                      W=W, sigmah=sigmah)
-    elif intervals_method == 'permbu':
-        sampler = PERMBU(
-                      S=S, P=P,
-                      y_hat=y_hat,
-                      tags=tags,
-                      y_insample=y_insample, 
-                      y_hat_insample=y_hat_insample,
-                      sigmah=sigmah,
-                      num_samples=200)
-    elif intervals_method == 'bootstrap':
-        sampler = Bootstrap(
-                      S=S, P=P, 
-                      y_hat=y_hat,
-                      y_insample=y_insample,
-                      y_hat_insample=y_hat_insample,
-                      num_samples=200)
-    else:
-        sampler = None
-    return sampler
-
-# %% ../nbs/methods.ipynb 8
 class HReconciler:
     fitted = False
+
+    def _get_sampler(self,
+                     intervals_method,
+                     S, P, y_hat,
+                     y_insample, y_hat_insample,
+                     W, sigmah, num_samples, seed, tags):
+        if intervals_method == 'normality':
+            sampler = Normality(
+                        S=S, P=P,
+                        y_hat=y_hat,
+                        W=W, sigmah=sigmah,
+                        seed=seed)
+        elif intervals_method == 'permbu':
+            sampler = PERMBU(
+                        S=S, P=P,
+                        y_hat = (S @ (P @ y_hat)),
+                        tags=tags,
+                        y_insample=y_insample, 
+                        y_hat_insample=y_hat_insample,
+                        sigmah=sigmah,
+                        num_samples=num_samples,
+                        seed=seed)
+        elif intervals_method == 'bootstrap':
+            sampler = Bootstrap(
+                        S=S, P=P, 
+                        y_hat=y_hat,
+                        y_insample=y_insample,
+                        y_hat_insample=y_hat_insample,
+                        num_samples=num_samples,
+                        seed=seed)
+        else:
+            sampler = None
+        return sampler    
+
+    def _reconcile(self,
+                   S: np.ndarray,
+                   P: np.ndarray,
+                   y_hat: np.ndarray,
+                   SP: np.ndarray = None,
+                   level: Optional[List[int]] = None,
+                   sampler: Optional[Callable] = None):
+
+        # Mean reconciliation
+        res = {'mean': (S @ (P @ y_hat))}
+
+        # Probabilistic reconciliation
+        if (level is not None) and (sampler is not None):
+            # Update results dictionary within
+            # Vectorized quantiles
+            quantiles = np.concatenate(
+                [[(100 - lv) / 200, ((100 - lv) / 200) + lv / 100] for lv in level])
+            quantiles = np.sort(quantiles)
+            res = sampler.get_prediction_quantiles(res, quantiles)
+
+        return res
 
     def predict(self,
                 S: np.ndarray,
@@ -92,15 +95,17 @@ class HReconciler:
         if not self.fitted:
             raise Exception("This model instance is not fitted yet, Call fit method.")
    
-        return _reconcile(S=S, P=self.P, y_hat=y_hat,
-                          sampler=self.sampler, level=level)
+        return self._reconcile(S=S, P=self.P, y_hat=y_hat,
+                               sampler=self.sampler, level=level)
 
     def sample(self,
                num_samples: int):
         """Sample probabilistic coherent distribution.
 
-        Generates n samples from the probabilistic coherent distribution.
-        The method uses fitted mean and probabilistic reconcilers.
+        Generates n samples from a probabilistic coherent distribution.
+        The method uses fitted mean and probabilistic reconcilers, defined by
+        the `intervals_method` selected during the reconciler's
+        instantiation. Currently available: `normality`, `bootstrap`, `permbu`.
 
         **Parameters:**<br>
         `num_samples`: int, number of samples generated from coherent distribution.<br>
@@ -116,7 +121,7 @@ class HReconciler:
         samples = self.sampler.get_samples(num_samples=num_samples)
         return samples
 
-# %% ../nbs/methods.ipynb 10
+# %% ../nbs/methods.ipynb 8
 class BottomUp(HReconciler):
     """Bottom Up Reconciliation Class.
     The most basic hierarchical reconciliation is performed using an Bottom-Up strategy. It was proposed for 
@@ -148,20 +153,35 @@ class BottomUp(HReconciler):
             y_insample: Optional[np.ndarray] = None,
             y_hat_insample: Optional[np.ndarray] = None,
             sigmah: Optional[np.ndarray] = None,
-            num_samples: Optional[int] = None,
-            seed: Optional[int] = None,
             intervals_method: Optional[str] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,            
             tags: Dict[str, np.ndarray] = None):
+        """Bottom Up Fit Method.
 
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        `level`: float list 0-100, confidence levels for prediction intervals.<br>
+        `intervals_method`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
+        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
+
+        **Returns:**<br>
+        `self`: object, fitted reconciler.
+        """
         self.P, self.W = self._get_PW_matrices(S=S, idx_bottom=idx_bottom)
-        self.sampler = _get_sampler(S=S,
-                                    P=self.P,
-                                    W=self.W,
-                                    y_hat=y_hat,
-                                    y_insample=y_insample,
-                                    y_hat_insample=y_hat_insample,
-                                    sigmah=sigmah, tags=tags,
-                                    intervals_method=intervals_method)
+        self.sampler = self._get_sampler(S=S,
+                                         P=self.P,
+                                         W=self.W,
+                                         y_hat=y_hat,
+                                         y_insample=y_insample,
+                                         y_hat_insample=y_hat_insample,
+                                         sigmah=sigmah, 
+                                         intervals_method=intervals_method,
+                                         num_samples=num_samples,
+                                         seed=seed,
+                                         tags=tags)
         self.fitted = True
         return self
 
@@ -172,19 +192,20 @@ class BottomUp(HReconciler):
                     y_insample: Optional[np.ndarray] = None,
                     y_hat_insample: Optional[np.ndarray] = None,
                     sigmah: Optional[np.ndarray] = None,
-                    seed: Optional[int] = None,
-                    num_samples: Optional[int] = None,
                     level: Optional[List[int]] = None,
                     intervals_method: Optional[str] = None,
+                    num_samples: Optional[int] = None,
+                    seed: Optional[int] = None,
                     tags: Dict[str, np.ndarray] = None):
-        """Bottom Up Reconciliation Method.
+        """BottomUp Reconciliation Method.
 
         **Parameters:**<br>
         `S`: Summing matrix of size (`base`, `bottom`).<br>
         `y_hat`: Forecast values of size (`base`, `horizon`).<br>
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `intervals_method`: Sampler for prediction intevals, one of Normality(), Bootstrap(), PERMBU().<br>
+        `intervals_method`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
+        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
 
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the Bottom Up approach.
@@ -195,13 +216,13 @@ class BottomUp(HReconciler):
                  y_insample=y_insample,
                  y_hat_insample=y_hat_insample,
                  sigmah=sigmah,
-                 num_samples=num_samples, 
-                 seed=seed,
                  intervals_method=intervals_method, 
+                 num_samples=num_samples,
+                 seed=seed,
                  tags=tags, idx_bottom=idx_bottom)
 
-        return _reconcile(S=S, P=self.P, y_hat=y_hat,
-                          sampler=self.sampler, level=level)
+        return self._reconcile(S=S, P=self.P, y_hat=y_hat,
+                               sampler=self.sampler, level=level)
 
     __call__ = fit_predict
 
@@ -283,6 +304,8 @@ class TopDown(HReconciler):
             prop = np.mean(y_btm / y_top, axis=1)
         elif self.method == 'proportion_averages':
             prop = np.mean(y_btm, axis=1) / np.mean(y_top)
+        elif self.method == 'forecast_proportions':
+            raise Exception(f'Fit method not implemented for {self.method} yet')
         else:
             raise Exception(f'Unknown method {self.method}')
 
@@ -291,21 +314,45 @@ class TopDown(HReconciler):
         W = np.eye(n_hiers, dtype=np.float32)
         return P, W
 
-    def fit(self, S, y_hat, 
-            y_insample, y_hat_insample,
-            sigmah, num_samples, seed, 
-            intervals_method, tags, idx_bottom):
+    def fit(self, 
+            S,
+            y_hat,
+            y_insample: Optional[np.ndarray] = None,
+            y_hat_insample: Optional[np.ndarray] = None,
+            sigmah: Optional[np.ndarray] = None,
+            intervals_method: Optional[str] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,            
+            tags: Dict[str, np.ndarray] = None,
+            idx_bottom: Optional[np.ndarray] = None):
+        """TopDown Fit Method.
 
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `tags`: Each key is a level and each value its `S` indices.<br>
+        `y_insample`: Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.<br>
+        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        `level`: float list 0-100, confidence levels for prediction intervals.<br>
+        `intervals_method`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
+        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
+
+        **Returns:**<br>
+        `self`: object, fitted reconciler.
+        """
         self.P, self.W = self._get_PW_matrices(S=S, y_hat=y_hat, 
                                                tags=tags, y_insample=y_insample)
-        self.sampler = _get_sampler(S=S,
-                                    P=self.P,
-                                    W=self.W,
-                                    y_hat=y_hat,
-                                    y_insample=y_insample,
-                                    y_hat_insample=y_hat_insample,
-                                    sigmah=sigmah, tags=tags,
-                                    intervals_method=intervals_method)
+        self.sampler = self._get_sampler(S=S,
+                                         P=self.P,
+                                         W=self.W,
+                                         y_hat=y_hat,
+                                         y_insample=y_insample,
+                                         y_hat_insample=y_hat_insample,
+                                         sigmah=sigmah, 
+                                         intervals_method=intervals_method,
+                                         num_samples=num_samples,
+                                         seed=seed,
+                                         tags=tags)
         self.fitted = True
         return self
 
@@ -317,10 +364,10 @@ class TopDown(HReconciler):
                     y_insample: Optional[np.ndarray] = None,
                     y_hat_insample: Optional[np.ndarray] = None,
                     sigmah: Optional[np.ndarray] = None,
-                    seed: Optional[int] = None,
-                    num_samples: Optional[int] = None,
                     level: Optional[List[int]] = None,
-                    intervals_method: Optional[str] = None):
+                    intervals_method: Optional[str] = None,
+                    num_samples: Optional[int] = None,
+                    seed: Optional[int] = None):
         """Top Down Reconciliation Method.
 
         **Parameters:**<br>
@@ -330,7 +377,8 @@ class TopDown(HReconciler):
         `y_insample`: Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.<br>
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `sampler`: Sampler for prediction intevals, one of Normality(), Bootstrap(), PERMBU().<br>
+        `intervals_method`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
+        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
 
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the Top Down approach.
@@ -355,16 +403,16 @@ class TopDown(HReconciler):
                      y_insample=y_insample,
                      y_hat_insample=y_hat_insample,
                      sigmah=sigmah,
-                     num_samples=num_samples, 
+                     intervals_method=intervals_method,
+                     num_samples=num_samples,
                      seed=seed,
-                     intervals_method=intervals_method, 
                      tags=tags, idx_bottom=idx_bottom)
-            return _reconcile(S=S, P=self.P, y_hat=y_hat,
-                              level=level, sampler=self.sampler)
+            return self._reconcile(S=S, P=self.P, y_hat=y_hat,
+                                   level=level, sampler=self.sampler)
 
     __call__ = fit_predict
 
-# %% ../nbs/methods.ipynb 29
+# %% ../nbs/methods.ipynb 31
 class MiddleOut(HReconciler):
     """Middle Out Reconciliation Class.
 
@@ -402,7 +450,9 @@ class MiddleOut(HReconciler):
                     S: np.ndarray,
                     y_hat: np.ndarray,
                     tags: Dict[str, np.ndarray],
-                    y_insample: Optional[np.ndarray] = None):
+                    y_insample: Optional[np.ndarray] = None,
+                    level: Optional[List[int]] = None,
+                    intervals_method: Optional[str] = None):
         """Middle Out Reconciliation Method.
 
         **Parameters:**<br>
@@ -478,11 +528,11 @@ class MiddleOut(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/methods.ipynb 34
+# %% ../nbs/methods.ipynb 36
 def crossprod(x):
     return x.T @ x
 
-# %% ../nbs/methods.ipynb 35
+# %% ../nbs/methods.ipynb 37
 class MinTrace(HReconciler):
     """MinTrace Reconciliation Class.
 
@@ -592,11 +642,32 @@ class MinTrace(HReconciler):
 
         return P, W
 
-    def fit(self, S, y_hat, 
-            y_insample, y_hat_insample,
-            sigmah, num_samples, seed,
-            intervals_method, tags, idx_bottom):
+    def fit(self,
+            S,
+            y_hat,
+            y_insample: Optional[np.ndarray] = None,
+            y_hat_insample: Optional[np.ndarray] = None,
+            sigmah: Optional[np.ndarray] = None,
+            intervals_method: Optional[str] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,            
+            tags: Dict[str, np.ndarray] = None,
+            idx_bottom: Optional[np.ndarray] = None):
+        """MinTrace Fit Method.
 
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `tags`: Each key is a level and each value its `S` indices.<br>
+        `y_insample`: Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.<br>
+        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        `level`: float list 0-100, confidence levels for prediction intervals.<br>
+        `intervals_method`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
+        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
+
+        **Returns:**<br>
+        `self`: object, fitted reconciler.
+        """
         self.y_hat = y_hat
         self.P, self.W = self._get_PW_matrices(S=S, y_hat=y_hat, 
                                                y_insample=y_insample, y_hat_insample=y_hat_insample,
@@ -632,14 +703,17 @@ class MinTrace(HReconciler):
             # Overwrite P, W and sampler attributes with BottomUp's
             self.P, self.W = BottomUp()._get_PW_matrices(S=S, idx_bottom=idx_bottom)            
 
-        self.sampler = _get_sampler(S=S,
-                                    P=self.P,
-                                    W=self.W,
-                                    y_hat=y_hat,
-                                    y_insample=y_insample,
-                                    y_hat_insample=y_hat_insample,
-                                    sigmah=sigmah, tags=tags,
-                                    intervals_method=intervals_method)
+        self.sampler = self._get_sampler(S=S,
+                                         P=self.P,
+                                         W=self.W,
+                                         y_hat=y_hat,
+                                         y_insample=y_insample,
+                                         y_hat_insample=y_hat_insample,
+                                         sigmah=sigmah, 
+                                         intervals_method=intervals_method,
+                                         num_samples=num_samples,
+                                         seed=seed,
+                                         tags=tags)
         self.fitted = True
         return self
 
@@ -650,10 +724,10 @@ class MinTrace(HReconciler):
                     y_insample: Optional[np.ndarray] = None,
                     y_hat_insample: Optional[np.ndarray] = None,
                     sigmah: Optional[np.ndarray] = None,
-                    seed: Optional[int] = None,
-                    num_samples: Optional[int] = None,
                     level: Optional[List[int]] = None,
                     intervals_method: Optional[str] = None,
+                    num_samples: Optional[int] = None,
+                    seed: Optional[int] = None,                    
                     tags: Dict[str, np.ndarray] = None):
         """MinTrace Reconciliation Method.
 
@@ -664,7 +738,7 @@ class MinTrace(HReconciler):
         `y_hat_insample`: Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink`<br>
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `sampler`: Sampler for prediction intevals, one of Normality(), Bootstrap(), PERMBU().<br>
+        `sampler`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
 
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the MinTrace approach.
@@ -681,17 +755,17 @@ class MinTrace(HReconciler):
                  y_insample=y_insample,
                  y_hat_insample=y_hat_insample,
                  sigmah=sigmah,
-                 num_samples=num_samples, 
+                 intervals_method=intervals_method,
+                 num_samples=num_samples,
                  seed=seed,
-                 intervals_method=intervals_method, 
                  tags=tags, idx_bottom=idx_bottom)
 
-        return _reconcile(S=S, P=self.P, y_hat=self.y_hat,
-                          level=level, sampler=self.sampler)
+        return self._reconcile(S=S, P=self.P, y_hat=self.y_hat,
+                               level=level, sampler=self.sampler)
 
     __call__ = fit_predict
 
-# %% ../nbs/methods.ipynb 44
+# %% ../nbs/methods.ipynb 47
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -726,7 +800,7 @@ class OptimalCombination(MinTrace):
         self.nonnegative = nonnegative
         self.insample = False
 
-# %% ../nbs/methods.ipynb 51
+# %% ../nbs/methods.ipynb 56
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -758,7 +832,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 52
+# %% ../nbs/methods.ipynb 57
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
@@ -833,24 +907,48 @@ class ERM(HReconciler):
 
         return P, W
 
-    def fit(self, S, y_hat, 
-            y_insample, y_hat_insample,
-            sigmah, num_samples, seed, 
-            intervals_method, tags, idx_bottom):
+    def fit(self,
+            S,
+            y_hat,
+            y_insample,
+            y_hat_insample,
+            sigmah: Optional[np.ndarray] = None,
+            intervals_method: Optional[str] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,
+            tags: Dict[str, np.ndarray] = None,
+            idx_bottom: Optional[np.ndarray] = None):
+        """ERM Fit Method.
 
+        **Parameters:**<br>
+        `S`: Summing matrix of size (`base`, `bottom`).<br>
+        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
+        `y_insample`: Train values of size (`base`, `insample_size`).<br>
+        `y_hat_insample`: Insample train predictions of size (`base`, `insample_size`).<br>
+        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        `level`: float list 0-100, confidence levels for prediction intervals.<br>
+        `intervals_method`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
+        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
+
+        **Returns:**<br>
+        `self`: object, fitted reconciler.
+        """
         self.P, self.W = self._get_PW_matrices(S=S,
                                                y_hat=y_hat,
                                                y_insample=y_insample,
                                                y_hat_insample=y_hat_insample,
                                                idx_bottom=idx_bottom)                                               
-        self.sampler = _get_sampler(S=S,
-                                    P=self.P,
-                                    W=self.W,
-                                    y_hat=y_hat,
-                                    y_insample=y_insample,
-                                    y_hat_insample=y_hat_insample,
-                                    sigmah=sigmah, tags=tags,
-                                    intervals_method=intervals_method)
+        self.sampler = self._get_sampler(S=S,
+                                         P=self.P,
+                                         W=self.W,
+                                         y_hat=y_hat,
+                                         y_insample=y_insample,
+                                         y_hat_insample=y_hat_insample,
+                                         sigmah=sigmah, 
+                                         intervals_method=intervals_method,
+                                         num_samples=num_samples,
+                                         seed=seed,
+                                         tags=tags)
         self.fitted = True
         return self
 
@@ -861,10 +959,10 @@ class ERM(HReconciler):
                     y_insample: Optional[np.ndarray] = None,
                     y_hat_insample: Optional[np.ndarray] = None,
                     sigmah: Optional[np.ndarray] = None,
-                    seed: Optional[int] = None,
-                    num_samples: Optional[int] = None,
                     level: Optional[List[int]] = None,
                     intervals_method: Optional[str] = None,
+                    num_samples: Optional[int] = None,
+                    seed: Optional[int] = None,
                     tags: Dict[str, np.ndarray] = None):
         """ERM Reconciliation Method.
 
@@ -875,7 +973,7 @@ class ERM(HReconciler):
         `y_hat_insample`: Insample train predictions of size (`base`, `insample_size`).<br>
         `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
         `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `sampler`: Sampler for prediction intevals, one of Normality(), Bootstrap(), PERMBU().<br>
+        `intervals_method`: Sampler for prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br>
 
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the ERM approach.
@@ -886,12 +984,12 @@ class ERM(HReconciler):
                  y_insample=y_insample,
                  y_hat_insample=y_hat_insample,
                  sigmah=sigmah,
-                 num_samples=num_samples, 
+                 intervals_method=intervals_method,
+                 num_samples=num_samples,
                  seed=seed,
-                 intervals_method=intervals_method, 
                  tags=tags, idx_bottom=idx_bottom)
 
-        return _reconcile(S=S, P=self.P, y_hat=y_hat,
-                          level=level, sampler=self.sampler)
+        return self._reconcile(S=S, P=self.P, y_hat=y_hat,
+                               level=level, sampler=self.sampler)
 
     __call__ = fit_predict
