@@ -641,12 +641,16 @@ class MinTrace(HReconciler):
             raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
 
         else:
-            # compute P for free reconciliation
-            if self.method not in diag_only_methods:
-                R = S.T @ np.linalg.pinv(W)
-            else:
-                R = S.T * np.reciprocal(np.diag(W))
-            P = np.linalg.pinv(R @ S) @ R
+            # We efficiently compute reconciliation matrix with
+            # Equation 10 from https://robjhyndman.com/papers/MinT.pdf
+            # New Computational complexity O(Na^3) vs O((Na+Nb)^3)
+            n_hiers, n_bottom = S.shape
+            n_agg = n_hiers - n_bottom
+
+            A = S[:n_agg,:]
+            U = np.hstack((np.eye(n_agg), -A)).T
+            J = np.hstack((np.zeros((n_bottom,n_agg)), np.eye(n_bottom)))
+            P = J - (J @ W @ U) @ np.linalg.pinv(U.T @ W @ U) @ U.T            
 
         return P, W
 
