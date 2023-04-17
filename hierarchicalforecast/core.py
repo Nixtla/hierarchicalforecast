@@ -134,16 +134,14 @@ class HierarchicalReconciliation:
         # Declare output names
         drop_cols = ['ds', 'y'] if 'y' in Y_hat_df.columns else ['ds']
         model_names = Y_hat_df.drop(columns=drop_cols, axis=1).columns.to_list()
-        print(len(Y_hat_df[model_names].select_dtypes(include='number').columns))
+
+        # Ensure numeric columns
+        if not len(Y_hat_df[model_names].select_dtypes(include='number').columns) == len(model_names):
+            raise Exception('Check `Y_hat_df`s columns contain numeric types')
+        
         pi_model_names = [name for name in model_names if ('-lo' in name or '-hi' in name)]
         model_names = [name for name in model_names if name not in pi_model_names]
         
-        # Ensure numeric columns
-        print(len(Y_hat_df[model_names].select_dtypes(include='number').columns))
-        print(len(model_names))
-        if not len(Y_hat_df[model_names].select_dtypes(include='number').columns) == len(model_names):
-            raise Exception('Check `Y_hat_df`s columns contain numeric types')
-
         # TODO: Complete y_hat_insample protection
         if intervals_method in ['bootstrap', 'permbu']:
            if not (set(model_names) <= set(Y_df.columns)):
