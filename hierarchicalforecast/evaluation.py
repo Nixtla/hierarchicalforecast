@@ -169,12 +169,6 @@ def msse(y, y_hat, y_train, mask=None):
     - [Hyndman, R. J and Koehler, A. B. (2006).
        "Another look at measures of forecast accuracy",
        International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
-    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
-       "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. 
-       Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)<br>
-    - [Makridakis, S., Spiliotis E., and Assimakopoulos V. (2022). 
-       "M5 Accuracy Competition: Results, Findings, and Conclusions.",
-       International Journal of Forecasting, Volume 38, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207021001874)<br>
     """
     if mask is None: 
        mask = np.ones_like(y)
