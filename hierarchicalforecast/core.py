@@ -136,8 +136,10 @@ class HierarchicalReconciliation:
         model_names = Y_hat_df.drop(columns=drop_cols, axis=1).columns.to_list()
 
         # Ensure numeric columns
-        if not len(Y_hat_df[model_names].select_dtypes(include='number').columns) == len(model_names):
-            raise Exception('Check `Y_hat_df`s columns contain numeric types')
+        print(Y_hat_df[model_names].select_dtypes(include='number').columns)
+        print(Y_hat_df[model_names].columns)
+        if not len(Y_hat_df[model_names].select_dtypes(include='number').columns) == len(Y_hat_df[model_names].columns):
+            raise Exception('`Y_hat_df`s columns contain non numeric types')
             
         if Y_hat_df[model_names].isnull().values.any():
             raise Exception('`Y_hat_df` contains null values')
