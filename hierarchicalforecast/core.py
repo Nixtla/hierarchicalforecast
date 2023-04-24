@@ -52,7 +52,7 @@ def _reverse_engineer_sigmah(Y_hat_df, y_hat, model_name):
     if model_name+'-median' in Y_hat_df.columns:
         drop_cols.append(model_name+'-median')
     model_names = Y_hat_df.drop(columns=drop_cols, axis=1).columns.to_list()
-    pi_model_names = [name for name in model_names if ('-lo' in name or '-hi' in name or '-median' in name)]
+    pi_model_names = [name for name in model_names if ('-lo' in name or '-hi' in name)]
     pi_model_name = [pi_name for pi_name in pi_model_names if model_name in pi_name]
     pi = len(pi_model_name) > 0
 
