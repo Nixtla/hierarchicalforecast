@@ -75,7 +75,7 @@ def _to_summing_matrix(S_df: pd.DataFrame):
     cat_sizes = [len(cats) for cats in categories]
     idx_bottom = np.argmax(cat_sizes)
     cats_bottom = categories[idx_bottom]
-    encoder = OneHotEncoder(categories=categories, sparse_output=False, dtype=np.float32)
+    encoder = OneHotEncoder(categories=categories, sparse=False, dtype=np.float32)
     S = encoder.fit_transform(S_df).T
     S = pd.DataFrame(S, index=chain(*categories), columns=cats_bottom)
     tags = dict(zip(S_df.columns, categories))
@@ -176,7 +176,7 @@ def _to_summing_dataframe(df: pd.DataFrame,
     tags[bottom_col] = bottom_ids
 
     encoder = OneHotEncoder(categories=categories,
-                            sparse_output=False, dtype=np.float32)
+                            sparse=False, dtype=np.float32)
     S = encoder.fit_transform(S_df).T
     S = np.concatenate([S, np.eye(len(bottom_ids), dtype=np.float32)], axis=0)
     S_df = pd.DataFrame(S, columns=bottom_ids,
