@@ -68,7 +68,75 @@ def cov2corr(cov, return_std=False):
     else:
         return corr
 
+# %% ../nbs/utils.ipynb 7
+# convert levels to output quantile names
+def level_to_outputs(level):
+    qs = sum([[50-l/2, 50+l/2] for l in level], [])
+    output_names = sum([[f'-lo-{l}', f'-hi-{l}'] for l in level], [])
+
+    sort_idx = np.argsort(qs)
+    quantiles = np.array(qs)[sort_idx]
+
+    # Add default median
+    quantiles = np.concatenate([np.array([50]), quantiles])
+    quantiles = torch.Tensor(quantiles) / 100
+    output_names = list(np.array(output_names)[sort_idx])
+    output_names.insert(0, '-median')
+    
+    return quantiles, output_names
+
+# convert quantiles to output quantile names
+def quantiles_to_outputs(quantiles):
+    output_names = []
+    for q in quantiles:
+        if q<.50:
+            output_names.append(f'-lo-{np.round(100-200*q,2)}')
+        elif q>.50:
+            output_names.append(f'-hi-{np.round(100-200*(1-q),2)}')
+        else:
+            output_names.append('-median')
+    return quantiles, output_names
+
 # %% ../nbs/utils.ipynb 8
+# given input array of sample forecasts and inptut quantiles/levels, 
+# output a Pandas Dataframe with columns of quantile predictions
+def _to_quantiles_df(samples, 
+                     unique_ids, 
+                     dates, 
+                     quantiles = None,
+                     level = None, 
+                     model_name = "model"):
+    
+    # Get the shape of the array
+    N, S, H = samples.shape
+
+    assert N == len(unique_ids)
+    assert H == len(dates)
+    assert (quantiles is not None) ^ (level is not None)  #check exactly one of quantiles/levels has been input
+
+    #create initial dictionary
+    forecasts_mean = np.mean(forecasts, axis=1).flatten()
+    unique_ids = np.repeat(unique_ids, H)
+    ds = np.tile(dates, N)
+    data = pd.DataFrame({"unique_id":unique_ids, "ds":ds, model_name:forecasts_mean})
+
+    #create quantiles and quantile names
+    quantiles, quantile_names = level_to_outputs(level) if level is not None else quantiles_to_outputs(quantiles)
+    percentiles = quantiles * 100
+    col_names = np.array([model_name + quantile_name for quantile_name in quantile_names])
+    
+    #add quantiles to dataframe
+    forecasts_quantiles = np.percentile(forecasts, percentiles, axis=1)
+
+    forecasts_quantiles = np.transpose(forecasts_quantiles, (1,2,0)) # [Q,H,N] -> [N,H,Q]
+    forecasts_quantiles = forecasts_quantiles.reshape(-1,len(quantiles))
+
+    df = pd.DataFrame(data=forecasts_quantiles, 
+                      columns=col_names)
+    
+    return quantiles, pd.concat([data,df], axis=1).set_index('unique_id')
+
+# %% ../nbs/utils.ipynb 10
 def _to_summing_matrix(S_df: pd.DataFrame):
     """Transforms the DataFrame `df` of hierarchies to a summing matrix S."""
     categories = [S_df[col].unique() for col in S_df.columns]
@@ -81,7 +149,7 @@ def _to_summing_matrix(S_df: pd.DataFrame):
     tags = dict(zip(S_df.columns, categories))
     return S, tags
 
-# %% ../nbs/utils.ipynb 9
+# %% ../nbs/utils.ipynb 11
 def aggregate_before(df: pd.DataFrame,
               spec: List[List[str]],
               agg_fn: Callable = np.sum):
@@ -123,7 +191,7 @@ def aggregate_before(df: pd.DataFrame,
     S, tags = _to_summing_matrix(S_df.loc[bottom_hier, hiers_cols])
     return Y_df, S, tags
 
-# %% ../nbs/utils.ipynb 10
+# %% ../nbs/utils.ipynb 12
 def numpy_balance(*arrs):
     """
     Fast NumPy implementation of balance function.
@@ -248,7 +316,7 @@ def aggregate(df: pd.DataFrame,
     Y_df = Y_df.set_index('unique_id')
     return Y_df, S_df, tags
 
-# %% ../nbs/utils.ipynb 16
+# %% ../nbs/utils.ipynb 18
 class HierarchicalPlot:
     """ Hierarchical Plot
 
