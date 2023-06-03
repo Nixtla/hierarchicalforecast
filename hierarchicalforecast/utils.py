@@ -71,6 +71,14 @@ def cov2corr(cov, return_std=False):
 # %% ../nbs/utils.ipynb 7
 # convert levels to output quantile names
 def level_to_outputs(level):
+    """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
+
+    **Parameters:**<br>
+    `level`: int list [0,100]. Probability levels for prediction intervals.<br>
+
+    **Returns:**<br>
+    `output_names`: str list. String list with output column names.
+    """
     qs = sum([[50-l/2, 50+l/2] for l in level], [])
     output_names = sum([[f'-lo-{l}', f'-hi-{l}'] for l in level], [])
 
@@ -87,6 +95,14 @@ def level_to_outputs(level):
 
 # convert quantiles to output quantile names
 def quantiles_to_outputs(quantiles):
+    """Converts list of quantiles into output names matching StatsForecast and NeuralForecast methods.
+
+    **Parameters:**<br>
+    `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
+
+    **Returns:**<br>
+    `output_names`: str list. String list with output column names.
+    """
     output_names = []
     for q in quantiles:
         if q<.50:
@@ -106,18 +122,33 @@ def _to_quantiles_df(samples,
                      quantiles = None,
                      level = None, 
                      model_name = "model"):
+    """ Transform Samples into HierarchicalForecast input.
+    Auxiliary function to create compatible HierarchicalForecast input Y_hat_df dataframe.
+
+    **Parameters:**<br>
+    `samples`: numpy array. Samples from forecast distribution of shape [n_series, n_samples, horizon].<br>
+    `unique_ids`: string list. Unique identifiers for each time series.<br>
+    `dates`: datetime list. List of forecast dates.<br>
+    `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
+    `level`: int list [0,100]. Probability levels for prediction intervals.<br>
+    `model_name`: string. Name of forecasting model.<br>
+
+    **Returns:**<br>
+    `quantiles`: float list [0., 1.]. quantiles to estimate from y distribution .<br>
+    `Y_hat_df`: pd.DataFrame. With base quantile forecasts with columns ds and models to reconcile indexed by unique_id.
+    """
     
     # Get the shape of the array
-    N, S, H = samples.shape
+    n_series, n_samples, horizon = samples.shape
 
-    assert N == len(unique_ids)
-    assert H == len(dates)
+    assert n_series == len(unique_ids)
+    assert horizon == len(dates)
     assert (quantiles is not None) ^ (level is not None)  #check exactly one of quantiles/levels has been input
 
     #create initial dictionary
     forecasts_mean = np.mean(forecasts, axis=1).flatten()
-    unique_ids = np.repeat(unique_ids, H)
-    ds = np.tile(dates, N)
+    unique_ids = np.repeat(unique_ids, horizon)
+    ds = np.tile(dates, n_series)
     data = pd.DataFrame({"unique_id":unique_ids, "ds":ds, model_name:forecasts_mean})
 
     #create quantiles and quantile names
