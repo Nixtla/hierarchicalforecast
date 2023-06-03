@@ -7,7 +7,7 @@ __all__ = ['HierarchicalPlot']
 import sys
 import timeit
 from itertools import chain
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -116,12 +116,12 @@ def quantiles_to_outputs(quantiles):
 # %% ../nbs/utils.ipynb 8
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
-def _to_quantiles_df(samples, 
-                     unique_ids, 
-                     dates, 
-                     quantiles = None,
-                     level = None, 
-                     model_name = "model"):
+def samples_to_quantiles_df(samples:np.ndarray, 
+                            unique_ids:Sequence[str], 
+                            dates:Sequence, 
+                            quantiles:Optional[Sequence[float]] = None,
+                            level:Optional[Sequence[int]] = None, 
+                            model_name:Optional[str] = "model"):
     """ Transform Samples into HierarchicalForecast input.
     Auxiliary function to create compatible HierarchicalForecast input Y_hat_df dataframe.
 
@@ -129,12 +129,12 @@ def _to_quantiles_df(samples,
     `samples`: numpy array. Samples from forecast distribution of shape [n_series, n_samples, horizon].<br>
     `unique_ids`: string list. Unique identifiers for each time series.<br>
     `dates`: datetime list. List of forecast dates.<br>
-    `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
-    `level`: int list [0,100]. Probability levels for prediction intervals.<br>
+    `quantiles`: float list in [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
+    `level`: int list in [0,100]. Probability levels for prediction intervals.<br>
     `model_name`: string. Name of forecasting model.<br>
 
     **Returns:**<br>
-    `quantiles`: float list [0., 1.]. quantiles to estimate from y distribution .<br>
+    `quantiles`: float list in [0., 1.]. quantiles to estimate from y distribution .<br>
     `Y_hat_df`: pd.DataFrame. With base quantile forecasts with columns ds and models to reconcile indexed by unique_id.
     """
     
@@ -167,7 +167,7 @@ def _to_quantiles_df(samples,
     
     return quantiles, pd.concat([data,df], axis=1).set_index('unique_id')
 
-# %% ../nbs/utils.ipynb 10
+# %% ../nbs/utils.ipynb 11
 def _to_summing_matrix(S_df: pd.DataFrame):
     """Transforms the DataFrame `df` of hierarchies to a summing matrix S."""
     categories = [S_df[col].unique() for col in S_df.columns]
@@ -180,14 +180,14 @@ def _to_summing_matrix(S_df: pd.DataFrame):
     tags = dict(zip(S_df.columns, categories))
     return S, tags
 
-# %% ../nbs/utils.ipynb 11
+# %% ../nbs/utils.ipynb 12
 def aggregate_before(df: pd.DataFrame,
               spec: List[List[str]],
               agg_fn: Callable = np.sum):
     """Utils Aggregation Function.
 
     Aggregates bottom level series contained in the pd.DataFrame `df` according 
-    to levels defined in the `spec` list applying the `agg_fn` (sum, mean).
+    to levels defined in the `spec` list applying the `agg_fn` (sum, mean).<br>
 
     **Parameters:**<br>
     `df`: pd.DataFrame with columns `['ds', 'y']` and columns to aggregate.<br>
@@ -222,7 +222,7 @@ def aggregate_before(df: pd.DataFrame,
     S, tags = _to_summing_matrix(S_df.loc[bottom_hier, hiers_cols])
     return Y_df, S, tags
 
-# %% ../nbs/utils.ipynb 12
+# %% ../nbs/utils.ipynb 13
 def numpy_balance(*arrs):
     """
     Fast NumPy implementation of balance function.
@@ -347,7 +347,7 @@ def aggregate(df: pd.DataFrame,
     Y_df = Y_df.set_index('unique_id')
     return Y_df, S_df, tags
 
-# %% ../nbs/utils.ipynb 18
+# %% ../nbs/utils.ipynb 19
 class HierarchicalPlot:
     """ Hierarchical Plot
 
