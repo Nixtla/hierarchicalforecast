@@ -7,10 +7,10 @@ In our experiment, we compare the predictions of several state-of-the-art probab
 ## Probabilistic Coherent Forecast Accuracy
 
 To evaluate the accuracy of probabilistic coherent forecasts, we employ the Mean scaled Continuous Ranked Probability Scores (sCRPS) integral. This evaluation metric utilizes a Riemann approximation to the sCRPS, considering quantile intervals of 1 percent denoted as $dq$. We report here the best performing method across the BottomUp, TopDown and MinTrace reconciliations.
-$$
+```math
 \mathrm{sCRPS}(\mathbb{P}, \mathbf{y}_{[i],\tau}) = \frac{2}{|[i\,]|} \sum_{i}
     \frac{\int^{1}_{0} \mathrm{QL}(\mathbb{P}_{i,\tau}, y_{i,\tau})_{q} dq }{\sum_{i} | y_{i,\tau} |}
-$$
+```
 
 |              |  **BOOTSTRAP**              ||| **NORMALITY**               ||| **PERMBU**                  |||
 |--------------|----------|---------|----------|----------|---------|----------|----------|---------|----------|
@@ -26,10 +26,10 @@ $$
 ## Hierarchically Coherent Forecast Accuracy
 
 To assess the accuracy of hierarchically coherent mean forecasts, we employ the relative mean squared error that compares the Naive forecast, with reconciled StatsForecast's base AutoARIMA forecasts.
-$$
+```math
 \mathrm{relMSE}(\mathbf{y}_{[i]}, \hat{\mathbf{y}}_{[i]}, \mathbf{\check{y}}_{[i]}) =
     \frac{\mathrm{MSE}(\mathbf{y}_{[i]}, \mathbf{\hat{y}}_{[i]})}{\mathrm{MSE}(\mathbf{y}_{[i]}, \mathbf{\check{y}}_{[i]})}
-$$
+```
 
 | Dataset  | BottomUp | TopDown | MinTrace |
 |----------|----------|---------|----------|
