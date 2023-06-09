@@ -28,7 +28,8 @@ class HierarchicalDataset(object):
     # prediction evaluation methods for hierarchical data
 
     available_datasets = ['Labour','Traffic',
-                          'TourismSmall','TourismLarge','Wiki2']
+                          'TourismSmall','TourismLarge','Wiki2',
+                          'OldTraffic', 'OldTourismLarge']
 
     def _get_hierarchical_scrps(self, hier_idxs, Y, Yq_hat, q_to_pred):
         # We use the indexes obtained from the aggregation tags
@@ -87,30 +88,22 @@ class HierarchicalDataset(object):
                     hier_idxs=hier_idxs,
                     hier_levels=hier_levels,
                     hier_linked_idxs=hier_linked_idxs,
-                    # Properties
-                    horizon=data_info.seasonality,
+                    # Dataset Properties
+                    horizon=data_info.horizon2,
                     freq=data_info.freq,
                     seasonality=data_info.seasonality)
         return data
 
 
-def run_baselines(dataset, intervals_method, verbose=False, preprocessed=False, seed=0):
+def run_baselines(dataset, intervals_method, verbose=False, seed=0):
     with CodeTimer('Read and Parse data   ', verbose):
-        if preprocessed:
-            hdataset = HierarchicalDataset()
-            data = hdataset.load_process_data(dataset=dataset)
-            Y_df = data['Y_df'][["unique_id", 'ds', 'y']]
-            S_df, tags = data['S_df'], data['tags']
-            horizon = data['seasonality'] #data['horizon']
-            seasonality = data['seasonality']
-            freq = data['freq']
-        else:
-            Y_df, S_df, tags = HierarchicalData.load(directory=f'./data/{dataset}', group=dataset)
-            Y_df['ds'] = pd.to_datetime(Y_df['ds'])
-            dataset_info = HierarchicalInfo[dataset]
-            horizon = dataset_info.seasonality #dataset_info.horizon
-            seasonality = dataset_info.seasonality
-            freq = dataset_info.freq
+        hdataset = HierarchicalDataset()
+        data = hdataset.load_process_data(dataset=dataset)
+        Y_df = data['Y_df'][["unique_id", 'ds', 'y']]
+        S_df, tags = data['S_df'], data['tags']
+        horizon = data['horizon']
+        seasonality = data['seasonality']
+        freq = data['freq']
 
         # Train/Test Splits
         Y_test_df  = Y_df.groupby('unique_id').tail(horizon)
@@ -290,7 +283,7 @@ if __name__ == '__main__':
     assert intervals_method in ['bootstrap', 'normality', 'permbu'], \
         "Select `intervals_method` from ['bootstrap', 'normality', 'permbu']"
     
-    print(f'{intervals_method} statistical baselines evaluation \n\n')
+    print(f'\n {intervals_method.upper()} statistical baselines evaluation \n')
 
     LEVEL = np.arange(0, 100, 2)
     qs = [[50-lv/2, 50+lv/2] for lv in LEVEL]
@@ -299,15 +292,17 @@ if __name__ == '__main__':
     # Run experiments
     crps_results_list = []
     msse_results_list = []
-    for dataset in ['Labour', 'Traffic', 'TourismSmall', 'TourismLarge', 'Wiki2']:
+    #for dataset in ['Labour', 'Traffic', 'TourismSmall', 'TourismLarge', 'Wiki2']:
+    for dataset in ['OldTraffic', 'OldTourismLarge']:
         try:
             crps_results, msse_results = run_baselines(dataset=dataset,
-                        intervals_method=intervals_method, verbose=verbose, preprocessed=True)
+                        intervals_method=intervals_method, verbose=verbose)
             crps_results_list.append(crps_results)
             msse_results_list.append(msse_results)
         except Exception as e:
             print('failed ', dataset)
             print(str(e))
+        print('\n\n')
 
     crps_results_df = pd.concat(crps_results_list)
     msse_results_df = pd.concat(msse_results_list)
@@ -315,10 +310,9 @@ if __name__ == '__main__':
     crps_results_df.to_csv(f'./data/{intervals_method}_crps.csv', index=False)
     msse_results_df.to_csv(f'./data/{intervals_method}_msse.csv', index=False)
 
-    print('\n\n'+'='*(200+24))
+    print('='*(200+24))
     print(f'{intervals_method} sCRPS:')
     print(crps_results_df)
     print('\n\n'+'='*(200+24))
     print(f'{intervals_method} relMSE:')
     print(msse_results_df)
-
