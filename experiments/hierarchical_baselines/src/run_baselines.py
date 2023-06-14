@@ -31,7 +31,8 @@ class HierarchicalDataset(object):
                           'TourismSmall','TourismLarge','Wiki2',
                           'OldTraffic', 'OldTourismLarge']
 
-    def _get_hierarchical_scrps(self, hier_idxs, Y, Yq_hat, q_to_pred):
+    @staticmethod
+    def _get_hierarchical_scrps(hier_idxs, Y, Yq_hat, q_to_pred):
         # We use the indexes obtained from the aggregation tags
         # to compute scaled CRPS across the hierarchy levels 
         scrps_list = []
@@ -42,7 +43,8 @@ class HierarchicalDataset(object):
             scrps_list.append(scrps)
         return scrps_list
 
-    def _get_hierarchical_msse(self, hier_idxs, Y, Y_hat, Y_train):
+    @staticmethod
+    def _get_hierarchical_msse(hier_idxs, Y, Y_hat, Y_train):
         # We use the indexes obtained from the aggregation tags
         # to compute scaled CRPS across the hierarchy levels         
         msse_list = []
@@ -54,7 +56,8 @@ class HierarchicalDataset(object):
             msse_list.append(crps)
         return msse_list    
 
-    def _sort_hier_df(self, Y_df, S_df):
+    @staticmethod
+    def _sort_hier_df(Y_df, S_df):
         # NeuralForecast core, sorts unique_id lexicographically
         # deviating from S_df, this class matches S_df and Y_hat_df order.
         Y_df.unique_id = Y_df.unique_id.astype('category')
@@ -62,25 +65,26 @@ class HierarchicalDataset(object):
         Y_df = Y_df.sort_values(by=['unique_id', 'ds'])
         return Y_df
 
-    def _nonzero_indexes_by_row(self, M):
+    @staticmethod
+    def _nonzero_indexes_by_row(M):
         return [np.nonzero(M[row,:])[0] for row in range(len(M))]    
 
-    def load_process_data(self, dataset, directory='./data'):
+    @staticmethod
+    def load_process_data(dataset, directory='./data'):
         # Load data
-        assert dataset in self.available_datasets
         data_info = HierarchicalInfo[dataset]
         Y_df, S_df, tags = HierarchicalData.load(directory=directory,
                                                  group=dataset)
 
         # Parse and augment data
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
-        Y_df = self._sort_hier_df(Y_df=Y_df, S_df=S_df)
+        Y_df = HierarchicalDataset._sort_hier_df(Y_df=Y_df, S_df=S_df)
 
         # Obtain indexes for plots and evaluation
         hier_levels = ['Overall'] + list(tags.keys())
         hier_idxs = [np.arange(len(S_df))] +\
             [S_df.index.get_indexer(tags[level]) for level in list(tags.keys())]
-        hier_linked_idxs = self._nonzero_indexes_by_row(S_df.values.T)
+        hier_linked_idxs = HierarchicalDataset._nonzero_indexes_by_row(S_df.values.T)
 
         # Final output
         data = dict(Y_df=Y_df, S_df=S_df, tags=tags,
@@ -97,8 +101,7 @@ class HierarchicalDataset(object):
 
 def run_baselines(dataset, intervals_method, verbose=False, seed=0):
     with CodeTimer('Read and Parse data   ', verbose):
-        hdataset = HierarchicalDataset()
-        data = hdataset.load_process_data(dataset=dataset)
+        data = HierarchicalDataset.load_process_data(dataset=dataset)
         Y_df = data['Y_df'][["unique_id", 'ds', 'y']]
         S_df, tags = data['S_df'], data['tags']
         horizon = data['horizon']
@@ -215,11 +218,13 @@ def run_baselines(dataset, intervals_method, verbose=False, seed=0):
         y_hat_quantiles_np = Y_hat_quantiles.values.reshape(n_series, horizon, len(QUANTILES))
         y_hat_np = Y_hat_df['AutoARIMA'].values.reshape(n_series, -1)
 
-        crps_results['AutoARIMA'] = hdataset._get_hierarchical_scrps(Y=y_test,
-                                                             Yq_hat=y_hat_quantiles_np,
-                                                             q_to_pred=QUANTILES,
-                                                             hier_idxs=data['hier_idxs'])
-        msse_results['AutoARIMA'] = hdataset._get_hierarchical_msse(Y=y_test,
+        crps_results['AutoARIMA'] = HierarchicalDataset._get_hierarchical_scrps(
+                                                            Y=y_test,
+                                                            Yq_hat=y_hat_quantiles_np,
+                                                            q_to_pred=QUANTILES,
+                                                            hier_idxs=data['hier_idxs'])
+        msse_results['AutoARIMA'] = HierarchicalDataset._get_hierarchical_msse(
+                                                            Y=y_test,
                                                             Y_hat=y_hat_np,
                                                             Y_train=y_train,
                                                             hier_idxs=data['hier_idxs'])
