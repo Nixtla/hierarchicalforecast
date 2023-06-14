@@ -52,9 +52,11 @@ To assess the accuracy of hierarchically coherent mean forecasts, we employ the 
   conda activate hierarchical_baselines
   ```
 
-4. Run the experiments for each dataset and each model using with `intervals_method` parameter in `['bootstrap', 'normality', 'permbu']`
+4. Run the experiments for each dataset and each model using with 
+- `--intervals_method` parameter in `['bootstrap', 'normality', 'permbu']`
+- `--dataset` parameter in `['Labour', 'Traffic', 'OldTraffic', 'TourismSmall', 'TourismLarge', 'OldTourismLarge', 'Wikitwo']`
   ```shell
-  python src/run_baselines.py --intervals_method 'bootstrap'
+  python src/run_baselines.py --intervals_method 'bootstrap' --dataset 'OldTourismLarge'
   ```
 
 You can access the final reconciled forecasts from the `./data/{dataset}/{intervals_method}_rec.csv` file. Example: `./data/TourismLarge/bootstrap_rec.csv`.

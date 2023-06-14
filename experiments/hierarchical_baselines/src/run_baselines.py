@@ -89,7 +89,7 @@ class HierarchicalDataset(object):
                     hier_levels=hier_levels,
                     hier_linked_idxs=hier_linked_idxs,
                     # Dataset Properties
-                    horizon=data_info.horizon2,
+                    horizon=data_info.papers_horizon,
                     freq=data_info.freq,
                     seasonality=data_info.seasonality)
         return data
@@ -276,14 +276,22 @@ if __name__ == '__main__':
     verbose = True
     parser = argparse.ArgumentParser()
     parser.add_argument("-intervals_method", "--intervals_method", type=str)
+    parser.add_argument("-dataset", "--dataset", type=str)
 
     args = parser.parse_args()
     intervals_method = args.intervals_method
+    dataset = args.dataset
 
     assert intervals_method in ['bootstrap', 'normality', 'permbu'], \
-        "Select `intervals_method` from ['bootstrap', 'normality', 'permbu']"
-    
-    print(f'\n {intervals_method.upper()} statistical baselines evaluation \n')
+        "Select `--intervals_method` from ['bootstrap', 'normality', 'permbu']"
+
+    available_datasets = ['Labour', 'Traffic', 'OldTraffic',
+                          'TourismSmall', 'TourismLarge', 'OldTourismLarge', 'Wikitwo']
+    assert dataset in available_datasets, \
+        "Select `--dataset` from ['Labour', 'Traffic', 'OldTraffic', \
+            'TourismSmall', 'TourismLarge', 'OldTourismLarge', 'Wikitwo']"
+
+    print(f'\n {intervals_method.upper()} {dataset} statistical baselines evaluation \n')
 
     LEVEL = np.arange(0, 100, 2)
     qs = [[50-lv/2, 50+lv/2] for lv in LEVEL]
@@ -292,17 +300,15 @@ if __name__ == '__main__':
     # Run experiments
     crps_results_list = []
     msse_results_list = []
-    #for dataset in ['Labour', 'Traffic', 'TourismSmall', 'TourismLarge', 'Wiki2']:
-    for dataset in ['OldTraffic', 'OldTourismLarge']:
-        try:
-            crps_results, msse_results = run_baselines(dataset=dataset,
-                        intervals_method=intervals_method, verbose=verbose)
-            crps_results_list.append(crps_results)
-            msse_results_list.append(msse_results)
-        except Exception as e:
-            print('failed ', dataset)
-            print(str(e))
-        print('\n\n')
+    try:
+        crps_results, msse_results = run_baselines(dataset=dataset,
+                    intervals_method=intervals_method, verbose=verbose)
+        crps_results_list.append(crps_results)
+        msse_results_list.append(msse_results)
+    except Exception as e:
+        print('failed ', dataset)
+        print(str(e))
+    print('\n\n')
 
     crps_results_df = pd.concat(crps_results_list)
     msse_results_df = pd.concat(msse_results_list)
