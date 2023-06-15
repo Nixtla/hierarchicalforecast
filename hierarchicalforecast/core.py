@@ -10,6 +10,7 @@ import time
 import copy
 from inspect import signature
 from scipy.stats import norm
+from scipy import sparse
 from typing import Callable, Dict, List, Optional
 
 import numpy as np
@@ -231,7 +232,6 @@ class HierarchicalReconciliation:
 
         # Initialize reconciler arguments
         reconciler_args = dict(
-            S=S_df.values.astype(np.float32),
             idx_bottom=S_df.index.get_indexer(S.columns),
             tags={key: S_df.index.get_indexer(val) for key, val in tags.items()}
         )
@@ -249,6 +249,19 @@ class HierarchicalReconciliation:
         self.sample_names = {}
         for reconcile_fn, name_copy in zip(self.reconcilers, self.orig_reconcilers):
             reconcile_fn_name = _build_fn_name(name_copy)
+
+            # A pretty crude way to recognize a sparse method:
+            if "Sparse" in reconcile_fn_name:
+                # Try to create a sparse S array if possible:
+                try:
+                    S_array = sparse.csr_matrix(S_df.sparse.to_coo())
+                except AttributeError:
+                    S_array = S_df.values.astype(np.float32)
+            else:
+                S_array = S_df.values.astype(np.float32)
+
+            reconciler_args["S"] = S_array
+
             has_fitted = 'y_hat_insample' in signature(reconcile_fn).parameters
             has_level = 'level' in signature(reconcile_fn).parameters
 
