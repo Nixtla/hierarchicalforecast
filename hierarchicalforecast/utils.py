@@ -275,7 +275,7 @@ def _to_summing_dataframe(
     tags[bottom_col] = bottom_ids
 
     encoder = OneHotEncoder(
-        categories=categories, sparse_output=sparse_s, dtype=np.float32
+        categories=categories, sparse=sparse_s, dtype=np.float32
     )
     S = encoder.fit_transform(S_df).T
 
