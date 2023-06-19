@@ -12,6 +12,7 @@ from inspect import signature
 from scipy.stats import norm
 from scipy import sparse
 from typing import Callable, Dict, List, Optional
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -235,6 +236,15 @@ class HierarchicalReconciliation:
             idx_bottom=S_df.index.get_indexer(S.columns),
             tags={key: S_df.index.get_indexer(val) for key, val in tags.items()}
         )
+
+        any_sparse = any([method.is_sparse_method for method in self.reconcilers])
+        if any_sparse:
+            try:
+                S_for_sparse = sparse.csr_matrix(S_df.sparse.to_coo())
+            except AttributeError:
+                warnings.warn('Using dense S matrix for sparse reconciliation method.')
+                S_for_sparse = S_df.values.astype(np.float32)
+
         if Y_df is not None:
             if is_balanced:
                 y_insample = Y_df['y'].values.reshape(len(S_df), -1).astype(np.float32)
@@ -250,17 +260,10 @@ class HierarchicalReconciliation:
         for reconcile_fn, name_copy in zip(self.reconcilers, self.orig_reconcilers):
             reconcile_fn_name = _build_fn_name(name_copy)
 
-            # A pretty crude way to recognize a sparse method:
-            if "Sparse" in reconcile_fn_name:
-                # Try to create a sparse S array if possible:
-                try:
-                    S_array = sparse.csr_matrix(S_df.sparse.to_coo())
-                except AttributeError:
-                    S_array = S_df.values.astype(np.float32)
+            if reconcile_fn.is_sparse_method:
+                reconciler_args["S"] = S_for_sparse
             else:
-                S_array = S_df.values.astype(np.float32)
-
-            reconciler_args["S"] = S_array
+                reconciler_args["S"] = S_df.values.astype(np.float32)
 
             has_fitted = 'y_hat_insample' in signature(reconcile_fn).parameters
             has_level = 'level' in signature(reconcile_fn).parameters

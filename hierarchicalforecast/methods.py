@@ -21,6 +21,7 @@ from .probabilistic_methods import Normality, Bootstrap, PERMBU
 # %% ../nbs/methods.ipynb 6
 class HReconciler:
     fitted = False
+    is_sparse_method = False
 
     def _get_sampler(self,
                      intervals_method,
@@ -239,6 +240,7 @@ class BottomUpSparse(BottomUp):
 
     See the parent class for more details.
     """
+    is_sparse_method = True
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
@@ -812,6 +814,7 @@ class MinTraceSparse(MinTrace):
     P matrix, the method is NOT guaranteed to give identical results to the non-sparse
     version.
     """
+    is_sparse_method = True
 
     def _get_PW_matrices(
         self,
