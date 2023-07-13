@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.433">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Introduction to Hierarchial Forecasting using HierarchialForecast">
+
+<title>hierarchicalforecast - Introduction</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon_png.png" rel="icon" type="image/png">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NXJNCVR18L"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-NXJNCVR18L', { 'anonymize_ip': true});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="hierarchicalforecast - Introduction">
+<meta property="og:description" content="Introduction to Hierarchial Forecasting using HierarchialForecast">
+<meta property="og:image" content="https://colab.research.google.com/assets/colab-badge.svg">
+<meta property="og:site-name" content="hierarchicalforecast">
+<meta name="twitter:title" content="hierarchicalforecast - Introduction">
+<meta name="twitter:description" content="Introduction to Hierarchial Forecasting using HierarchialForecast">
+<meta name="twitter:image" content="https://colab.research.google.com/assets/colab-badge.svg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">hierarchicalforecast</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="../examples/tourismsmall.html" rel="" target="" aria-current="page">
+ <span class="menu-text">Get Started</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-nixtlaverse" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">NixtlaVerse</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-nixtlaverse">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/mlforecast" rel="" target="">
+ <span class="dropdown-text">MLForecast 🤖</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/neuralforecast" rel="" target="">
+ <span class="dropdown-text">NeuralForecast 🧠</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/statsforecast" rel="" target="">
+ <span class="dropdown-text">StatsForecast ⚡️</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-help" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Help</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-help">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/hierarchicalforecast/issues/new/choose" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://join.slack.com/t/nixtlacommunity/shared_invite/zt-1kd5m5db7-7OOfy0xVNf1PcvCiAPWvPw" rel="" target=""><i class="bi bi-chat-right-text" role="img">
+</i> 
+ <span class="dropdown-text">Join our Slack</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/nixtla/hierarchicalforecast" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/nixtlainc" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Nixtla Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/installation.html">Getting Started</a></li><li class="breadcrumb-item"><a href="../examples/introduction.html">Introduction</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Forecast 👑</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Getting Started</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/tourismsmall.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reconciliation Quick Start</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/introduction.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+ <span class="menu-text">Point Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Tourism)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australianprisonpopulation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Prison Population)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/nonnegativereconciliation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Non-Negative MinTrace</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+ <span class="menu-text">Probabilistic Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Normality</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-bootstraped-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bootstrap</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-permbu-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PERMBU</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/tourismlarge-evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Forecast Evaluation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">ML Forecast Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/hierarchicalforecast-gluonts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GluonTS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/mlframeworksexample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Neural/MLForecast</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+ <span class="menu-text">Methods</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">API Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Core </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Reconciliation Methods </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../probabilistic_methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Probabilistic Methods </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Evaluation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Aggregation/Visualization Utils</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Community</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+ <span class="menu-text">Contributing</span>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#hierarchical-series" id="toc-hierarchical-series" class="nav-link active" data-scroll-target="#hierarchical-series">1. Hierarchical Series</a></li>
+  <li><a href="#hierarchical-forecast" id="toc-hierarchical-forecast" class="nav-link" data-scroll-target="#hierarchical-forecast">2. Hierarchical Forecast</a></li>
+  <li><a href="#minimal-example" id="toc-minimal-example" class="nav-link" data-scroll-target="#minimal-example">3. Minimal Example</a>
+  <ul class="collapse">
+  <li><a href="#wrangling-data" id="toc-wrangling-data" class="nav-link" data-scroll-target="#wrangling-data">Wrangling Data</a></li>
+  <li><a href="#base-predictions" id="toc-base-predictions" class="nav-link" data-scroll-target="#base-predictions">Base Predictions</a></li>
+  <li><a href="#reconciliation" id="toc-reconciliation" class="nav-link" data-scroll-target="#reconciliation">Reconciliation</a></li>
+  </ul></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Nixtla/hierarchicalforecast/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Introduction</h1>
+</div>
+
+<div>
+  <div class="description">
+    Introduction to Hierarchial Forecasting using <code>HierarchialForecast</code>
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>You can run these experiments using CPU or GPU with Google Colab.</p>
+<p><a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/Introduction.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a></p>
+<section id="hierarchical-series" class="level2">
+<h2 class="anchored" data-anchor-id="hierarchical-series">1. Hierarchical Series</h2>
+<p>In many applications, a set of time series is hierarchically organized. Examples include the presence of geographic levels, products, or categories that define different types of aggregations.</p>
+<p>In such scenarios, forecasters are often required to provide predictions for all disaggregate and aggregate series. A natural desire is for those predictions to be <strong>“coherent”</strong>, that is, for the bottom series to add up precisely to the forecasts of the aggregated series.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./imgs/hierarchical_motivation1.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Figure 1. A two level time series hierarchical structure, with four bottom level variables.</figcaption>
+</figure>
+</div>
+<p>Figure 1. shows a simple hierarchical structure where we have four bottom-level series, two middle-level series, and the top level representing the total aggregation. Its hierarchical aggregations or coherency constraints are:</p>
+<p><span class="math display">\[\begin{align}
+        y_{\mathrm{Total},\tau} = y_{\beta_{1},\tau}+y_{\beta_{2},\tau}+y_{\beta_{3},\tau}+y_{\beta_{4},\tau}
+        \qquad \qquad \qquad \qquad \qquad \\
+        \mathbf{y}_{[a],\tau}=\left[y_{\mathrm{Total},\tau},\; y_{\beta_{1},\tau}+y_{\beta_{2},\tau},\;y_{\beta_{3},\tau}+y_{\beta_{4},\tau}\right]^{\intercal}
+        \qquad
+        \mathbf{y}_{[b],\tau}=\left[ y_{\beta_{1},\tau},\; y_{\beta_{2},\tau},\; y_{\beta_{3},\tau},\; y_{\beta_{4},\tau} \right]^{\intercal}
+\end{align}\]</span></p>
+<p>Luckily these constraints can be compactly expressed with the following matrices:</p>
+<p><span class="math display">\[\begin{align}
+\mathbf{S}_{[a,b][b]}
+=
+\begin{bmatrix}
+\mathbf{A}_{\mathrm{[a][b]}} \\
+           \\
+           \\
+\mathbf{I}_{\mathrm{[b][b]}} \\
+           \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 &amp; 1 &amp; 1 &amp; 1 \\
+1 &amp; 1 &amp; 0 &amp; 0 \\
+0 &amp; 0 &amp; 1 &amp; 1 \\
+1 &amp; 0 &amp; 0 &amp; 0 \\
+0 &amp; 1 &amp; 0 &amp; 0 \\
+0 &amp; 0 &amp; 1 &amp; 0 \\
+0 &amp; 0 &amp; 0 &amp; 1 \\
+\end{bmatrix}
+\end{align}\]</span></p>
+<p>where <span class="math inline">\(\mathbf{A}_{[a,b][b]}\)</span> aggregates the bottom series to the upper levels, and <span class="math inline">\(\mathbf{I}_{\mathrm{[b][b]}}\)</span> is an identity matrix. The representation of the hierarchical series is then:</p>
+<p><span class="math display">\[\begin{align}
+\mathbf{y}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{y}_{[b],\tau}
+\end{align}\]</span></p>
+<p>To visualize an example, in Figure 2. One can think of the hierarchical time series structure levels to represent different geographical aggregations. For example, in Figure 2. the top level is the total aggregation of series within a country, the middle level being its states and the bottom level its regions.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./imgs/hierarchical_motivation2.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Figure 2. A hierarchy can be composed of geographic levels. In this example the top level corresponds to country aggregation, middle level to states, and bottom level to regions.</figcaption>
+</figure>
+</div>
+</section>
+<section id="hierarchical-forecast" class="level2">
+<h2 class="anchored" data-anchor-id="hierarchical-forecast">2. Hierarchical Forecast</h2>
+<p>To achieve <strong>“coherency”</strong>, most statistical solutions to the hierarchical forecasting challenge implement a two-stage reconciliation process.<br>
+1. First, we obtain a set of the base forecast <span class="math inline">\(\mathbf{\hat{y}}_{[a,b],\tau}\)</span> 2. Later, we reconcile them into coherent forecasts <span class="math inline">\(\mathbf{\tilde{y}}_{[a,b],\tau}\)</span>.</p>
+<p>Most hierarchical reconciliation methods can be expressed by the following transformations:</p>
+<p><span class="math display">\[\begin{align}
+\tilde{\mathbf{y}}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{P}_{[b][a,b]} \hat{\mathbf{y}}_{[a,b],\tau}
+\end{align}\]</span></p>
+<p>The HierarchicalForecast library offers a Python collection of reconciliation methods, datasets, evaluation and visualization tools for the task. Among its available reconciliation methods we have <a href="https://Nixtla.github.io/hierarchicalforecast/methods.html#bottomup"><code>BottomUp</code></a>, <a href="https://Nixtla.github.io/hierarchicalforecast/methods.html#topdown"><code>TopDown</code></a>, <a href="https://Nixtla.github.io/hierarchicalforecast/methods.html#middleout"><code>MiddleOut</code></a>, <a href="https://Nixtla.github.io/hierarchicalforecast/methods.html#mintrace"><code>MinTrace</code></a>, <a href="https://Nixtla.github.io/hierarchicalforecast/methods.html#erm"><code>ERM</code></a>. Among its probabilistic coherent methods we have <a href="https://Nixtla.github.io/hierarchicalforecast/probabilistic_methods.html#normality"><code>Normality</code></a>, <a href="https://Nixtla.github.io/hierarchicalforecast/probabilistic_methods.html#bootstrap"><code>Bootstrap</code></a>, <a href="https://Nixtla.github.io/hierarchicalforecast/probabilistic_methods.html#permbu"><code>PERMBU</code></a>.</p>
+</section>
+<section id="minimal-example" class="level2">
+<h2 class="anchored" data-anchor-id="minimal-example">3. Minimal Example</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install hierarchicalforecast</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install <span class="op">-</span>U numba statsforecast datasetsforecast</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="wrangling-data" class="level3">
+<h3 class="anchored" data-anchor-id="wrangling-data">Wrangling Data</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We are going to creat a synthetic data set to illustrate a hierarchical time series structure like the one in Figure 1.</p>
+<p>We will create a two level structure with four bottom series where aggregations of the series are self evident.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create Figure 1. synthetic bottom data</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> pd.date_range(start<span class="op">=</span><span class="st">'2000-01-01'</span>, end<span class="op">=</span><span class="st">'2000-08-01'</span>, freq<span class="op">=</span><span class="st">'MS'</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>y_base <span class="op">=</span> np.arange(<span class="dv">1</span>,<span class="dv">9</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>r1 <span class="op">=</span> y_base <span class="op">*</span> (<span class="dv">10</span><span class="op">**</span><span class="dv">1</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>r2 <span class="op">=</span> y_base <span class="op">*</span> (<span class="dv">10</span><span class="op">**</span><span class="dv">1</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>r3 <span class="op">=</span> y_base <span class="op">*</span> (<span class="dv">10</span><span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>r4 <span class="op">=</span> y_base <span class="op">*</span> (<span class="dv">10</span><span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>ys <span class="op">=</span> np.concatenate([r1, r2, r3, r4])</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> np.tile(ds, <span class="dv">4</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>unique_ids <span class="op">=</span> [<span class="st">'r1'</span>] <span class="op">*</span> <span class="dv">8</span> <span class="op">+</span> [<span class="st">'r2'</span>] <span class="op">*</span> <span class="dv">8</span> <span class="op">+</span> [<span class="st">'r3'</span>] <span class="op">*</span> <span class="dv">8</span> <span class="op">+</span> [<span class="st">'r4'</span>] <span class="op">*</span> <span class="dv">8</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>top_level <span class="op">=</span> <span class="st">'Australia'</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>middle_level <span class="op">=</span> [<span class="st">'State1'</span>] <span class="op">*</span> <span class="dv">16</span> <span class="op">+</span> [<span class="st">'State2'</span>] <span class="op">*</span> <span class="dv">16</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>bottom_level <span class="op">=</span> unique_ids</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>bottom_df <span class="op">=</span> <span class="bu">dict</span>(ds<span class="op">=</span>ds,</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>                 top_level<span class="op">=</span>top_level, </span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>                 middle_level<span class="op">=</span>middle_level, </span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>                 bottom_level<span class="op">=</span>bottom_level,</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>                 y<span class="op">=</span>ys)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>bottom_df <span class="op">=</span> pd.DataFrame(bottom_df)</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>bottom_df.groupby(<span class="st">'bottom_level'</span>).head(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">top_level</th>
+<th data-quarto-table-cell-role="th">middle_level</th>
+<th data-quarto-table-cell-role="th">bottom_level</th>
+<th data-quarto-table-cell-role="th">y</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2000-01-01</td>
+<td>Australia</td>
+<td>State1</td>
+<td>r1</td>
+<td>10</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2000-02-01</td>
+<td>Australia</td>
+<td>State1</td>
+<td>r1</td>
+<td>20</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>2000-01-01</td>
+<td>Australia</td>
+<td>State1</td>
+<td>r2</td>
+<td>10</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>2000-02-01</td>
+<td>Australia</td>
+<td>State1</td>
+<td>r2</td>
+<td>20</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>2000-01-01</td>
+<td>Australia</td>
+<td>State2</td>
+<td>r3</td>
+<td>100</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>2000-02-01</td>
+<td>Australia</td>
+<td>State2</td>
+<td>r3</td>
+<td>200</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>2000-01-01</td>
+<td>Australia</td>
+<td>State2</td>
+<td>r4</td>
+<td>100</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25</td>
+<td>2000-02-01</td>
+<td>Australia</td>
+<td>State2</td>
+<td>r4</td>
+<td>200</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>The previously introduced hierarchical series <span class="math inline">\(\mathbf{y}_{[a,b]\tau}\)</span> is captured within the <code>Y_hier_df</code> dataframe.</p>
+<p>The aggregation constraints matrix <span class="math inline">\(\mathbf{S}_{[a][b]}\)</span> is captured within the <code>S_df</code> dataframe.</p>
+<p>Finally the <code>tags</code> contains a list within <code>Y_hier_df</code> composing each hierarchical level, for example the <code>tags['top_level']</code> contains <code>Australia</code>’s aggregated series index.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.utils <span class="im">import</span> aggregate</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create hierarchical structure and constraints</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>hierarchy_levels <span class="op">=</span> [[<span class="st">'top_level'</span>],</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                    [<span class="st">'top_level'</span>, <span class="st">'middle_level'</span>],</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                    [<span class="st">'top_level'</span>, <span class="st">'middle_level'</span>, <span class="st">'bottom_level'</span>]]</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>Y_hier_df, S_df, tags <span class="op">=</span> aggregate(df<span class="op">=</span>bottom_df, spec<span class="op">=</span>hierarchy_levels)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>Y_hier_df <span class="op">=</span> Y_hier_df.reset_index()</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'S_df.shape'</span>, S_df.shape)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Y_hier_df.shape'</span>, Y_hier_df.shape)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"tags['top_level']"</span>, tags[<span class="st">'top_level'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>S_df.shape (7, 4)
+Y_hier_df.shape (56, 3)
+tags['top_level'] ['Australia']</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/cchallu/opt/anaconda3/envs/hierarchicalforecast/lib/python3.10/site-packages/sklearn/preprocessing/_encoders.py:828: FutureWarning: `sparse` was renamed to `sparse_output` in version 1.2 and will be removed in 1.4. `sparse_output` is ignored unless you leave `sparse` to its default value.
+  warnings.warn(</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Y_hier_df.groupby(<span class="st">'unique_id'</span>).head(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">y</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Australia</td>
+<td>2000-01-01</td>
+<td>220.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Australia</td>
+<td>2000-02-01</td>
+<td>440.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>Australia/State1</td>
+<td>2000-01-01</td>
+<td>20.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>Australia/State1</td>
+<td>2000-02-01</td>
+<td>40.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>Australia/State2</td>
+<td>2000-01-01</td>
+<td>200.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>Australia/State2</td>
+<td>2000-02-01</td>
+<td>400.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>Australia/State1/r1</td>
+<td>2000-01-01</td>
+<td>10.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25</td>
+<td>Australia/State1/r1</td>
+<td>2000-02-01</td>
+<td>20.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">32</td>
+<td>Australia/State1/r2</td>
+<td>2000-01-01</td>
+<td>10.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">33</td>
+<td>Australia/State1/r2</td>
+<td>2000-02-01</td>
+<td>20.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">40</td>
+<td>Australia/State2/r3</td>
+<td>2000-01-01</td>
+<td>100.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">41</td>
+<td>Australia/State2/r3</td>
+<td>2000-02-01</td>
+<td>200.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">48</td>
+<td>Australia/State2/r4</td>
+<td>2000-01-01</td>
+<td>100.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">49</td>
+<td>Australia/State2/r4</td>
+<td>2000-02-01</td>
+<td>200.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>S_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Australia/State1/r1</th>
+<th data-quarto-table-cell-role="th">Australia/State1/r2</th>
+<th data-quarto-table-cell-role="th">Australia/State2/r3</th>
+<th data-quarto-table-cell-role="th">Australia/State2/r4</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia</td>
+<td>1.0</td>
+<td>1.0</td>
+<td>1.0</td>
+<td>1.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State1</td>
+<td>1.0</td>
+<td>1.0</td>
+<td>0.0</td>
+<td>0.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State2</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>1.0</td>
+<td>1.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State1/r1</td>
+<td>1.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State1/r2</td>
+<td>0.0</td>
+<td>1.0</td>
+<td>0.0</td>
+<td>0.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State2/r3</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>1.0</td>
+<td>0.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State2/r4</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>1.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="base-predictions" class="level3">
+<h3 class="anchored" data-anchor-id="base-predictions">Base Predictions</h3>
+<p>Next, we compute the <em>base forecast</em> for each time series using the <code>naive</code> model. Observe that <code>Y_hat_df</code> contains the forecasts but they are not coherent.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.models <span class="im">import</span> Naive</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.core <span class="im">import</span> StatsForecast</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Split train/test sets</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>Y_test_df  <span class="op">=</span> Y_hier_df.groupby(<span class="st">'unique_id'</span>).tail(<span class="dv">4</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>Y_train_df <span class="op">=</span> Y_hier_df.drop(Y_test_df.index)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute base Naive predictions</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Careful identifying correct data freq, this data quarterly 'Q'</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>fcst <span class="op">=</span> StatsForecast(df<span class="op">=</span>Y_train_df,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>                     models<span class="op">=</span>[Naive()],</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>                     freq<span class="op">=</span><span class="st">'Q'</span>, n_jobs<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>Y_hat_df <span class="op">=</span> fcst.forecast(h<span class="op">=</span><span class="dv">4</span>, fitted<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>Y_fitted_df <span class="op">=</span> fcst.forecast_fitted_values()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="reconciliation" class="level3">
+<h3 class="anchored" data-anchor-id="reconciliation">Reconciliation</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.methods <span class="im">import</span> BottomUp</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.core <span class="im">import</span> HierarchicalReconciliation</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># You can select a reconciler from our collection</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>reconcilers <span class="op">=</span> [BottomUp()] <span class="co"># MinTrace(method='mint_shrink')</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>hrec <span class="op">=</span> HierarchicalReconciliation(reconcilers<span class="op">=</span>reconcilers)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>Y_rec_df <span class="op">=</span> hrec.reconcile(Y_hat_df<span class="op">=</span>Y_hat_df, </span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                          Y_df<span class="op">=</span>Y_fitted_df,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                          S<span class="op">=</span>S_df, tags<span class="op">=</span>tags)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>Y_rec_df.groupby(<span class="st">'unique_id'</span>).head(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">Naive</th>
+<th data-quarto-table-cell-role="th">Naive/BottomUp</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia</td>
+<td>2000-06-30</td>
+<td>880.0</td>
+<td>880.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia</td>
+<td>2000-09-30</td>
+<td>880.0</td>
+<td>880.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State1</td>
+<td>2000-06-30</td>
+<td>80.0</td>
+<td>80.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State1</td>
+<td>2000-09-30</td>
+<td>80.0</td>
+<td>80.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State2</td>
+<td>2000-06-30</td>
+<td>800.0</td>
+<td>800.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State2</td>
+<td>2000-09-30</td>
+<td>800.0</td>
+<td>800.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State1/r1</td>
+<td>2000-06-30</td>
+<td>40.0</td>
+<td>40.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State1/r1</td>
+<td>2000-09-30</td>
+<td>40.0</td>
+<td>40.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State1/r2</td>
+<td>2000-06-30</td>
+<td>40.0</td>
+<td>40.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State1/r2</td>
+<td>2000-09-30</td>
+<td>40.0</td>
+<td>40.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State2/r3</td>
+<td>2000-06-30</td>
+<td>400.0</td>
+<td>400.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State2/r3</td>
+<td>2000-09-30</td>
+<td>400.0</td>
+<td>400.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Australia/State2/r4</td>
+<td>2000-06-30</td>
+<td>400.0</td>
+<td>400.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Australia/State2/r4</td>
+<td>2000-09-30</td>
+<td>400.0</td>
+<td>400.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ul>
+<li><a href="https://otexts.com/fpp3/hierarchical.html">Hyndman, R.J., &amp; Athanasopoulos, G. (2021). “Forecasting: principles and practice, 3rd edition: Chapter 11: Forecasting hierarchical and grouped series.”. OTexts: Melbourne, Australia. OTexts.com/fpp3 Accessed on July 2022.</a><br></li>
+<li><a href="http://www.jstor.org/stable/1815532">Orcutt, G.H., Watts, H.W., &amp; Edwards, J.B.(1968). Data aggregation and information loss. The American Economic Review, 58 , 773{787).</a><br></li>
+<li><a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/for.3980090304">Disaggregation methods to expedite product line forecasting. Journal of Forecasting, 9 , 233–254. doi:10.1002/for.3980090304.</a><br></li>
+<li><a href="https://robjhyndman.com/publications/mint/">Wickramasuriya, S. L., Athanasopoulos, G., &amp; Hyndman, R. J. (2019). "Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization". Journal of the American Statistical Association, 114 , 804–819. doi:10.1080/01621459.2018.1448825.</a><br></li>
+<li><a href="https://doi.org/10.1145/3292500.3330976">Ben Taieb, S., &amp; Koo, B. (2019). Regularized regression for hierarchical forecasting without unbiasedness conditions. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining KDD ’19 (p.&nbsp;1337{1347). New York, NY, USA: Association for Computing Machinery.</a><br></li>
+</ul>
+
+
+</section>
+
+<p>If you find the code useful, please ⭐ us on <a href="https://github.com/nixtla/hierachicalforecast">Github</a></p></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

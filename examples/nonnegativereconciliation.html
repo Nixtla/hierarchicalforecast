@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.433">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>hierarchicalforecast - Non-Negative MinTrace</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon_png.png" rel="icon" type="image/png">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NXJNCVR18L"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-NXJNCVR18L', { 'anonymize_ip': true});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="hierarchicalforecast - Non-Negative MinTrace">
+<meta property="og:description" content="">
+<meta property="og:image" content="https://colab.research.google.com/assets/colab-badge.svg">
+<meta property="og:site-name" content="hierarchicalforecast">
+<meta name="twitter:title" content="hierarchicalforecast - Non-Negative MinTrace">
+<meta name="twitter:description" content="">
+<meta name="twitter:image" content="https://colab.research.google.com/assets/colab-badge.svg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">hierarchicalforecast</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="../examples/tourismsmall.html" rel="" target="" aria-current="page">
+ <span class="menu-text">Get Started</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-nixtlaverse" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">NixtlaVerse</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-nixtlaverse">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/mlforecast" rel="" target="">
+ <span class="dropdown-text">MLForecast 🤖</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/neuralforecast" rel="" target="">
+ <span class="dropdown-text">NeuralForecast 🧠</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/statsforecast" rel="" target="">
+ <span class="dropdown-text">StatsForecast ⚡️</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-help" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Help</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-help">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/hierarchicalforecast/issues/new/choose" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://join.slack.com/t/nixtlacommunity/shared_invite/zt-1kd5m5db7-7OOfy0xVNf1PcvCiAPWvPw" rel="" target=""><i class="bi bi-chat-right-text" role="img">
+</i> 
+ <span class="dropdown-text">Join our Slack</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/nixtla/hierarchicalforecast" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/nixtlainc" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Nixtla Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Tutorials</li><li class="breadcrumb-item"><a href="../examples/australiandomestictourism.html">Point Reconciliation</a></li><li class="breadcrumb-item"><a href="../examples/nonnegativereconciliation.html">Non-Negative MinTrace</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Forecast 👑</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false">
+ <span class="menu-text">Getting Started</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/tourismsmall.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reconciliation Quick Start</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/introduction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Point Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Tourism)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australianprisonpopulation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Prison Population)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/nonnegativereconciliation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Non-Negative MinTrace</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+ <span class="menu-text">Probabilistic Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Normality</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-bootstraped-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bootstrap</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-permbu-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PERMBU</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/tourismlarge-evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Forecast Evaluation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">ML Forecast Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/hierarchicalforecast-gluonts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GluonTS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/mlframeworksexample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Neural/MLForecast</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+ <span class="menu-text">Methods</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">API Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Core </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Reconciliation Methods </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../probabilistic_methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Probabilistic Methods </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Evaluation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Aggregation/Visualization Utils</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Community</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+ <span class="menu-text">Contributing</span>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#load-data" id="toc-load-data" class="nav-link active" data-scroll-target="#load-data">1. Load Data</a></li>
+  <li><a href="#base-forecasts" id="toc-base-forecasts" class="nav-link" data-scroll-target="#base-forecasts">2. Base Forecasts</a></li>
+  <li><a href="#non-negative-reconciliation" id="toc-non-negative-reconciliation" class="nav-link" data-scroll-target="#non-negative-reconciliation">3. Non-Negative Reconciliation</a></li>
+  <li><a href="#evaluation" id="toc-evaluation" class="nav-link" data-scroll-target="#evaluation">4. Evaluation</a>
+  <ul class="collapse">
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Nixtla/hierarchicalforecast/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Non-Negative MinTrace</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>Large collections of time series organized into structures at different aggregation levels often require their forecasts to follow their aggregation constraints and to be nonnegative, which poses the challenge of creating novel algorithms capable of coherent forecasts.</p>
+<p>The <code>HierarchicalForecast</code> package provides a wide collection of Python implementations of hierarchical forecasting algorithms that follow nonnegative hierarchical reconciliation.</p>
+<p>In this notebook, we will show how to use the <code>HierarchicalForecast</code> package to perform nonnegative reconciliation of forecasts on <code>Wiki2</code> dataset.</p>
+<p>You can run these experiments using CPU or GPU with Google Colab.</p>
+<p><a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/NonNegativeReconciliation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install hierarchicalforecast statsforecast datasetsforecast</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="load-data" class="level2">
+<h2 class="anchored" data-anchor-id="load-data">1. Load Data</h2>
+<p>In this example we will use the <code>Wiki2</code> dataset. The following cell gets the time series for the different levels in the hierarchy, the summing dataframe <code>S_df</code> which recovers the full dataset from the bottom level hierarchy and the indices of each hierarchy denoted by <code>tags</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datasetsforecast.hierarchical <span class="im">import</span> HierarchicalData</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Y_df, S_df, tags <span class="op">=</span> HierarchicalData.load(<span class="st">'./data'</span>, <span class="st">'Wiki2'</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Y_df[<span class="st">'ds'</span>] <span class="op">=</span> pd.to_datetime(Y_df[<span class="st">'ds'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Y_df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">y</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Total</td>
+<td>2016-01-01</td>
+<td>156508</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Total</td>
+<td>2016-01-02</td>
+<td>129902</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Total</td>
+<td>2016-01-03</td>
+<td>138203</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Total</td>
+<td>2016-01-04</td>
+<td>115017</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Total</td>
+<td>2016-01-05</td>
+<td>126042</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>S_df.iloc[:<span class="dv">5</span>, :<span class="dv">5</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">de_AAC_AAG_001</th>
+<th data-quarto-table-cell-role="th">de_AAC_AAG_010</th>
+<th data-quarto-table-cell-role="th">de_AAC_AAG_014</th>
+<th data-quarto-table-cell-role="th">de_AAC_AAG_045</th>
+<th data-quarto-table-cell-role="th">de_AAC_AAG_063</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Total</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">de</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">en</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">fr</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">ja</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>tags</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>{'Views': array(['Total'], dtype=object),
+ 'Views/Country': array(['de', 'en', 'fr', 'ja', 'ru', 'zh'], dtype=object),
+ 'Views/Country/Access': array(['de_AAC', 'de_DES', 'de_MOB', 'en_AAC', 'en_DES', 'en_MOB',
+        'fr_AAC', 'fr_DES', 'fr_MOB', 'ja_AAC', 'ja_DES', 'ja_MOB',
+        'ru_AAC', 'ru_DES', 'ru_MOB', 'zh_AAC', 'zh_DES', 'zh_MOB'],
+       dtype=object),
+ 'Views/Country/Access/Agent': array(['de_AAC_AAG', 'de_AAC_SPD', 'de_DES_AAG', 'de_MOB_AAG',
+        'en_AAC_AAG', 'en_AAC_SPD', 'en_DES_AAG', 'en_MOB_AAG',
+        'fr_AAC_AAG', 'fr_AAC_SPD', 'fr_DES_AAG', 'fr_MOB_AAG',
+        'ja_AAC_AAG', 'ja_AAC_SPD', 'ja_DES_AAG', 'ja_MOB_AAG',
+        'ru_AAC_AAG', 'ru_AAC_SPD', 'ru_DES_AAG', 'ru_MOB_AAG',
+        'zh_AAC_AAG', 'zh_AAC_SPD', 'zh_DES_AAG', 'zh_MOB_AAG'],
+       dtype=object),
+ 'Views/Country/Access/Agent/Topic': array(['de_AAC_AAG_001', 'de_AAC_AAG_010', 'de_AAC_AAG_014',
+        'de_AAC_AAG_045', 'de_AAC_AAG_063', 'de_AAC_AAG_100',
+        'de_AAC_AAG_110', 'de_AAC_AAG_123', 'de_AAC_AAG_143',
+        'de_AAC_SPD_012', 'de_AAC_SPD_074', 'de_AAC_SPD_080',
+        'de_AAC_SPD_105', 'de_AAC_SPD_115', 'de_AAC_SPD_133',
+        'de_DES_AAG_064', 'de_DES_AAG_116', 'de_DES_AAG_131',
+        'de_MOB_AAG_015', 'de_MOB_AAG_020', 'de_MOB_AAG_032',
+        'de_MOB_AAG_059', 'de_MOB_AAG_062', 'de_MOB_AAG_088',
+        'de_MOB_AAG_095', 'de_MOB_AAG_109', 'de_MOB_AAG_122',
+        'de_MOB_AAG_149', 'en_AAC_AAG_044', 'en_AAC_AAG_049',
+        'en_AAC_AAG_075', 'en_AAC_AAG_114', 'en_AAC_AAG_119',
+        'en_AAC_AAG_141', 'en_AAC_SPD_004', 'en_AAC_SPD_011',
+        'en_AAC_SPD_026', 'en_AAC_SPD_048', 'en_AAC_SPD_067',
+        'en_AAC_SPD_126', 'en_AAC_SPD_140', 'en_DES_AAG_016',
+        'en_DES_AAG_024', 'en_DES_AAG_042', 'en_DES_AAG_069',
+        'en_DES_AAG_082', 'en_DES_AAG_102', 'en_MOB_AAG_018',
+        'en_MOB_AAG_022', 'en_MOB_AAG_101', 'en_MOB_AAG_124',
+        'fr_AAC_AAG_029', 'fr_AAC_AAG_046', 'fr_AAC_AAG_070',
+        'fr_AAC_AAG_087', 'fr_AAC_AAG_098', 'fr_AAC_AAG_104',
+        'fr_AAC_AAG_111', 'fr_AAC_AAG_112', 'fr_AAC_AAG_142',
+        'fr_AAC_SPD_025', 'fr_AAC_SPD_027', 'fr_AAC_SPD_035',
+        'fr_AAC_SPD_077', 'fr_AAC_SPD_084', 'fr_AAC_SPD_097',
+        'fr_AAC_SPD_130', 'fr_DES_AAG_023', 'fr_DES_AAG_043',
+        'fr_DES_AAG_051', 'fr_DES_AAG_058', 'fr_DES_AAG_061',
+        'fr_DES_AAG_091', 'fr_DES_AAG_093', 'fr_DES_AAG_094',
+        'fr_DES_AAG_136', 'fr_MOB_AAG_006', 'fr_MOB_AAG_030',
+        'fr_MOB_AAG_066', 'fr_MOB_AAG_117', 'fr_MOB_AAG_120',
+        'fr_MOB_AAG_121', 'fr_MOB_AAG_135', 'fr_MOB_AAG_147',
+        'ja_AAC_AAG_038', 'ja_AAC_AAG_047', 'ja_AAC_AAG_055',
+        'ja_AAC_AAG_076', 'ja_AAC_AAG_099', 'ja_AAC_AAG_128',
+        'ja_AAC_AAG_132', 'ja_AAC_AAG_134', 'ja_AAC_AAG_137',
+        'ja_AAC_SPD_013', 'ja_AAC_SPD_034', 'ja_AAC_SPD_050',
+        'ja_AAC_SPD_060', 'ja_AAC_SPD_078', 'ja_AAC_SPD_106',
+        'ja_DES_AAG_079', 'ja_DES_AAG_081', 'ja_DES_AAG_113',
+        'ja_MOB_AAG_065', 'ja_MOB_AAG_073', 'ja_MOB_AAG_092',
+        'ja_MOB_AAG_127', 'ja_MOB_AAG_129', 'ja_MOB_AAG_144',
+        'ru_AAC_AAG_008', 'ru_AAC_AAG_145', 'ru_AAC_AAG_146',
+        'ru_AAC_SPD_000', 'ru_AAC_SPD_090', 'ru_AAC_SPD_148',
+        'ru_DES_AAG_003', 'ru_DES_AAG_007', 'ru_DES_AAG_017',
+        'ru_DES_AAG_041', 'ru_DES_AAG_071', 'ru_DES_AAG_072',
+        'ru_MOB_AAG_002', 'ru_MOB_AAG_040', 'ru_MOB_AAG_083',
+        'ru_MOB_AAG_086', 'ru_MOB_AAG_103', 'ru_MOB_AAG_107',
+        'ru_MOB_AAG_118', 'ru_MOB_AAG_125', 'zh_AAC_AAG_021',
+        'zh_AAC_AAG_033', 'zh_AAC_AAG_037', 'zh_AAC_AAG_052',
+        'zh_AAC_AAG_057', 'zh_AAC_AAG_085', 'zh_AAC_AAG_108',
+        'zh_AAC_SPD_039', 'zh_AAC_SPD_096', 'zh_DES_AAG_009',
+        'zh_DES_AAG_019', 'zh_DES_AAG_053', 'zh_DES_AAG_054',
+        'zh_DES_AAG_056', 'zh_DES_AAG_068', 'zh_DES_AAG_089',
+        'zh_DES_AAG_139', 'zh_MOB_AAG_005', 'zh_MOB_AAG_028',
+        'zh_MOB_AAG_031', 'zh_MOB_AAG_036', 'zh_MOB_AAG_138'], dtype=object)}</code></pre>
+</div>
+</div>
+<p>We split the dataframe in train/test splits.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Y_test_df <span class="op">=</span> Y_df.groupby(<span class="st">'unique_id'</span>).tail(<span class="dv">7</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>Y_train_df <span class="op">=</span> Y_df.drop(Y_test_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>Y_test_df <span class="op">=</span> Y_test_df.set_index(<span class="st">'unique_id'</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>Y_train_df <span class="op">=</span> Y_train_df.set_index(<span class="st">'unique_id'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="base-forecasts" class="level2">
+<h2 class="anchored" data-anchor-id="base-forecasts">2. Base Forecasts</h2>
+<p>The following cell computes the <em>base forecast</em> for each time series using the <code>ETS</code> and <code>naive</code> models. Observe that <code>Y_hat_df</code> contains the forecasts but they are not coherent.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.models <span class="im">import</span> ETS, Naive</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.core <span class="im">import</span> StatsForecast</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fcst <span class="op">=</span> StatsForecast(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    df<span class="op">=</span>Y_train_df, </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    models<span class="op">=</span>[ETS(season_length<span class="op">=</span><span class="dv">7</span>, model<span class="op">=</span><span class="st">'ZAA'</span>), Naive()], </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    freq<span class="op">=</span><span class="st">'D'</span>, </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    n_jobs<span class="op">=-</span><span class="dv">1</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>Y_hat_df <span class="op">=</span> fcst.forecast(h<span class="op">=</span><span class="dv">7</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Observe that the ETS model computes negative forecasts for some series.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>Y_hat_df.query(<span class="st">'ETS &lt; 0'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">ETS</th>
+<th data-quarto-table-cell-role="th">Naive</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">de_AAC_AAG_001</td>
+<td>2016-12-25</td>
+<td>-487.601532</td>
+<td>340.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">de_AAC_AAG_001</td>
+<td>2016-12-26</td>
+<td>-215.634201</td>
+<td>340.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">de_AAC_AAG_001</td>
+<td>2016-12-27</td>
+<td>-173.175613</td>
+<td>340.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">de_AAC_AAG_001</td>
+<td>2016-12-30</td>
+<td>-290.836060</td>
+<td>340.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">de_AAC_AAG_001</td>
+<td>2016-12-31</td>
+<td>-784.441040</td>
+<td>340.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">zh_AAC_AAG_033</td>
+<td>2016-12-31</td>
+<td>-86.526421</td>
+<td>37.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">zh_MOB</td>
+<td>2016-12-26</td>
+<td>-199.534882</td>
+<td>1036.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">zh_MOB</td>
+<td>2016-12-27</td>
+<td>-69.527260</td>
+<td>1036.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">zh_MOB_AAG</td>
+<td>2016-12-26</td>
+<td>-199.534882</td>
+<td>1036.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">zh_MOB_AAG</td>
+<td>2016-12-27</td>
+<td>-69.527260</td>
+<td>1036.0</td>
+</tr>
+</tbody>
+</table>
+
+<p>99 rows × 3 columns</p>
+</div>
+</div>
+</div>
+</section>
+<section id="non-negative-reconciliation" class="level2">
+<h2 class="anchored" data-anchor-id="non-negative-reconciliation">3. Non-Negative Reconciliation</h2>
+<p>The following cell makes the previous forecasts coherent and nonnegative using the <a href="https://Nixtla.github.io/hierarchicalforecast/core.html#hierarchicalreconciliation"><code>HierarchicalReconciliation</code></a> class.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.methods <span class="im">import</span> MinTrace</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.core <span class="im">import</span> HierarchicalReconciliation</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>reconcilers <span class="op">=</span> [</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    MinTrace(method<span class="op">=</span><span class="st">'ols'</span>),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    MinTrace(method<span class="op">=</span><span class="st">'ols'</span>, nonnegative<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>hrec <span class="op">=</span> HierarchicalReconciliation(reconcilers<span class="op">=</span>reconcilers)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>Y_rec_df <span class="op">=</span> hrec.reconcile(Y_hat_df<span class="op">=</span>Y_hat_df, Y_df<span class="op">=</span>Y_train_df,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>                          S<span class="op">=</span>S_df, tags<span class="op">=</span>tags)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Observe that the nonnegative reconciliation method obtains nonnegative forecasts.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>Y_rec_df.query(<span class="st">'`ETS/MinTrace_method-ols_nonnegative-True` &lt; 0'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">ETS</th>
+<th data-quarto-table-cell-role="th">Naive</th>
+<th data-quarto-table-cell-role="th">ETS/MinTrace_method-ols</th>
+<th data-quarto-table-cell-role="th">Naive/MinTrace_method-ols</th>
+<th data-quarto-table-cell-role="th">ETS/MinTrace_method-ols_nonnegative-True</th>
+<th data-quarto-table-cell-role="th">Naive/MinTrace_method-ols_nonnegative-True</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>The free reconciliation method gets negative forecasts.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>Y_rec_df.query(<span class="st">'`ETS/MinTrace_method-ols` &lt; 0'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">ETS</th>
+<th data-quarto-table-cell-role="th">Naive</th>
+<th data-quarto-table-cell-role="th">ETS/MinTrace_method-ols</th>
+<th data-quarto-table-cell-role="th">Naive/MinTrace_method-ols</th>
+<th data-quarto-table-cell-role="th">ETS/MinTrace_method-ols_nonnegative-True</th>
+<th data-quarto-table-cell-role="th">Naive/MinTrace_method-ols_nonnegative-True</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">de_DES</td>
+<td>2016-12-25</td>
+<td>-2553.932861</td>
+<td>495.0</td>
+<td>-3468.745214</td>
+<td>495.0</td>
+<td>2.262540e-15</td>
+<td>495.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">de_DES</td>
+<td>2016-12-26</td>
+<td>-2155.228271</td>
+<td>495.0</td>
+<td>-2985.587125</td>
+<td>495.0</td>
+<td>1.356705e-30</td>
+<td>495.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">de_DES</td>
+<td>2016-12-27</td>
+<td>-2720.993896</td>
+<td>495.0</td>
+<td>-3698.680055</td>
+<td>495.0</td>
+<td>6.857413e-30</td>
+<td>495.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">de_DES</td>
+<td>2016-12-29</td>
+<td>-3429.432617</td>
+<td>495.0</td>
+<td>-2965.207609</td>
+<td>495.0</td>
+<td>2.456449e+02</td>
+<td>495.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">de_DES</td>
+<td>2016-12-30</td>
+<td>-3963.202637</td>
+<td>495.0</td>
+<td>-3217.360371</td>
+<td>495.0</td>
+<td>3.646790e+02</td>
+<td>495.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">zh_MOB_AAG_036</td>
+<td>2016-12-26</td>
+<td>75.298317</td>
+<td>115.0</td>
+<td>-165.799776</td>
+<td>115.0</td>
+<td>3.207772e-14</td>
+<td>115.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">zh_MOB_AAG_036</td>
+<td>2016-12-27</td>
+<td>72.895554</td>
+<td>115.0</td>
+<td>-134.340626</td>
+<td>115.0</td>
+<td>2.308198e-14</td>
+<td>115.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">zh_MOB_AAG_138</td>
+<td>2016-12-25</td>
+<td>94.796623</td>
+<td>65.0</td>
+<td>-47.009813</td>
+<td>65.0</td>
+<td>3.116938e-14</td>
+<td>65.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">zh_MOB_AAG_138</td>
+<td>2016-12-26</td>
+<td>71.293983</td>
+<td>65.0</td>
+<td>-169.804110</td>
+<td>65.0</td>
+<td>0.000000e+00</td>
+<td>65.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">zh_MOB_AAG_138</td>
+<td>2016-12-27</td>
+<td>62.049744</td>
+<td>65.0</td>
+<td>-145.186436</td>
+<td>65.0</td>
+<td>0.000000e+00</td>
+<td>65.0</td>
+</tr>
+</tbody>
+</table>
+
+<p>240 rows × 7 columns</p>
+</div>
+</div>
+</div>
+</section>
+<section id="evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="evaluation">4. Evaluation</h2>
+<p>The <code>HierarchicalForecast</code> package includes the <a href="https://Nixtla.github.io/hierarchicalforecast/evaluation.html#hierarchicalevaluation"><code>HierarchicalEvaluation</code></a> class to evaluate the different hierarchies and also is capable of compute scaled metrics compared to a benchmark model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.evaluation <span class="im">import</span> HierarchicalEvaluation</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mse(y, y_hat):</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.mean((y<span class="op">-</span>y_hat)<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>evaluator <span class="op">=</span> HierarchicalEvaluation(evaluators<span class="op">=</span>[mse])</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>evaluation <span class="op">=</span> evaluator.evaluate(</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        Y_hat_df<span class="op">=</span>Y_rec_df, Y_test_df<span class="op">=</span>Y_test_df, </span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        tags<span class="op">=</span>tags, benchmark<span class="op">=</span><span class="st">'Naive'</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>evaluation.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'ETS'</span>, axis<span class="op">=</span><span class="dv">1</span>).T</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">level</th>
+<th data-quarto-table-cell-role="th">Overall</th>
+<th data-quarto-table-cell-role="th">Views</th>
+<th data-quarto-table-cell-role="th">Views/Country</th>
+<th data-quarto-table-cell-role="th">Views/Country/Access</th>
+<th data-quarto-table-cell-role="th">Views/Country/Access/Agent</th>
+<th data-quarto-table-cell-role="th">Views/Country/Access/Agent/Topic</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">metric</th>
+<th data-quarto-table-cell-role="th">mse-scaled</th>
+<th data-quarto-table-cell-role="th">mse-scaled</th>
+<th data-quarto-table-cell-role="th">mse-scaled</th>
+<th data-quarto-table-cell-role="th">mse-scaled</th>
+<th data-quarto-table-cell-role="th">mse-scaled</th>
+<th data-quarto-table-cell-role="th">mse-scaled</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">ETS</td>
+<td>1.011585</td>
+<td>0.7358</td>
+<td>1.190354</td>
+<td>1.103657</td>
+<td>1.089515</td>
+<td>1.397139</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">ETS/MinTrace_method-ols</td>
+<td>0.979163</td>
+<td>0.698355</td>
+<td>1.062521</td>
+<td>1.143277</td>
+<td>1.113349</td>
+<td>1.354041</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">ETS/MinTrace_method-ols_nonnegative-True</td>
+<td>0.945075</td>
+<td>0.677892</td>
+<td>1.004639</td>
+<td>1.184719</td>
+<td>1.141442</td>
+<td>1.158672</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>Observe that the nonnegative reconciliation method performs better that its unconstrained counterpart.</p>
+<section id="references" class="level3">
+<h3 class="anchored" data-anchor-id="references">References</h3>
+<ul>
+<li><a href="https://otexts.com/fpp3/hierarchical.html">Hyndman, R.J., &amp; Athanasopoulos, G. (2021). “Forecasting: principles and practice, 3rd edition: Chapter 11: Forecasting hierarchical and grouped series.”. OTexts: Melbourne, Australia. OTexts.com/fpp3 Accessed on July 2022.</a></li>
+<li><a href="https://robjhyndman.com/publications/mint/">Wickramasuriya, S. L., Athanasopoulos, G., &amp; Hyndman, R. J. (2019). "Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization". Journal of the American Statistical Association, 114 , 804–819. doi:10.1080/01621459.2018.1448825.</a>.</li>
+<li><a href="https://robjhyndman.com/publications/nnmint/">Wickramasuriya, S.L., Turlach, B.A. &amp; Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation”. Stat Comput 30, 1167–1182, https://doi.org/10.1007/s11222-020-09930-0</a>.</li>
+</ul>
+
+
+</section>
+</section>
+
+<p>If you find the code useful, please ⭐ us on <a href="https://github.com/nixtla/hierachicalforecast">Github</a></p></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
