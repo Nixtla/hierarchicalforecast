@@ -279,11 +279,14 @@ def aggregate(
                 ds = np.tile(dates, len(S_df.index)),
                 y = np.concatenate([y_agg, y_bottom], axis=0)))
 
-    len_bef_dropping = len(Y_df.index)
     Y_df = Y_df.set_index("unique_id").dropna()
-    len_after_dropping = len(Y_df.index)
-    if len_bef_dropping != len_after_dropping:
-        print("Warning: Incomplete series were dropped from Y_df. Are you sure your time series don't have missing entries?")
+
+    if S_df.index.nunique() != Y_df.index.nunique():
+        print(
+            "Warning: Some time series were dropped from Y_df. "
+            "Are you sure your time series don't have missing entries?"
+        )
+
 
     return Y_df, S_df, tags
 
