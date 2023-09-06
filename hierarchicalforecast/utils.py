@@ -76,7 +76,12 @@ def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
     cat_sizes = [len(cats) for cats in categories]
     idx_bottom = np.argmax(cat_sizes)
     cats_bottom = categories[idx_bottom]
-    encoder = OneHotEncoder(categories=categories, sparse_output=sparse_s, dtype=np.float32)
+
+    try:
+        encoder = OneHotEncoder(categories=categories, sparse_output=sparse_s, dtype=np.float32)
+    except TypeError:  # sklearn < 1.2
+        encoder = OneHotEncoder(categories=categories, sparse=sparse_s, dtype=np.float32)
+
     S = encoder.fit_transform(S_df).T
     # TODO: This likely still instantiates a dense matrix:
     S = pd.DataFrame(S, index=chain(*categories), columns=cats_bottom)
@@ -180,9 +185,11 @@ def _to_summing_dataframe(
     tags = dict(zip(S_df.columns, categories))
     tags[bottom_col] = bottom_ids
 
-    encoder = OneHotEncoder(
-        categories=categories, sparse_output=sparse_s, dtype=np.float32
-    )
+    try:
+        encoder = OneHotEncoder(categories=categories, sparse_output=sparse_s, dtype=np.float32)
+    except TypeError:  # sklearn < 1.2
+        encoder = OneHotEncoder(categories=categories, sparse=sparse_s, dtype=np.float32)
+
     S = encoder.fit_transform(S_df).T
 
     if sparse_s:
