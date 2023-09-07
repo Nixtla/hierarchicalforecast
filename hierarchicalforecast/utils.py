@@ -285,16 +285,7 @@ def aggregate(
                 unique_id = np.repeat(S_df.index, len(dates)),
                 ds = np.tile(dates, len(S_df.index)),
                 y = np.concatenate([y_agg, y_bottom], axis=0)))
-
     Y_df = Y_df.set_index("unique_id").dropna()
-
-    if S_df.index.nunique() != Y_df.index.nunique():
-        print(
-            "Warning: Some time series were dropped from Y_df. "
-            "Are you sure your time series don't have missing entries?"
-        )
-
-
     return Y_df, S_df, tags
 
 # %% ../nbs/utils.ipynb 19
