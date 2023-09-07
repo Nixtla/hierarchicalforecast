@@ -83,8 +83,13 @@ def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
         encoder = OneHotEncoder(categories=categories, sparse=sparse_s, dtype=np.float32)
 
     S = encoder.fit_transform(S_df).T
-    # TODO: This likely still instantiates a dense matrix:
-    S = pd.DataFrame(S, index=chain(*categories), columns=cats_bottom)
+
+    if sparse_s:
+        df_constructor = pd.DataFrame.sparse.from_spmatrix
+    else:
+        df_constructor = pd.DataFrame
+    S = df_constructor(S, index=chain(*categories), columns=cats_bottom)
+
     tags = dict(zip(S_df.columns, categories))
     return S, tags
 
@@ -285,10 +290,10 @@ def aggregate(
                 unique_id = np.repeat(S_df.index, len(dates)),
                 ds = np.tile(dates, len(S_df.index)),
                 y = np.concatenate([y_agg, y_bottom], axis=0)))
-    Y_df = Y_df.set_index("unique_id").dropna()
+    Y_df = Y_df.set_index('unique_id').dropna()
     return Y_df, S_df, tags
 
-# %% ../nbs/utils.ipynb 19
+# %% ../nbs/utils.ipynb 20
 class HierarchicalPlot:
     """ Hierarchical Plot
 
@@ -482,7 +487,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/utils.ipynb 34
+# %% ../nbs/utils.ipynb 35
 # convert levels to output quantile names
 def level_to_outputs(level:Iterable[int]):
     """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -526,7 +531,7 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../nbs/utils.ipynb 35
+# %% ../nbs/utils.ipynb 36
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(samples:np.ndarray, 
