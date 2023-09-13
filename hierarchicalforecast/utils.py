@@ -215,10 +215,12 @@ def _to_summing_dataframe(
 
     # Match index ordering of S_df and collapse df to Y_bottom_df
     Y_bottom_df = df.copy()
-    Y_bottom_df.unique_id = Y_bottom_df.unique_id.astype('category')
-    Y_bottom_df.unique_id = Y_bottom_df.unique_id.cat.set_categories(S_df.columns)
-    # observed=False here makes sure we have all the unique_ids (S_df.columns) in our result
+    Y_bottom_df.unique_id = Y_bottom_df.unique_id.astype(pd.CategoricalDtype(categories=S_df.columns))
+    start_dates = Y_bottom_df.groupby('unique_id', observed=False)['ds'].min().rename('_start_date')
+    # observed=False here makes sure we have all the unique_ids and dates in our result
     Y_bottom_df = Y_bottom_df.groupby(['unique_id', 'ds'], observed=False)['y'].sum().reset_index()
+    Y_bottom_df = Y_bottom_df.merge(start_dates, on=['unique_id'])
+    Y_bottom_df = Y_bottom_df[Y_bottom_df['ds'] >= Y_bottom_df['_start_date']].drop(columns='_start_date').reset_index(drop=True)
     return Y_bottom_df, S_df, tags
 
 
