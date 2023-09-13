@@ -215,9 +215,10 @@ def _to_summing_dataframe(
 
     # Match index ordering of S_df and collapse df to Y_bottom_df
     Y_bottom_df = df.copy()
-    Y_bottom_df = Y_bottom_df.groupby(['unique_id', 'ds'])['y'].sum().reset_index()
     Y_bottom_df.unique_id = Y_bottom_df.unique_id.astype('category')
     Y_bottom_df.unique_id = Y_bottom_df.unique_id.cat.set_categories(S_df.columns)
+    # observed=False here makes sure we have all the unique_ids (S_df.columns) in our result
+    Y_bottom_df = Y_bottom_df.groupby(['unique_id', 'ds'], observed=False)['y'].sum().reset_index()
     return Y_bottom_df, S_df, tags
 
 
