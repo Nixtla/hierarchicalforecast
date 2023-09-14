@@ -214,8 +214,11 @@ def aggregate(
         S[:, j] = _to_upper_hierarchy(bottom, bottom_levels, '/'.join(levels))
     S[:, -1] = tags[bottom_key]
     categories = list(tags.values())
-    ohe = OneHotEncoder(categories=categories, sparse_output=sparse_s, dtype=np.float32)
-    S = ohe.fit_transform(S).T
+    try:
+        encoder = OneHotEncoder(categories=categories, sparse_output=sparse_s, dtype=np.float32)
+    except TypeError:  # sklearn < 1.2
+        encoder = OneHotEncoder(categories=categories, sparse=sparse_s, dtype=np.float32)    
+    S = encoder.fit_transform(S).T
     if sparse_s:
         df_constructor = pd.DataFrame.sparse.from_spmatrix
     else:
