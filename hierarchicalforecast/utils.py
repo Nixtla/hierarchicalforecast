@@ -186,8 +186,9 @@ def aggregate(
         raise ValueError('`df` contains null values')
     if is_balanced:
         warnings.warn(
-            '`is_balanced` is deprecated and will be removed in a future version. '
-            "Don't set this argument to suppress this warning."
+            "`is_balanced` is deprecated and will be removed in a future version. "
+            "Don't set this argument to suppress this warning.",
+            category=DeprecationWarning,
         )
             
     # compute aggregations and tags
@@ -202,7 +203,7 @@ def aggregate(
             group = group + '/' + agg.index.get_level_values(level).str.replace('/', '_')
         agg.index = group
         agg.index.name = 'unique_id'
-        tags['/'.join(levels)] = group.unique()
+        tags['/'.join(levels)] = group.unique().values
         aggs.append(agg)
     Y_df = pd.concat(aggs)
 
@@ -226,7 +227,7 @@ def aggregate(
     S_df = df_constructor(S, index=np.hstack(categories), columns=bottom_levels)
     return Y_df, S_df, tags
 
-# %% ../nbs/utils.ipynb 20
+# %% ../nbs/utils.ipynb 21
 class HierarchicalPlot:
     """ Hierarchical Plot
 
@@ -420,7 +421,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/utils.ipynb 35
+# %% ../nbs/utils.ipynb 36
 # convert levels to output quantile names
 def level_to_outputs(level:Iterable[int]):
     """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -464,7 +465,7 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../nbs/utils.ipynb 36
+# %% ../nbs/utils.ipynb 37
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(samples:np.ndarray, 
