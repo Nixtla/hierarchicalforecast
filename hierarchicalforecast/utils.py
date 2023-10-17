@@ -202,6 +202,8 @@ def aggregate(
             agg = agg.sort_index()
         agg = agg.reset_index('ds')
         group = agg.index.get_level_values(0)
+        if not pd.api.types.is_string_dtype(group.dtype):
+            group = group.astype(str)
         for level in levels[1:]:
             group = group + '/' + agg.index.get_level_values(level).str.replace('/', '_')
         agg.index = group
