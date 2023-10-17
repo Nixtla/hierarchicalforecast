@@ -197,9 +197,10 @@ def aggregate(
     aggs = []
     tags = {}
     for levels in spec:
-        agg = df.groupby(levels + ['ds'], observed=True)['y'].sum().reset_index('ds')
+        agg = df.groupby(levels + ['ds'], observed=True)['y'].sum()
         if not agg.index.is_monotonic_increasing:
             agg = agg.sort_index()
+        agg = agg.reset_index('ds')
         group = agg.index.get_level_values(0)
         for level in levels[1:]:
             group = group + '/' + agg.index.get_level_values(level).str.replace('/', '_')
