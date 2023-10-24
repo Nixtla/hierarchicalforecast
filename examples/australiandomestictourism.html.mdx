@@ -1,0 +1,345 @@
+---
+description: Geographical Hierarchical Forecasting on Australian Tourism Data
+output-file: australiandomestictourism.html
+title: Geographical Aggregation (Tourism)
+
+---
+
+In many applications, a set of time series is hierarchically organized.
+Examples include the presence of geographic levels, products, or
+categories that define different types of aggregations. In such
+scenarios, forecasters are often required to provide predictions for all
+disaggregate and aggregate series. A natural desire is for those
+predictions to be **“coherent”**, that is, for the bottom series to add
+up precisely to the forecasts of the aggregated series.
+
+In this notebook we present an example on how to use
+`HierarchicalForecast` to produce coherent forecasts between
+geographical levels. We will use the classic Australian Domestic Tourism
+(`Tourism`) dataset, which contains monthly time series of the number of
+visitors to each state of Australia.
+
+We will first load the `Tourism` data and produce base forecasts using
+an `ETS` model from `StatsForecast`, and then reconciliate the forecasts
+with several reconciliation algorithms from `HierarchicalForecast`.
+Finally, we show the performance is comparable with the results reported
+by the [Forecasting: Principles and
+Practice](https://otexts.com/fpp3/tourism.html) which uses the R package
+[fable](https://github.com/tidyverts/fable).
+
+You can run these experiments using CPU or GPU with Google Colab.
+
+<a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourism.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+```python
+!pip install hierarchicalforecast
+!pip install -U statsforecast numba
+```
+
+## 1. Load and Process Data
+
+In this example we will use the
+[Tourism](https://otexts.com/fpp3/tourism.html) dataset from the
+[Forecasting: Principles and Practice](https://otexts.com/fpp3/) book.
+
+The dataset only contains the time series at the lowest level, so we
+need to create the time series for all hierarchies.
+
+```python
+import numpy as np
+import pandas as pd
+```
+
+
+```python
+Y_df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
+Y_df = Y_df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
+Y_df.insert(0, 'Country', 'Australia')
+Y_df = Y_df[['Country', 'Region', 'State', 'Purpose', 'ds', 'y']]
+Y_df['ds'] = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
+Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+Y_df.head()
+```
+
+|     | Country   | Region   | State           | Purpose  | ds         | y          |
+|-----|-----------|----------|-----------------|----------|------------|------------|
+| 0   | Australia | Adelaide | South Australia | Business | 1998-01-01 | 135.077690 |
+| 1   | Australia | Adelaide | South Australia | Business | 1998-04-01 | 109.987316 |
+| 2   | Australia | Adelaide | South Australia | Business | 1998-07-01 | 166.034687 |
+| 3   | Australia | Adelaide | South Australia | Business | 1998-10-01 | 127.160464 |
+| 4   | Australia | Adelaide | South Australia | Business | 1999-01-01 | 137.448533 |
+
+The dataset can be grouped in the following non-strictly hierarchical
+structure.
+
+```python
+spec = [
+    ['Country'],
+    ['Country', 'State'], 
+    ['Country', 'Purpose'], 
+    ['Country', 'State', 'Region'], 
+    ['Country', 'State', 'Purpose'], 
+    ['Country', 'State', 'Region', 'Purpose']
+]
+```
+
+Using the
+[`aggregate`](https://Nixtla.github.io/hierarchicalforecast/utils.html#aggregate)
+function from `HierarchicalForecast` we can get the full set of time
+series.
+
+```python
+from hierarchicalforecast.utils import aggregate
+```
+
+
+```python
+Y_df, S_df, tags = aggregate(Y_df, spec)
+Y_df = Y_df.reset_index()
+```
+
+
+```python
+Y_df.head()
+```
+
+|     | unique_id | ds         | y            |
+|-----|-----------|------------|--------------|
+| 0   | Australia | 1998-01-01 | 23182.197269 |
+| 1   | Australia | 1998-04-01 | 20323.380067 |
+| 2   | Australia | 1998-07-01 | 19826.640511 |
+| 3   | Australia | 1998-10-01 | 20830.129891 |
+| 4   | Australia | 1999-01-01 | 22087.353380 |
+
+```python
+S_df.iloc[:5, :5]
+```
+
+|                              | Australia/ACT/Canberra/Business | Australia/ACT/Canberra/Holiday | Australia/ACT/Canberra/Other | Australia/ACT/Canberra/Visiting | Australia/New South Wales/Blue Mountains/Business |
+|------------------------------|---------------------------------|--------------------------------|------------------------------|---------------------------------|---------------------------------------------------|
+| Australia                    | 1.0                             | 1.0                            | 1.0                          | 1.0                             | 1.0                                               |
+| Australia/ACT                | 1.0                             | 1.0                            | 1.0                          | 1.0                             | 0.0                                               |
+| Australia/New South Wales    | 0.0                             | 0.0                            | 0.0                          | 0.0                             | 1.0                                               |
+| Australia/Northern Territory | 0.0                             | 0.0                            | 0.0                          | 0.0                             | 0.0                                               |
+| Australia/Queensland         | 0.0                             | 0.0                            | 0.0                          | 0.0                             | 0.0                                               |
+
+```python
+tags['Country/Purpose']
+```
+
+``` text
+array(['Australia/Business', 'Australia/Holiday', 'Australia/Other',
+       'Australia/Visiting'], dtype=object)
+```
+
+### Split Train/Test sets
+
+We use the final two years (8 quarters) as test set.
+
+```python
+Y_test_df = Y_df.groupby('unique_id').tail(8)
+Y_train_df = Y_df.drop(Y_test_df.index)
+```
+
+
+```python
+Y_test_df = Y_test_df.set_index('unique_id')
+Y_train_df = Y_train_df.set_index('unique_id')
+```
+
+
+```python
+Y_train_df.groupby('unique_id').size()
+```
+
+``` text
+unique_id
+Australia                                                72
+Australia/ACT                                            72
+Australia/ACT/Business                                   72
+Australia/ACT/Canberra                                   72
+Australia/ACT/Canberra/Business                          72
+                                                         ..
+Australia/Western Australia/Experience Perth/Other       72
+Australia/Western Australia/Experience Perth/Visiting    72
+Australia/Western Australia/Holiday                      72
+Australia/Western Australia/Other                        72
+Australia/Western Australia/Visiting                     72
+Length: 425, dtype: int64
+```
+
+## 2. Computing base forecasts
+
+The following cell computes the **base forecasts** for each time series
+in `Y_df` using the `ETS` model. Observe that `Y_hat_df` contains the
+forecasts but they are not coherent.
+
+```python
+from statsforecast.models import ETS
+from statsforecast.core import StatsForecast
+```
+
+
+```python
+fcst = StatsForecast(df=Y_train_df, 
+                     models=[ETS(season_length=4, model='ZZA')], 
+                     freq='QS', n_jobs=-1)
+Y_hat_df = fcst.forecast(h=8, fitted=True)
+Y_fitted_df = fcst.forecast_fitted_values()
+```
+
+## 3. Reconcile forecasts
+
+The following cell makes the previous forecasts coherent using the
+[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/core.html#hierarchicalreconciliation)
+class. Since the hierarchy structure is not strict, we can’t use methods
+such as
+[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/methods.html#topdown)
+or
+[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/methods.html#middleout).
+In this example we use
+[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/methods.html#bottomup)
+and
+[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/methods.html#mintrace).
+
+```python
+from hierarchicalforecast.methods import BottomUp, MinTrace
+from hierarchicalforecast.core import HierarchicalReconciliation
+```
+
+
+```python
+reconcilers = [
+    BottomUp(),
+    MinTrace(method='mint_shrink'),
+    MinTrace(method='ols')
+]
+hrec = HierarchicalReconciliation(reconcilers=reconcilers)
+Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_fitted_df, S=S_df, tags=tags)
+```
+
+The dataframe `Y_rec_df` contains the reconciled forecasts.
+
+```python
+Y_rec_df.head()
+```
+
+|           | ds         | ETS          | ETS/BottomUp | ETS/MinTrace_method-mint_shrink | ETS/MinTrace_method-ols |
+|-----------|------------|--------------|--------------|---------------------------------|-------------------------|
+| unique_id |            |              |              |                                 |                         |
+| Australia | 2016-01-01 | 25990.068359 | 24379.679688 | 25438.888351                    | 25894.418893            |
+| Australia | 2016-04-01 | 24458.490234 | 22902.664062 | 23925.188541                    | 24357.230480            |
+| Australia | 2016-07-01 | 23974.056641 | 22412.984375 | 23440.310338                    | 23865.929521            |
+| Australia | 2016-10-01 | 24563.455078 | 23127.638672 | 24101.001833                    | 24470.783968            |
+| Australia | 2017-01-01 | 25990.068359 | 24516.175781 | 25556.667616                    | 25901.382401            |
+
+## 4. Evaluation
+
+The `HierarchicalForecast` package includes the
+[`HierarchicalEvaluation`](https://Nixtla.github.io/hierarchicalforecast/evaluation.html#hierarchicalevaluation)
+class to evaluate the different hierarchies and also is capable of
+compute scaled metrics compared to a benchmark model.
+
+```python
+from hierarchicalforecast.evaluation import HierarchicalEvaluation
+```
+
+
+```python
+def rmse(y, y_hat):
+    return np.mean(np.sqrt(np.mean((y-y_hat)**2, axis=1)))
+
+def mase(y, y_hat, y_insample, seasonality=4):
+    errors = np.mean(np.abs(y - y_hat), axis=1)
+    scale = np.mean(np.abs(y_insample[:, seasonality:] - y_insample[:, :-seasonality]), axis=1)
+    return np.mean(errors / scale)
+
+eval_tags = {}
+eval_tags['Total'] = tags['Country']
+eval_tags['Purpose'] = tags['Country/Purpose']
+eval_tags['State'] = tags['Country/State']
+eval_tags['Regions'] = tags['Country/State/Region']
+eval_tags['Bottom'] = tags['Country/State/Region/Purpose']
+eval_tags['All'] = np.concatenate(list(tags.values()))
+
+evaluator = HierarchicalEvaluation(evaluators=[rmse, mase])
+evaluation = evaluator.evaluate(
+        Y_hat_df=Y_rec_df, Y_test_df=Y_test_df,
+        tags=eval_tags, Y_df=Y_train_df
+)
+evaluation = evaluation.drop('Overall')
+evaluation.columns = ['Base', 'BottomUp', 'MinTrace(mint_shrink)', 'MinTrace(ols)']
+evaluation = evaluation.applymap('{:.2f}'.format)
+```
+
+``` text
+/var/folders/rp/97y9_3ns23v01hdn0rp9ndw40000gp/T/ipykernel_46857/2768439279.py:22: PerformanceWarning: dropping on a non-lexsorted multi-index without a level parameter may impact performance.
+  evaluation = evaluation.drop('Overall')
+```
+
+### RMSE
+
+The following table shows the performance measured using RMSE across
+levels for each reconciliation method.
+
+```python
+evaluation.query('metric == "rmse"')
+```
+
+|         |        | Base    | BottomUp | MinTrace(mint_shrink) | MinTrace(ols) |
+|---------|--------|---------|----------|-----------------------|---------------|
+| level   | metric |         |          |                       |               |
+| Total   | rmse   | 1743.29 | 3028.93  | 2102.47               | 1818.94       |
+| Purpose | rmse   | 534.75  | 791.28   | 574.84                | 515.53        |
+| State   | rmse   | 308.15  | 413.43   | 315.89                | 287.34        |
+| Regions | rmse   | 51.65   | 55.14    | 46.48                 | 46.29         |
+| Bottom  | rmse   | 19.37   | 19.37    | 17.78                 | 18.19         |
+| All     | rmse   | 45.19   | 54.95    | 44.59                 | 42.71         |
+
+### MASE
+
+The following table shows the performance measured using MASE across
+levels for each reconciliation method.
+
+```python
+evaluation.query('metric == "mase"')
+```
+
+|         |        | Base | BottomUp | MinTrace(mint_shrink) | MinTrace(ols) |
+|---------|--------|------|----------|-----------------------|---------------|
+| level   | metric |      |          |                       |               |
+| Total   | mase   | 1.59 | 3.16     | 2.05                  | 1.67          |
+| Purpose | mase   | 1.32 | 2.28     | 1.48                  | 1.25          |
+| State   | mase   | 1.39 | 1.90     | 1.39                  | 1.25          |
+| Regions | mase   | 1.12 | 1.19     | 1.01                  | 0.99          |
+| Bottom  | mase   | 0.98 | 0.98     | 0.94                  | 1.01          |
+| All     | mase   | 1.03 | 1.08     | 0.98                  | 1.02          |
+
+### Comparison fable
+
+Observe that we can recover the results reported by the [Forecasting:
+Principles and Practice](https://otexts.com/fpp3/tourism.html). The
+original results were calculated using the R package
+[fable](https://github.com/tidyverts/fable).
+
+![Fable’s reconciliation
+results](./imgs/AustralianDomesticTourism-results-fable.png)
+
+### References
+
+-   [Hyndman, R.J., & Athanasopoulos, G. (2021). “Forecasting:
+    principles and practice, 3rd edition: Chapter 11: Forecasting
+    hierarchical and grouped series.”. OTexts: Melbourne, Australia.
+    OTexts.com/fpp3 Accessed on July
+    2022.](https://otexts.com/fpp3/hierarchical.html)
+-   [Rob Hyndman, Alan Lee, Earo Wang, Shanika Wickramasuriya, and
+    Maintainer Earo Wang (2021). “hts: Hierarchical and Grouped Time
+    Series”. URL https://CRAN.R-project.org/package=hts. R package
+    version
+    0.3.1.](https://cran.r-project.org/web/packages/hts/index.html)
+-   [Mitchell O’Hara-Wild, Rob Hyndman, Earo Wang, Gabriel Caceres,
+    Tim-Gunnar Hensel, and Timothy Hyndman (2021). “fable: Forecasting
+    Models for Tidy Time Series”. URL
+    https://CRAN.R-project.org/package=fable. R package version
+    6.0.2.](https://CRAN.R-project.org/package=fable)
+

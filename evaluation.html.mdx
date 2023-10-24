@@ -1,0 +1,339 @@
+---
+output-file: evaluation.html
+title: Hierarchical Evaluation
+
+---
+
+To assist the evaluation of hierarchical forecasting systems, we make
+available accuracy metrics along with the
+[`HierarchicalEvaluation`](https://Nixtla.github.io/hierarchicalforecast/evaluation.html#hierarchicalevaluation)
+module that facilitates the measurement of prediction’s accuracy through
+the hierarchy levels.
+
+The available metrics include point and probabilistic multivariate
+scoring rules that were used in previous hierarchical forecasting
+studies.
+
+# Accuracy Measurements
+
+## Relative Mean Squared Error
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L111"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### rel_mse
+
+> ``` text
+>  rel_mse (y, y_hat, y_train, mask=None)
+> ```
+
+Relative Mean Squared Error
+
+Computes Relative mean squared error (RelMSE), as proposed by Hyndman &
+Koehler (2006) as an alternative to percentage errors, to avoid measure
+unstability.
+
+$$ \mathrm{RelMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{naive1}) =
+\frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{naive1})} $$
+
+**Parameters:**<br/> `y`: numpy array, Actual values of size (`n_series`,
+`horizon`).<br/> `y_hat`: numpy array, Predicted values (`n_series`,
+`horizon`).<br/> `mask`: numpy array, Specifies date stamps per serie to
+consider in loss.<br/>
+
+**Returns:**<br/> `loss`: float.
+
+**References:**<br/> - [Hyndman, R. J and Koehler, A. B. (2006). “Another
+look at measures of forecast accuracy”, International Journal of
+Forecasting, Volume 22, Issue
+4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br/> -
+[Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao,
+Lee Dicker. “Probabilistic Hierarchical Forecasting with Deep Poisson
+Mixtures. Submitted to the International Journal Forecasting, Working
+paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+
+## Mean Squared Scaled Error
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L148"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### msse
+
+> ``` text
+>  msse (y, y_hat, y_train, mask=None)
+> ```
+
+Mean Squared Scaled Error
+
+Computes Mean squared scaled error (MSSE), as proposed by Hyndman &
+Koehler (2006) as an alternative to percentage errors, to avoid measure
+unstability.
+
+$$ \mathrm{MSSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{y}^{in-sample}) =
+\frac{\frac{1}{h} \sum^{t+h}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^2}{\frac{1}{t-1} \sum^{t}_{\tau=2} (y_{\tau} - y_{\tau-1})^2},$$
+
+where $n$ ($n=$`n`) is the size of the training data, and $h$ is the
+forecasting horizon ($h=$`horizon`).
+
+**Parameters:**<br/> `y`: numpy array, Actual values of size (`n_series`,
+`horizon`).<br/> `y_hat`: numpy array, Predicted values (`n_series`,
+`horizon`).<br/> `y_train`: numpy array, Predicted values (`n_series`,
+`n`).<br/> `mask`: numpy array, Specifies date stamps per serie to
+consider in loss.<br/>
+
+**Returns:**<br/> `loss`: float.
+
+**References:**<br/> - [Hyndman, R. J and Koehler, A. B. (2006). “Another
+look at measures of forecast accuracy”, International Journal of
+Forecasting, Volume 22, Issue
+4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br/>
+
+## Scaled CRPS
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L186"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### scaled_crps
+
+> ``` text
+>  scaled_crps (y, y_hat, quantiles)
+> ```
+
+Scaled Continues Ranked Probability Score
+
+Calculates a scaled variation of the CRPS, as proposed by Rangapuram
+(2021), to measure the accuracy of predicted quantiles `y_hat` compared
+to the observation `y`.
+
+This metric averages percentual weighted absolute deviations as defined
+by the quantile losses.
+
+$$ \mathrm{sCRPS}(\hat{F}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i}
+\int^{1}_{0}
+\frac{\mathrm{QL}(\hat{F}_{i,\tau}, y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq $$
+
+where $\hat{F}_{\tau}$ is the an estimated multivariate distribution,
+and $y_{i,\tau}$ are its realizations.
+
+**Parameters:**<br/> `y`: numpy array, Actual values of size (`n_series`,
+`horizon`).<br/> `y_hat`: numpy array, Predicted quantiles of size
+(`n_series`, `horizon`, `n_quantiles`).<br/> `quantiles`: numpy
+array,(`n_quantiles`). Quantiles to estimate from the distribution of
+y.<br/>
+
+**Returns:**<br/> `loss`: float.
+
+**References:**<br/> - [Gneiting, Tilmann. (2011). “Quantiles as optimal
+point forecasts”. International Journal of
+Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063)<br/> -
+[Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi
+Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). “The M5
+uncertainty competition: Results, findings and conclusions”.
+International Journal of
+Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722)<br/> -
+[Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro
+Mercado, Jan Gasthaus, Tim Januschowski. (2021). “End-to-End Learning of
+Coherent Probabilistic Forecasts for Hierarchical Time Series”.
+Proceedings of the 38th International Conference on Machine Learning
+(ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
+
+## Energy Score
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L227"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### energy_score
+
+> ``` text
+>  energy_score (y, y_sample1, y_sample2, beta=2)
+> ```
+
+Energy Score
+
+Calculates Gneiting’s Energy Score sample approximation for `y` and
+independent multivariate samples `y_sample1` and `y_sample2`. The Energy
+Score generalizes the CRPS (`beta`=1) in the multivariate setting.
+
+$$ \mathrm{ES}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}_{\tau}') 
+= \frac{1}{2} \mathbb{E}_{\hat{P}} \left[ ||\mathbf{\hat{y}}_{\tau} - \mathbf{\hat{y}}_{\tau}'||^{\beta} \right]
+-  \mathbb{E}_{\hat{P}} \left[ ||\mathbf{y}_{\tau} - \mathbf{\hat{y}}_{\tau}||^{\beta} \right] 
+\quad \beta \in (0,2]$$
+
+where $\mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}_{\tau}'$ are
+independent samples drawn from $\hat{P}$.
+
+**Parameters:**<br/> `y`: numpy array, Actual values of size (`n_series`,
+`horizon`).<br/> `y_sample1`: numpy array, predictive distribution sample
+of size (`n_series`, `horizon`, `n_samples`).<br/> `y_sample2`: numpy
+array, predictive distribution sample of size (`n_series`, `horizon`,
+`n_samples`).<br/> `beta`: float in (0,2\], defines the energy score’s
+power for the euclidean metric.<br/>
+
+**Returns:**<br/> `score`: float.
+
+**References:**<br/> - [Gneiting, Tilmann, and Adrian E. Raftery. (2007).
+“Strictly proper scoring rules, prediction and estimation”. Journal of
+the American Statistical
+Association.](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf)<br/> -
+[Anastasios Panagiotelis, Puwasala Gamakumara, George Athanasopoulos,
+Rob J. Hyndman. (2022). “Probabilistic forecast reconciliation:
+Properties, evaluation and score optimisation”. European Journal of
+Operational
+Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L271"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### log_score
+
+> ``` text
+>  log_score (y, y_hat, cov, allow_singular=True)
+> ```
+
+Log Score.
+
+One of the simplest multivariate probability scoring rules, it evaluates
+the negative density at the value of the realisation.
+
+$$ \mathrm{LS}(\mathbf{y}_{\tau}, \mathbf{P}(\theta_{\tau}))
+= - \log(f(\mathbf{y}_{\tau}, \theta_{\tau}))$$
+
+where $f$ is the density, $\mathbf{P}(\theta_{\tau})$ is a parametric
+distribution and $f(\mathbf{y}_{\tau}, \theta_{\tau})$ represents its
+density. For the moment we only support multivariate normal log score.
+
+$$f(\mathbf{y}_{\tau}, \theta_{\tau}) =
+(2\pi )^{-k/2}\det({\boldsymbol{\Sigma }})^{-1/2}
+\,\exp \left(
+-{\frac {1}{2}}(\mathbf{y}_{\tau} -\hat{\mathbf{y}}_{\tau})^{\!{\mathsf{T}}}
+{\boldsymbol{\Sigma }}^{-1}
+(\mathbf{y}_{\tau} -\hat{\mathbf{y}}_{\tau})
+\right)$$
+
+**Parameters:**<br/> `y`: numpy array, Actual values of size (`n_series`,
+`horizon`).<br/> `y_hat`: numpy array, Predicted values (`n_series`,
+`horizon`).<br/> `cov`: numpy matrix, Predicted values covariance
+(`n_series`, `n_series`, `horizon`).<br/> `allow_singular`: bool=True, if
+true allows singular covariance.<br/>
+
+**Returns:**<br/> `score`: float.
+
+```python
+x = np.linspace(0, 5, 10, endpoint=False)
+y = multivariate_normal.pdf(x, mean=2.5, cov=0.5)
+y
+```
+
+# Hierarchical Evaluation
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L309"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### HierarchicalEvaluation
+
+> ``` text
+>  HierarchicalEvaluation (evaluators:List[Callable])
+> ```
+
+Hierarchical Evaluation Class.
+
+You can use your own metrics to evaluate the performance of each level
+in the structure. The metrics receive `y` and `y_hat` as arguments and
+they are numpy arrays of size `(series, horizon)`. Consider, for
+example, the function `rmse` that calculates the root mean squared
+error.
+
+This class facilitates measurements across the hierarchy, defined by the
+`tags` list. See also the [aggregate
+method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
+
+**Parameters:**<br/> `evaluators`: functions with arguments `y`, `y_hat`
+(numpy arrays).<br/>
+
+**References:**<br/>
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L328"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### HierarchicalEvaluation.evaluate
+
+> ``` text
+>  HierarchicalEvaluation.evaluate (Y_hat_df:pandas.core.frame.DataFrame,
+>                                   Y_test_df:pandas.core.frame.DataFrame,
+>                                   tags:Dict[str,numpy.ndarray], Y_df:Optio
+>                                   nal[pandas.core.frame.DataFrame]=None,
+>                                   benchmark:Optional[str]=None)
+> ```
+
+Hierarchical Evaluation Method.
+
+**Parameters:**<br/> `Y_hat_df`: pd.DataFrame, Forecasts indexed by
+`'unique_id'` with column `'ds'` and models to evaluate.<br/>
+`Y_test_df`: pd.DataFrame, True values with columns `['ds', 'y']`.<br/>
+`tags`: np.array, each str key is a level and its value contains tags
+associated to that level.<br/> `Y_df`: pd.DataFrame, Training set of base
+time series with columns `['ds', 'y']` indexed by `unique_id`.<br/>
+`benchmark`: str, If passed, evaluators are scaled by the error of this
+benchark.<br/>
+
+**Returns:**<br/> `evaluation`: pd.DataFrame with accuracy measurements
+across hierarchical levels.
+
+# Example
+
+# References
+
+-   [Gneiting, Tilmann, and Adrian E. Raftery. (2007). "Strictly proper
+    scoring rules, prediction and estimation". Journal of the American
+    Statistical
+    Association.](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf)
+-   [Gneiting, Tilmann. (2011). "Quantiles as optimal point forecasts".
+    International Journal of
+    Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063)
+-   [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos,
+    Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). "The
+    M5 uncertainty competition: Results, findings and conclusions".
+    International Journal of
+    Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722)
+-   [Anastasios Panagiotelis, Puwasala Gamakumara, George
+    Athanasopoulos, Rob J. Hyndman. (2022). "Probabilistic forecast
+    reconciliation: Properties, evaluation and score optimisation".
+    European Journal of Operational
+    Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+-   [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis,
+    Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). "End-to-End
+    Learning of Coherent Probabilistic Forecasts for Hierarchical Time
+    Series". Proceedings of the 38th International Conference on Machine
+    Learning
+    (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
+-   [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei
+    Cao, Lee Dicker (2022). “Probabilistic Hierarchical Forecasting with
+    Deep Poisson Mixtures”. Submitted to the International Journal
+    Forecasting, Working paper available at
+    arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+-   [Makridakis, S., Spiliotis E., and Assimakopoulos V. (2022). “M5
+    Accuracy Competition: Results, Findings, and Conclusions.”,
+    International Journal of Forecasting, Volume 38, Issue
+    4.](https://www.sciencedirect.com/science/article/pii/S0169207021001874)
+
