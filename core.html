@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>hierarchicalforecast - Core</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon_png.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NXJNCVR18L"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-NXJNCVR18L', { 'anonymize_ip': true});
+</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="hierarchicalforecast - Core">
+<meta property="og:description" content="">
+<meta property="og:site-name" content="hierarchicalforecast">
+<meta name="twitter:title" content="hierarchicalforecast - Core">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">hierarchicalforecast</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./examples/tourismsmall.html" rel="" target="" aria-current="page">
+ <span class="menu-text">Get Started</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-nixtlaverse" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">NixtlaVerse</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-nixtlaverse">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/mlforecast" rel="" target="">
+ <span class="dropdown-text">MLForecast 🤖</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/neuralforecast" rel="" target="">
+ <span class="dropdown-text">NeuralForecast 🧠</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/statsforecast" rel="" target="">
+ <span class="dropdown-text">StatsForecast ⚡️</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-help" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Help</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-help">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/hierarchicalforecast/issues/new/choose" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://join.slack.com/t/nixtlacommunity/shared_invite/zt-1kd5m5db7-7OOfy0xVNf1PcvCiAPWvPw" rel="" target=""><i class="bi bi-chat-right-text" role="img">
+</i> 
+ <span class="dropdown-text">Join our Slack</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/nixtla/hierarchicalforecast" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/nixtlainc" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Nixtla Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./core.html">API Reference</a></li><li class="breadcrumb-item"><a href="./core.html">Core</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Forecast 👑</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false">
+ <span class="menu-text">Getting Started</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/tourismsmall.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reconciliation Quick Start</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/introduction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+ <span class="menu-text">Point Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/australiandomestictourism.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Tourism)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/australianprisonpopulation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Prison Population)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/nonnegativereconciliation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Non-Negative MinTrace</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+ <span class="menu-text">Probabilistic Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/australiandomestictourism-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Normality</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/australiandomestictourism-bootstraped-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bootstrap</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/australiandomestictourism-permbu-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PERMBU</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/tourismlarge-evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Forecast Evaluation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">ML Forecast Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/hierarchicalforecast-gluonts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GluonTS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/mlframeworksexample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Neural/MLForecast</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+ <span class="menu-text">Methods</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true">
+ <span class="menu-text">API Reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reconciliation Methods</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./probabilistic_methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Methods</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Evaluation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Aggregation/Visualization Utils</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Community</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+ <span class="menu-text">Contributing</span>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#core.hierarchicalreconciliation" id="toc-core.hierarchicalreconciliation" class="nav-link active" data-scroll-target="#core.hierarchicalreconciliation">core.HierarchicalReconciliation</a>
+  <ul class="collapse">
+  <li><a href="#init" id="toc-init" class="nav-link" data-scroll-target="#init">init</a></li>
+  <li><a href="#hierarchicalreconciliation" id="toc-hierarchicalreconciliation" class="nav-link" data-scroll-target="#hierarchicalreconciliation">HierarchicalReconciliation</a></li>
+  <li><a href="#reconcile" id="toc-reconcile" class="nav-link" data-scroll-target="#reconcile">reconcile</a></li>
+  <li><a href="#bootstrap_reconcile" id="toc-bootstrap_reconcile" class="nav-link" data-scroll-target="#bootstrap_reconcile">bootstrap_reconcile</a></li>
+  </ul></li>
+  <li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example">Example</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Nixtla/hierarchicalforecast/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Core</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>HierarchicalForecast contains pure Python implementations of hierarchical reconciliation methods as well as a <code>core.HierarchicalReconciliation</code> wrapper class that enables easy interaction with these methods through pandas DataFrames containing the hierarchical time series and the base predictions.</p>
+<p>The <code>core.HierarchicalReconciliation</code> reconciliation class operates with the hierarchical time series pd.DataFrame <code>Y_df</code>, the base predictions pd.DataFrame <code>Y_hat_df</code>, the aggregation constraints matrix <code>S</code>. For more information on the creation of aggregation constraints matrix see the utils <a href="https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate">aggregation method</a>.<br><br></p>
+<section id="core.hierarchicalreconciliation" class="level1">
+<h1>core.HierarchicalReconciliation</h1>
+<hr>
+<p><a href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L77" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="init" class="level3">
+<h3 class="anchored" data-anchor-id="init">init</h3>
+<blockquote class="blockquote">
+<pre><code> init (reconcilers:List[Callable])</code></pre>
+</blockquote>
+<p>Hierarchical Reconciliation Class.</p>
+<p>The <code>core.HierarchicalReconciliation</code> class allows you to efficiently fit multiple HierarchicaForecast methods for a collection of time series and base predictions stored in pandas DataFrames. The <code>Y_df</code> dataframe identifies series and datestamps with the unique_id and ds columns while the y column denotes the target time series variable. The <code>Y_h</code> dataframe stores the base predictions, example (<a href="https://nixtla.github.io/statsforecast/models.html#autoarima">AutoARIMA</a>, <a href="https://nixtla.github.io/statsforecast/models.html#autoets">ETS</a>, etc.).</p>
+<p><strong>Parameters:</strong><br> <code>reconcilers</code>: A list of instantiated classes of the <a href="https://nixtla.github.io/hierarchicalforecast/methods.html">reconciliation methods</a> module .<br></p>
+<p><strong>References:</strong><br> <a href="https://otexts.com/fpp3/hierarchical.html">Rob J. Hyndman and George Athanasopoulos (2018). “Forecasting principles and practice, Hierarchical and Grouped Series”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L77" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="hierarchicalreconciliation" class="level3">
+<h3 class="anchored" data-anchor-id="hierarchicalreconciliation">HierarchicalReconciliation</h3>
+<blockquote class="blockquote">
+<pre><code> HierarchicalReconciliation (reconcilers:List[Callable])</code></pre>
+</blockquote>
+<p>Hierarchical Reconciliation Class.</p>
+<p>The <code>core.HierarchicalReconciliation</code> class allows you to efficiently fit multiple HierarchicaForecast methods for a collection of time series and base predictions stored in pandas DataFrames. The <code>Y_df</code> dataframe identifies series and datestamps with the unique_id and ds columns while the y column denotes the target time series variable. The <code>Y_h</code> dataframe stores the base predictions, example (<a href="https://nixtla.github.io/statsforecast/models.html#autoarima">AutoARIMA</a>, <a href="https://nixtla.github.io/statsforecast/models.html#autoets">ETS</a>, etc.).</p>
+<p><strong>Parameters:</strong><br> <code>reconcilers</code>: A list of instantiated classes of the <a href="https://nixtla.github.io/hierarchicalforecast/methods.html">reconciliation methods</a> module .<br></p>
+<p><strong>References:</strong><br> <a href="https://otexts.com/fpp3/hierarchical.html">Rob J. Hyndman and George Athanasopoulos (2018). “Forecasting principles and practice, Hierarchical and Grouped Series”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L181" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="reconcile" class="level3">
+<h3 class="anchored" data-anchor-id="reconcile">reconcile</h3>
+<blockquote class="blockquote">
+<pre><code> reconcile (Y_hat_df:pandas.core.frame.DataFrame,
+            S:pandas.core.frame.DataFrame, tags:Dict[str,numpy.ndarray],
+            Y_df:Optional[pandas.core.frame.DataFrame]=None,
+            level:Optional[List[int]]=None,
+            intervals_method:str='normality', num_samples:int=-1,
+            seed:int=0, sort_df:bool=True, is_balanced:bool=False)</code></pre>
+</blockquote>
+<p>Hierarchical Reconciliation Method.</p>
+<p>The <code>reconcile</code> method is analogous to SKLearn <code>fit_predict</code> method, it applies different reconciliation techniques instantiated in the <code>reconcilers</code> list.</p>
+<p>Most reconciliation methods can be described by the following convenient linear algebra notation:</p>
+<p><span class="math display">\[\tilde{\mathbf{y}}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{P}_{[b][a,b]} \hat{\mathbf{y}}_{[a,b],\tau}\]</span></p>
+<p>where <span class="math inline">\(a, b\)</span> represent the aggregate and bottom levels, <span class="math inline">\(\mathbf{S}_{[a,b][b]}\)</span> contains the hierarchical aggregation constraints, and <span class="math inline">\(\mathbf{P}_{[b][a,b]}\)</span> varies across reconciliation methods. The reconciled predictions are <span class="math inline">\(\tilde{\mathbf{y}}_{[a,b],\tau}\)</span>, and the base predictions <span class="math inline">\(\hat{\mathbf{y}}_{[a,b],\tau}\)</span>.</p>
+<p><strong>Parameters:</strong><br> <code>Y_hat_df</code>: pd.DataFrame, base forecasts with columns <code>ds</code> and models to reconcile indexed by <code>unique_id</code>.<br> <code>Y_df</code>: pd.DataFrame, training set of base time series with columns <code>['ds', 'y']</code> indexed by <code>unique_id</code>.<br> If a class of <code>self.reconciles</code> receives <code>y_hat_insample</code>, <code>Y_df</code> must include them as columns.<br> <code>S</code>: pd.DataFrame with summing matrix of size <code>(base, bottom)</code>, see <a href="https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate">aggregate method</a>.<br> <code>tags</code>: Each key is a level and its value contains tags associated to that level.<br> <code>level</code>: positive float list [0,100), confidence levels for prediction intervals.<br> <code>intervals_method</code>: str, method used to calculate prediction intervals, one of <code>normality</code>, <code>bootstrap</code>, <code>permbu</code>.<br> <code>num_samples</code>: int=-1, if positive return that many probabilistic coherent samples. <code>seed</code>: int=0, random seed for numpy generator’s replicability.<br> <code>sort_df</code> : bool (default=True), if True, sort <code>df</code> by [<code>unique_id</code>,<code>ds</code>].<br> <code>is_balanced</code>: bool=False, wether <code>Y_df</code> is balanced, set it to True to speed things up if <code>Y_df</code> is balanced.<br></p>
+<p><strong>Returns:</strong><br> <code>Y_tilde_df</code>: pd.DataFrame, with reconciled predictions.</p>
+<hr>
+<p><a href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L337" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="bootstrap_reconcile" class="level3">
+<h3 class="anchored" data-anchor-id="bootstrap_reconcile">bootstrap_reconcile</h3>
+<blockquote class="blockquote">
+<pre><code> bootstrap_reconcile (Y_hat_df:pandas.core.frame.DataFrame,
+                      S_df:pandas.core.frame.DataFrame,
+                      tags:Dict[str,numpy.ndarray],
+                      Y_df:Optional[pandas.core.frame.DataFrame]=None,
+                      level:Optional[List[int]]=None,
+                      intervals_method:str='normality',
+                      num_samples:int=-1, num_seeds:int=1,
+                      sort_df:bool=True)</code></pre>
+</blockquote>
+<p>Bootstraped Hierarchical Reconciliation Method.</p>
+<p>Applies N times, based on different random seeds, the <code>reconcile</code> method for the different reconciliation techniques instantiated in the <code>reconcilers</code> list.</p>
+<p><strong>Parameters:</strong><br> <code>Y_hat_df</code>: pd.DataFrame, base forecasts with columns <code>ds</code> and models to reconcile indexed by <code>unique_id</code>.<br> <code>Y_df</code>: pd.DataFrame, training set of base time series with columns <code>['ds', 'y']</code> indexed by <code>unique_id</code>.<br> If a class of <code>self.reconciles</code> receives <code>y_hat_insample</code>, <code>Y_df</code> must include them as columns.<br> <code>S</code>: pd.DataFrame with summing matrix of size <code>(base, bottom)</code>, see <a href="https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate">aggregate method</a>.<br> <code>tags</code>: Each key is a level and its value contains tags associated to that level.<br> <code>level</code>: positive float list [0,100), confidence levels for prediction intervals.<br> <code>intervals_method</code>: str, method used to calculate prediction intervals, one of <code>normality</code>, <code>bootstrap</code>, <code>permbu</code>.<br> <code>num_samples</code>: int=-1, if positive return that many probabilistic coherent samples. <code>num_seeds</code>: int=1, random seed for numpy generator’s replicability.<br> <code>sort_df</code> : bool (default=True), if True, sort <code>df</code> by [<code>unique_id</code>,<code>ds</code>].<br></p>
+<p><strong>Returns:</strong><br> <code>Y_bootstrap_df</code>: pd.DataFrame, with bootstraped reconciled predictions.</p>
+</section>
+</section>
+<section id="example" class="level1">
+<h1>Example</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.core <span class="im">import</span> StatsForecast</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.models <span class="im">import</span> ETS, Naive</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.utils <span class="im">import</span> aggregate</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.core <span class="im">import</span> HierarchicalReconciliation</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.methods <span class="im">import</span> BottomUp, MinTrace</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Load TourismSmall dataset</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv'</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.rename({<span class="st">'Trips'</span>: <span class="st">'y'</span>, <span class="st">'Quarter'</span>: <span class="st">'ds'</span>}, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>df.insert(<span class="dv">0</span>, <span class="st">'Country'</span>, <span class="st">'Australia'</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Create hierarchical seires based on geographic levels and purpose</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co"># And Convert quarterly ds string to pd.datetime format</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>hierarchy_levels <span class="op">=</span> [[<span class="st">'Country'</span>],</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>                    [<span class="st">'Country'</span>, <span class="st">'State'</span>], </span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>                    [<span class="st">'Country'</span>, <span class="st">'Purpose'</span>], </span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>                    [<span class="st">'Country'</span>, <span class="st">'State'</span>, <span class="st">'Region'</span>], </span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>                    [<span class="st">'Country'</span>, <span class="st">'State'</span>, <span class="st">'Purpose'</span>], </span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>                    [<span class="st">'Country'</span>, <span class="st">'State'</span>, <span class="st">'Region'</span>, <span class="st">'Purpose'</span>]]</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>Y_df, S_df, tags <span class="op">=</span> aggregate(df<span class="op">=</span>df, spec<span class="op">=</span>hierarchy_levels)</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>qs <span class="op">=</span> Y_df[<span class="st">'ds'</span>].<span class="bu">str</span>.replace(<span class="vs">r'(\d+) (Q\d)'</span>, <span class="vs">r'\1-\2'</span>, regex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>Y_df[<span class="st">'ds'</span>] <span class="op">=</span> pd.PeriodIndex(qs, freq<span class="op">=</span><span class="st">'Q'</span>).to_timestamp()</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>Y_df <span class="op">=</span> Y_df.reset_index()</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Split train/test sets</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>Y_test_df  <span class="op">=</span> Y_df.groupby(<span class="st">'unique_id'</span>).tail(<span class="dv">4</span>)</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>Y_train_df <span class="op">=</span> Y_df.drop(Y_test_df.index)</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute base auto-ETS predictions</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Careful identifying correct data freq, this data quarterly 'Q'</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>fcst <span class="op">=</span> StatsForecast(df<span class="op">=</span>Y_train_df,</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>                     <span class="co">#models=[ETS(season_length=12), Naive()],</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>                     models<span class="op">=</span>[Naive()],</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>                     freq<span class="op">=</span><span class="st">'Q'</span>, n_jobs<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>Y_hat_df <span class="op">=</span> fcst.forecast(h<span class="op">=</span><span class="dv">4</span>, fitted<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>Y_fitted_df <span class="op">=</span> fcst.forecast_fitted_values()</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="co"># Reconcile the base predictions</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>Y_train_df <span class="op">=</span> Y_train_df.reset_index().set_index(<span class="st">'unique_id'</span>)</span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>Y_hat_df <span class="op">=</span> Y_hat_df.reset_index().set_index(<span class="st">'unique_id'</span>)</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>reconcilers <span class="op">=</span> [BottomUp(),</span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>               MinTrace(method<span class="op">=</span><span class="st">'mint_shrink'</span>)]</span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>hrec <span class="op">=</span> HierarchicalReconciliation(reconcilers<span class="op">=</span>reconcilers)</span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>Y_rec_df <span class="op">=</span> hrec.reconcile(Y_hat_df<span class="op">=</span>Y_hat_df, </span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>                          Y_df<span class="op">=</span>Y_fitted_df,</span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>                          S<span class="op">=</span>S_df, tags<span class="op">=</span>tags)</span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>Y_rec_df.groupby(<span class="st">'unique_id'</span>).head(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+
+
+</section>
+
+<p>If you find the code useful, please ⭐ us on <a href="https://github.com/nixtla/hierarchicalforecast">Github</a></p></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

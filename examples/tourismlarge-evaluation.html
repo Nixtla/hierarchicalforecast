@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Hierarchical Forecast’s reconciliation and evaluation.">
+
+<title>hierarchicalforecast - Probabilistic Forecast Evaluation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon_png.png" rel="icon" type="image/png">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NXJNCVR18L"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-NXJNCVR18L', { 'anonymize_ip': true});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="hierarchicalforecast - Probabilistic Forecast Evaluation">
+<meta property="og:description" content="Hierarchical Forecast’s reconciliation and evaluation.">
+<meta property="og:image" content="https://colab.research.google.com/assets/colab-badge.svg">
+<meta property="og:site-name" content="hierarchicalforecast">
+<meta name="twitter:title" content="hierarchicalforecast - Probabilistic Forecast Evaluation">
+<meta name="twitter:description" content="Hierarchical Forecast’s reconciliation and evaluation.">
+<meta name="twitter:image" content="https://colab.research.google.com/assets/colab-badge.svg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">hierarchicalforecast</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="../examples/tourismsmall.html" rel="" target="" aria-current="page">
+ <span class="menu-text">Get Started</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-nixtlaverse" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">NixtlaVerse</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-nixtlaverse">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/mlforecast" rel="" target="">
+ <span class="dropdown-text">MLForecast 🤖</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/neuralforecast" rel="" target="">
+ <span class="dropdown-text">NeuralForecast 🧠</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/statsforecast" rel="" target="">
+ <span class="dropdown-text">StatsForecast ⚡️</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-help" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Help</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-help">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/hierarchicalforecast/issues/new/choose" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://join.slack.com/t/nixtlacommunity/shared_invite/zt-1kd5m5db7-7OOfy0xVNf1PcvCiAPWvPw" rel="" target=""><i class="bi bi-chat-right-text" role="img">
+</i> 
+ <span class="dropdown-text">Join our Slack</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/nixtla/hierarchicalforecast" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/nixtlainc" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Nixtla Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Tutorials</li><li class="breadcrumb-item"><a href="../examples/australiandomestictourism-intervals.html">Probabilistic Reconciliation</a></li><li class="breadcrumb-item"><a href="../examples/tourismlarge-evaluation.html">Probabilistic Forecast Evaluation</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Forecast 👑</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false">
+ <span class="menu-text">Getting Started</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/tourismsmall.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reconciliation Quick Start</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/introduction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+ <span class="menu-text">Point Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Tourism)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australianprisonpopulation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Geographical Aggregation (Prison Population)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/nonnegativereconciliation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Non-Negative MinTrace</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Probabilistic Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Normality</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-bootstraped-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bootstrap</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/australiandomestictourism-permbu-intervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PERMBU</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/tourismlarge-evaluation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Probabilistic Forecast Evaluation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">ML Forecast Reconciliation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/hierarchicalforecast-gluonts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GluonTS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/mlframeworksexample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Neural/MLForecast</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+ <span class="menu-text">Methods</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">API Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reconciliation Methods</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../probabilistic_methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Methods</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../evaluation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Evaluation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Aggregation/Visualization Utils</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Community</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+ <span class="menu-text">Contributing</span>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#installing-hierarchicalforecast" id="toc-installing-hierarchicalforecast" class="nav-link active" data-scroll-target="#installing-hierarchicalforecast">1. Installing HierarchicalForecast</a></li>
+  <li><a href="#preparing-tourisml-dataset" id="toc-preparing-tourisml-dataset" class="nav-link" data-scroll-target="#preparing-tourisml-dataset">2. Preparing TourismL Dataset</a>
+  <ul class="collapse">
+  <li><a href="#read-hierarchical-dataset" id="toc-read-hierarchical-dataset" class="nav-link" data-scroll-target="#read-hierarchical-dataset">2.1 Read Hierarchical Dataset</a></li>
+  <li><a href="#statsforecasts-base-predictions" id="toc-statsforecasts-base-predictions" class="nav-link" data-scroll-target="#statsforecasts-base-predictions">2.2 StatsForecast’s Base Predictions</a></li>
+  </ul></li>
+  <li><a href="#reconciliate-predictions" id="toc-reconciliate-predictions" class="nav-link" data-scroll-target="#reconciliate-predictions">3. Reconciliate Predictions</a></li>
+  <li><a href="#evaluation" id="toc-evaluation" class="nav-link" data-scroll-target="#evaluation">4. Evaluation</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Nixtla/hierarchicalforecast/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Probabilistic Forecast Evaluation</h1>
+</div>
+
+<div>
+  <div class="description">
+    Hierarchical Forecast’s reconciliation and evaluation.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>This notebook offers a step to step guide to create a hierarchical forecasting pipeline.</p>
+<p>In the pipeline we will use <code>HierarchicalForecast</code> and <code>StatsForecast</code> core class, to create base predictions, reconcile and evaluate them.</p>
+<p>We will use the TourismL dataset that summarizes large Australian national visitor survey.</p>
+<p>Outline 1. Installing Packages 2. Prepare TourismL dataset - Read and aggregate - StatsForecast’s Base Predictions 3. Reconciliar 4. Evaluar</p>
+<p><a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/TourismLarge-Evaluation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a></p>
+<section id="installing-hierarchicalforecast" class="level2">
+<h2 class="anchored" data-anchor-id="installing-hierarchicalforecast">1. Installing HierarchicalForecast</h2>
+<p>We assume you have StatsForecast and HierarchicalForecast already installed, if not check this guide for instructions on how to install HierarchicalForecast.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># %%capture</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># !pip install hierarchicalforecast</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># !pip install -U numba statsforecast datasetsforecast</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.core <span class="im">import</span> StatsForecast</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsforecast.models <span class="im">import</span> AutoARIMA, Naive</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.core <span class="im">import</span> HierarchicalReconciliation</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.evaluation <span class="im">import</span> HierarchicalEvaluation</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.methods <span class="im">import</span> BottomUp, TopDown, MinTrace, ERM</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.utils <span class="im">import</span> is_strictly_hierarchical</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.utils <span class="im">import</span> HierarchicalPlot, CodeTimer</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> hierarchicalforecast.evaluation <span class="im">import</span> scaled_crps, msse, energy_score</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datasetsforecast.hierarchical <span class="im">import</span> HierarchicalData, HierarchicalInfo</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/cchallu/opt/anaconda3/envs/hierarchicalforecast/lib/python3.10/site-packages/statsforecast/core.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from tqdm.autonotebook import tqdm</code></pre>
+</div>
+</div>
+</section>
+<section id="preparing-tourisml-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="preparing-tourisml-dataset">2. Preparing TourismL Dataset</h2>
+<section id="read-hierarchical-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="read-hierarchical-dataset">2.1 Read Hierarchical Dataset</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ['Labour', 'Traffic', 'TourismSmall', 'TourismLarge', 'Wiki2']</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>dataset <span class="op">=</span> <span class="st">'TourismSmall'</span> <span class="co"># 'TourismLarge'</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>verbose <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>intervals_method <span class="op">=</span> <span class="st">'bootstrap'</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>LEVEL <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">100</span>, <span class="dv">2</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>qs <span class="op">=</span> [[<span class="dv">50</span><span class="op">-</span>lv<span class="op">/</span><span class="dv">2</span>, <span class="dv">50</span><span class="op">+</span>lv<span class="op">/</span><span class="dv">2</span>] <span class="cf">for</span> lv <span class="kw">in</span> LEVEL]</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>QUANTILES <span class="op">=</span> np.sort(np.concatenate(qs)<span class="op">/</span><span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CodeTimer(<span class="st">'Read and Parse data   '</span>, verbose):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>dataset<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> os.path.exists(<span class="st">'./data'</span>):</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        os.makedirs(<span class="st">'./data'</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    dataset_info <span class="op">=</span> HierarchicalInfo[dataset]</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    Y_df, S_df, tags <span class="op">=</span> HierarchicalData.load(directory<span class="op">=</span><span class="ss">f'./data/</span><span class="sc">{</span>dataset<span class="sc">}</span><span class="ss">'</span>, group<span class="op">=</span>dataset)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    Y_df[<span class="st">'ds'</span>] <span class="op">=</span> pd.to_datetime(Y_df[<span class="st">'ds'</span>])</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Train/Test Splits</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    horizon <span class="op">=</span> dataset_info.horizon</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    seasonality <span class="op">=</span> dataset_info.seasonality</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    Y_test_df <span class="op">=</span> Y_df.groupby(<span class="st">'unique_id'</span>).tail(horizon)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    Y_train_df <span class="op">=</span> Y_df.drop(Y_test_df.index)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    Y_test_df <span class="op">=</span> Y_test_df.set_index(<span class="st">'unique_id'</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    Y_train_df <span class="op">=</span> Y_train_df.set_index(<span class="st">'unique_id'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>TourismSmall
+Code block 'Read and Parse data   ' took:   0.99873 seconds</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>100%|██████████| 1.30M/1.30M [00:00&lt;00:00, 2.74MiB/s]
+INFO:datasetsforecast.utils:Successfully downloaded datasets.zip, 1297279, bytes.
+INFO:datasetsforecast.utils:Decompressing zip file...
+INFO:datasetsforecast.utils:Successfully decompressed data/TourismSmall/hierarchical/datasets.zip</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dataset_info.seasonality</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>4</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>hplot <span class="op">=</span> HierarchicalPlot(S<span class="op">=</span>S_df, tags<span class="op">=</span>tags)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>hplot.plot_summing_matrix()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="TourismLarge-Evaluation_files/figure-html/cell-7-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>Y_train_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">y</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">total</td>
+<td>1998-03-31</td>
+<td>84503</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">total</td>
+<td>1998-06-30</td>
+<td>65312</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">total</td>
+<td>1998-09-30</td>
+<td>72753</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">total</td>
+<td>1998-12-31</td>
+<td>70880</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">total</td>
+<td>1999-03-31</td>
+<td>86893</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">nt-oth-noncity</td>
+<td>2003-12-31</td>
+<td>132</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">nt-oth-noncity</td>
+<td>2004-03-31</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">nt-oth-noncity</td>
+<td>2004-06-30</td>
+<td>40</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">nt-oth-noncity</td>
+<td>2004-09-30</td>
+<td>186</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">nt-oth-noncity</td>
+<td>2004-12-31</td>
+<td>144</td>
+</tr>
+</tbody>
+</table>
+
+<p>2492 rows × 2 columns</p>
+</div>
+</div>
+</div>
+</section>
+<section id="statsforecasts-base-predictions" class="level3">
+<h3 class="anchored" data-anchor-id="statsforecasts-base-predictions">2.2 StatsForecast’s Base Predictions</h3>
+<p>This cell computes the base predictions <code>Y_hat_df</code> for all the series in <code>Y_df</code> using StatsForecast’s <code>AutoARIMA</code>. Additionally we obtain insample predictions <code>Y_fitted_df</code> for the methods that require them.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CodeTimer(<span class="st">'Fit/Predict Model     '</span>, verbose):</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Read to avoid unnecesary AutoARIMA computation</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    yhat_file <span class="op">=</span> <span class="ss">f'./data/</span><span class="sc">{</span>dataset<span class="sc">}</span><span class="ss">/Y_hat.csv'</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    yfitted_file <span class="op">=</span> <span class="ss">f'./data/</span><span class="sc">{</span>dataset<span class="sc">}</span><span class="ss">/Y_fitted.csv'</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> os.path.exists(yhat_file):</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        Y_hat_df <span class="op">=</span> pd.read_csv(yhat_file)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        Y_fitted_df <span class="op">=</span> pd.read_csv(yfitted_file)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        Y_hat_df <span class="op">=</span> Y_hat_df.set_index(<span class="st">'unique_id'</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        Y_fitted_df <span class="op">=</span> Y_fitted_df.set_index(<span class="st">'unique_id'</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        fcst <span class="op">=</span> StatsForecast(</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>            df<span class="op">=</span>Y_train_df, </span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>            models<span class="op">=</span>[AutoARIMA(season_length<span class="op">=</span>seasonality)],</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>            fallback_model<span class="op">=</span>[Naive()],</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>            freq<span class="op">=</span><span class="st">'M'</span>, </span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>            n_jobs<span class="op">=-</span><span class="dv">1</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        Y_hat_df <span class="op">=</span> fcst.forecast(h<span class="op">=</span>horizon, fitted<span class="op">=</span><span class="va">True</span>, level<span class="op">=</span>LEVEL)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        Y_fitted_df <span class="op">=</span> fcst.forecast_fitted_values()</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        Y_hat_df.to_csv(yhat_file)</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        Y_fitted_df.to_csv(yfitted_file)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>Y_hat_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">AutoARIMA</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-98</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-96</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-94</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-92</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-90</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-88</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-86</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-84</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-80</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-82</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-84</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-86</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-88</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-90</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-92</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-94</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-96</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-98</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>2005-01-31</td>
+<td>9673.424805</td>
+<td>7436.356445</td>
+<td>7698.493652</td>
+<td>7864.811523</td>
+<td>7989.925781</td>
+<td>8091.696289</td>
+<td>8178.319336</td>
+<td>8254.270508</td>
+<td>8322.276367</td>
+<td>...</td>
+<td>10905.793945</td>
+<td>10962.725586</td>
+<td>11024.573242</td>
+<td>11092.579102</td>
+<td>11168.530273</td>
+<td>11255.153320</td>
+<td>11356.923828</td>
+<td>11482.038086</td>
+<td>11648.356445</td>
+<td>11910.493164</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>2005-02-28</td>
+<td>10393.900391</td>
+<td>8156.831543</td>
+<td>8418.968750</td>
+<td>8585.287109</td>
+<td>8710.401367</td>
+<td>8812.171875</td>
+<td>8898.794922</td>
+<td>8974.746094</td>
+<td>9042.751953</td>
+<td>...</td>
+<td>11626.269531</td>
+<td>11683.200195</td>
+<td>11745.048828</td>
+<td>11813.054688</td>
+<td>11889.005859</td>
+<td>11975.628906</td>
+<td>12077.399414</td>
+<td>12202.513672</td>
+<td>12368.832031</td>
+<td>12630.968750</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>2005-03-31</td>
+<td>12028.134766</td>
+<td>9791.066406</td>
+<td>10053.204102</td>
+<td>10219.521484</td>
+<td>10344.635742</td>
+<td>10446.406250</td>
+<td>10533.029297</td>
+<td>10608.981445</td>
+<td>10676.986328</td>
+<td>...</td>
+<td>13260.503906</td>
+<td>13317.435547</td>
+<td>13379.283203</td>
+<td>13447.289062</td>
+<td>13523.240234</td>
+<td>13609.863281</td>
+<td>13711.633789</td>
+<td>13836.748047</td>
+<td>14003.066406</td>
+<td>14265.203125</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>2005-04-30</td>
+<td>10995.679688</td>
+<td>8758.610352</td>
+<td>9020.748047</td>
+<td>9187.065430</td>
+<td>9312.179688</td>
+<td>9413.951172</td>
+<td>9500.574219</td>
+<td>9576.525391</td>
+<td>9644.531250</td>
+<td>...</td>
+<td>12228.047852</td>
+<td>12284.979492</td>
+<td>12346.828125</td>
+<td>12414.833008</td>
+<td>12490.785156</td>
+<td>12577.407227</td>
+<td>12679.178711</td>
+<td>12804.292969</td>
+<td>12970.610352</td>
+<td>13232.748047</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>2005-05-31</td>
+<td>9673.424805</td>
+<td>7262.085449</td>
+<td>7544.643555</td>
+<td>7723.917480</td>
+<td>7858.778320</td>
+<td>7968.477539</td>
+<td>8061.848633</td>
+<td>8143.716797</td>
+<td>8217.019531</td>
+<td>...</td>
+<td>11001.796875</td>
+<td>11063.164062</td>
+<td>11129.830078</td>
+<td>11203.132812</td>
+<td>11285.000977</td>
+<td>11378.372070</td>
+<td>11488.071289</td>
+<td>11622.932617</td>
+<td>11802.206055</td>
+<td>12084.764648</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2005-04-30</td>
+<td>904.125549</td>
+<td>463.371521</td>
+<td>515.018616</td>
+<td>547.787048</td>
+<td>572.437439</td>
+<td>592.488647</td>
+<td>609.555359</td>
+<td>624.519531</td>
+<td>637.918213</td>
+<td>...</td>
+<td>1146.930542</td>
+<td>1158.147339</td>
+<td>1170.332886</td>
+<td>1183.731567</td>
+<td>1198.695679</td>
+<td>1215.762451</td>
+<td>1235.813721</td>
+<td>1260.464111</td>
+<td>1293.232544</td>
+<td>1344.879517</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2005-05-31</td>
+<td>904.125549</td>
+<td>457.607361</td>
+<td>509.929901</td>
+<td>543.126831</td>
+<td>568.099670</td>
+<td>588.413086</td>
+<td>605.703003</td>
+<td>620.862854</td>
+<td>634.436707</td>
+<td>...</td>
+<td>1150.105957</td>
+<td>1161.469482</td>
+<td>1173.814331</td>
+<td>1187.388184</td>
+<td>1202.548096</td>
+<td>1219.838013</td>
+<td>1240.151489</td>
+<td>1265.124268</td>
+<td>1298.321167</td>
+<td>1350.643677</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2005-06-30</td>
+<td>904.125549</td>
+<td>451.916687</td>
+<td>504.906036</td>
+<td>538.526062</td>
+<td>563.817139</td>
+<td>584.389465</td>
+<td>601.899719</td>
+<td>617.252808</td>
+<td>630.999634</td>
+<td>...</td>
+<td>1153.240967</td>
+<td>1164.749268</td>
+<td>1177.251465</td>
+<td>1190.998291</td>
+<td>1206.351440</td>
+<td>1223.861694</td>
+<td>1244.433960</td>
+<td>1269.724976</td>
+<td>1303.345093</td>
+<td>1356.334473</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2005-07-31</td>
+<td>904.125549</td>
+<td>446.296722</td>
+<td>499.944611</td>
+<td>533.982483</td>
+<td>559.587830</td>
+<td>580.415833</td>
+<td>598.143738</td>
+<td>613.687622</td>
+<td>627.605286</td>
+<td>...</td>
+<td>1156.336914</td>
+<td>1167.988159</td>
+<td>1180.645752</td>
+<td>1194.563477</td>
+<td>1210.107422</td>
+<td>1227.835327</td>
+<td>1248.663208</td>
+<td>1274.268677</td>
+<td>1308.306519</td>
+<td>1361.954346</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2005-08-31</td>
+<td>904.125549</td>
+<td>440.744904</td>
+<td>495.043365</td>
+<td>529.493958</td>
+<td>555.409851</td>
+<td>576.490417</td>
+<td>594.433289</td>
+<td>610.165649</td>
+<td>624.252136</td>
+<td>...</td>
+<td>1159.395264</td>
+<td>1171.187866</td>
+<td>1183.999023</td>
+<td>1198.085449</td>
+<td>1213.817871</td>
+<td>1231.760742</td>
+<td>1252.841309</td>
+<td>1278.757080</td>
+<td>1313.207764</td>
+<td>1367.506226</td>
+</tr>
+</tbody>
+</table>
+
+<p>712 rows × 102 columns</p>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>Y_fitted_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ds</th>
+<th data-quarto-table-cell-role="th">y</th>
+<th data-quarto-table-cell-role="th">AutoARIMA</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-98</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-96</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-94</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-92</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-90</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-88</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-lo-86</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-80</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-82</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-84</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-86</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-88</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-90</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-92</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-94</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-96</th>
+<th data-quarto-table-cell-role="th">AutoARIMA-hi-98</th>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">unique_id</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>1998-03-31</td>
+<td>9815.0</td>
+<td>9805.184570</td>
+<td>7568.648926</td>
+<td>7830.724121</td>
+<td>7997.001953</td>
+<td>8122.086426</td>
+<td>8223.833008</td>
+<td>8310.435547</td>
+<td>8386.369141</td>
+<td>...</td>
+<td>11037.260742</td>
+<td>11094.178711</td>
+<td>11156.011719</td>
+<td>11224.000977</td>
+<td>11299.934570</td>
+<td>11386.537109</td>
+<td>11488.283203</td>
+<td>11613.368164</td>
+<td>11779.646484</td>
+<td>12041.720703</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>1998-06-30</td>
+<td>11823.0</td>
+<td>11811.176758</td>
+<td>9574.640625</td>
+<td>9836.715820</td>
+<td>10002.994141</td>
+<td>10128.078125</td>
+<td>10229.825195</td>
+<td>10316.427734</td>
+<td>10392.361328</td>
+<td>...</td>
+<td>13043.252930</td>
+<td>13100.169922</td>
+<td>13162.003906</td>
+<td>13229.993164</td>
+<td>13305.926758</td>
+<td>13392.528320</td>
+<td>13494.275391</td>
+<td>13619.360352</td>
+<td>13785.637695</td>
+<td>14047.712891</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>1998-09-30</td>
+<td>13565.0</td>
+<td>13551.434570</td>
+<td>11314.899414</td>
+<td>11576.973633</td>
+<td>11743.251953</td>
+<td>11868.336914</td>
+<td>11970.083008</td>
+<td>12056.685547</td>
+<td>12132.619141</td>
+<td>...</td>
+<td>14783.510742</td>
+<td>14840.428711</td>
+<td>14902.261719</td>
+<td>14970.250977</td>
+<td>15046.184570</td>
+<td>15132.787109</td>
+<td>15234.533203</td>
+<td>15359.618164</td>
+<td>15525.896484</td>
+<td>15787.970703</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>1998-12-31</td>
+<td>11478.0</td>
+<td>11466.522461</td>
+<td>9229.986328</td>
+<td>9492.060547</td>
+<td>9658.338867</td>
+<td>9783.423828</td>
+<td>9885.169922</td>
+<td>9971.772461</td>
+<td>10047.706055</td>
+<td>...</td>
+<td>12698.597656</td>
+<td>12755.515625</td>
+<td>12817.348633</td>
+<td>12885.337891</td>
+<td>12961.271484</td>
+<td>13047.874023</td>
+<td>13149.620117</td>
+<td>13274.705078</td>
+<td>13440.983398</td>
+<td>13703.057617</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">bus</td>
+<td>1999-03-31</td>
+<td>10027.0</td>
+<td>9845.011719</td>
+<td>7608.475586</td>
+<td>7870.550781</td>
+<td>8036.828613</td>
+<td>8161.913086</td>
+<td>8263.660156</td>
+<td>8350.262695</td>
+<td>8426.195312</td>
+<td>...</td>
+<td>11077.086914</td>
+<td>11134.004883</td>
+<td>11195.838867</td>
+<td>11263.828125</td>
+<td>11339.760742</td>
+<td>11426.363281</td>
+<td>11528.110352</td>
+<td>11653.194336</td>
+<td>11819.472656</td>
+<td>12081.547852</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2003-12-31</td>
+<td>1177.0</td>
+<td>927.351196</td>
+<td>504.362732</td>
+<td>553.928040</td>
+<td>585.375671</td>
+<td>609.032471</td>
+<td>628.275513</td>
+<td>644.654297</td>
+<td>659.015320</td>
+<td>...</td>
+<td>1160.369507</td>
+<td>1171.134155</td>
+<td>1182.828491</td>
+<td>1195.687012</td>
+<td>1210.048096</td>
+<td>1226.426880</td>
+<td>1245.669922</td>
+<td>1269.326660</td>
+<td>1300.774292</td>
+<td>1350.339600</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2004-03-31</td>
+<td>956.0</td>
+<td>969.565552</td>
+<td>546.577087</td>
+<td>596.142456</td>
+<td>627.590027</td>
+<td>651.246887</td>
+<td>670.489868</td>
+<td>686.868652</td>
+<td>701.229675</td>
+<td>...</td>
+<td>1202.583862</td>
+<td>1213.348511</td>
+<td>1225.042847</td>
+<td>1237.901489</td>
+<td>1252.262451</td>
+<td>1268.641235</td>
+<td>1287.884277</td>
+<td>1311.541016</td>
+<td>1342.988647</td>
+<td>1392.554077</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2004-06-30</td>
+<td>772.0</td>
+<td>967.268921</td>
+<td>544.280457</td>
+<td>593.845764</td>
+<td>625.293396</td>
+<td>648.950195</td>
+<td>668.193237</td>
+<td>684.572021</td>
+<td>698.933044</td>
+<td>...</td>
+<td>1200.287109</td>
+<td>1211.051880</td>
+<td>1222.746216</td>
+<td>1235.604736</td>
+<td>1249.965820</td>
+<td>1266.344604</td>
+<td>1285.587646</td>
+<td>1309.244385</td>
+<td>1340.692017</td>
+<td>1390.257324</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2004-09-30</td>
+<td>885.0</td>
+<td>934.251831</td>
+<td>511.263336</td>
+<td>560.828674</td>
+<td>592.276306</td>
+<td>615.933105</td>
+<td>635.176086</td>
+<td>651.554932</td>
+<td>665.915955</td>
+<td>...</td>
+<td>1167.270020</td>
+<td>1178.034790</td>
+<td>1189.729126</td>
+<td>1202.587646</td>
+<td>1216.948730</td>
+<td>1233.327515</td>
+<td>1252.570557</td>
+<td>1276.227295</td>
+<td>1307.674927</td>
+<td>1357.240234</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">wa-vfr-noncity</td>
+<td>2004-12-31</td>
+<td>797.0</td>
+<td>925.923462</td>
+<td>502.934998</td>
+<td>552.500305</td>
+<td>583.947937</td>
+<td>607.604736</td>
+<td>626.847778</td>
+<td>643.226562</td>
+<td>657.587585</td>
+<td>...</td>
+<td>1158.941772</td>
+<td>1169.706421</td>
+<td>1181.400757</td>
+<td>1194.259277</td>
+<td>1208.620361</td>
+<td>1224.999146</td>
+<td>1244.242188</td>
+<td>1267.898926</td>
+<td>1299.346558</td>
+<td>1348.911865</td>
+</tr>
+</tbody>
+</table>
+
+<p>2492 rows × 103 columns</p>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="reconciliate-predictions" class="level2">
+<h2 class="anchored" data-anchor-id="reconciliate-predictions">3. Reconciliate Predictions</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CodeTimer(<span class="st">'Reconcile Predictions '</span>, verbose):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> is_strictly_hierarchical(S<span class="op">=</span>S_df.values.astype(np.float32), </span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        tags<span class="op">=</span>{key: S_df.index.get_indexer(val) <span class="cf">for</span> key, val <span class="kw">in</span> tags.items()}):</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        reconcilers <span class="op">=</span> [</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>            BottomUp(),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>            TopDown(method<span class="op">=</span><span class="st">'average_proportions'</span>),</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>            TopDown(method<span class="op">=</span><span class="st">'proportion_averages'</span>),</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>            MinTrace(method<span class="op">=</span><span class="st">'ols'</span>),</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>            MinTrace(method<span class="op">=</span><span class="st">'wls_var'</span>),</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>            MinTrace(method<span class="op">=</span><span class="st">'mint_shrink'</span>),</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>            <span class="co">#ERM(method='reg_bu', lambda_reg=100) # Extremely inneficient</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>            ERM(method<span class="op">=</span><span class="st">'closed'</span>)</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        reconcilers <span class="op">=</span> [</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>            BottomUp(),</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>            MinTrace(method<span class="op">=</span><span class="st">'ols'</span>),</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>            MinTrace(method<span class="op">=</span><span class="st">'wls_var'</span>),</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>            MinTrace(method<span class="op">=</span><span class="st">'mint_shrink'</span>),</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>            <span class="co">#ERM(method='reg_bu', lambda_reg=100) # Extremely inneficient</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>            ERM(method<span class="op">=</span><span class="st">'closed'</span>)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    hrec <span class="op">=</span> HierarchicalReconciliation(reconcilers<span class="op">=</span>reconcilers)</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    Y_rec_df <span class="op">=</span> hrec.bootstrap_reconcile(Y_hat_df<span class="op">=</span>Y_hat_df,</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>                                        Y_df<span class="op">=</span>Y_fitted_df,</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>                                        S_df<span class="op">=</span>S_df, tags<span class="op">=</span>tags,</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>                                        level<span class="op">=</span>LEVEL,</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>                                        intervals_method<span class="op">=</span>intervals_method,</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>                                        num_samples<span class="op">=</span><span class="dv">10</span>, num_seeds<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Matching Y_test/Y_rec/S index ordering</span></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    Y_test_df <span class="op">=</span> Y_test_df.reset_index()</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>    Y_test_df.unique_id <span class="op">=</span> Y_test_df.unique_id.astype(<span class="st">'category'</span>)</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>    Y_test_df.unique_id <span class="op">=</span> Y_test_df.unique_id.cat.set_categories(S_df.index)</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    Y_test_df <span class="op">=</span> Y_test_df.sort_values(by<span class="op">=</span>[<span class="st">'unique_id'</span>, <span class="st">'ds'</span>])</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>    Y_rec_df <span class="op">=</span> Y_rec_df.reset_index()</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>    Y_rec_df.unique_id <span class="op">=</span> Y_rec_df.unique_id.astype(<span class="st">'category'</span>)</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    Y_rec_df.unique_id <span class="op">=</span> Y_rec_df.unique_id.cat.set_categories(S_df.index)</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>    Y_rec_df <span class="op">=</span> Y_rec_df.sort_values(by<span class="op">=</span>[<span class="st">'seed'</span>, <span class="st">'unique_id'</span>, <span class="st">'ds'</span>])</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Parsing model level columns</span></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>    flat_cols <span class="op">=</span> <span class="bu">list</span>(hrec.level_names.keys())</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> model <span class="kw">in</span> hrec.level_names:</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>        flat_cols <span class="op">+=</span> hrec.level_names[model]</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> model <span class="kw">in</span> hrec.sample_names:</span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>        flat_cols <span class="op">+=</span> hrec.sample_names[model]</span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>    y_rec  <span class="op">=</span> Y_rec_df[flat_cols]</span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>    model_columns <span class="op">=</span> y_rec.columns</span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>    n_series <span class="op">=</span> <span class="bu">len</span>(S_df)</span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>    n_seeds <span class="op">=</span> <span class="bu">len</span>(Y_rec_df.seed.unique())</span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>    y_rec  <span class="op">=</span> y_rec.values.reshape(n_seeds, n_series, horizon, <span class="bu">len</span>(model_columns))</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>    y_test <span class="op">=</span> Y_test_df[<span class="st">'y'</span>].values.reshape(n_series, horizon)</span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>    y_train <span class="op">=</span> Y_train_df[<span class="st">'y'</span>].values.reshape(n_series, <span class="op">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Code block 'Reconcile Predictions ' took:   11.73492 seconds</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Qualitative evaluation, of parsed quantiles</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>row_idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>seed_idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>col_idxs <span class="op">=</span> model_columns.get_indexer(hrec.level_names[<span class="st">'AutoARIMA/BottomUp'</span>])</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, col <span class="kw">in</span> <span class="bu">enumerate</span>(col_idxs):</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    plt.plot(y_rec[seed_idx, row_idx,:,col], color<span class="op">=</span><span class="st">'orange'</span>, alpha<span class="op">=</span>i<span class="op">/</span><span class="dv">100</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, col <span class="kw">in</span> <span class="bu">enumerate</span>(col_idxs):</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    plt.plot(y_rec[seed_idx<span class="op">+</span><span class="dv">1</span>, row_idx,:,col], color<span class="op">=</span><span class="st">'green'</span>, alpha<span class="op">=</span>i<span class="op">/</span><span class="dv">100</span>)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>plt.plot(y_test[row_idx,:], label<span class="op">=</span><span class="st">'True'</span>)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="ss">f'</span><span class="sc">{</span>S_df<span class="sc">.</span>index[row_idx]<span class="sc">}</span><span class="ss"> Visits </span><span class="ch">\n</span><span class="ss">'</span> <span class="op">+</span> <span class="op">\</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f'AutoARIMA/BottomUp-</span><span class="sc">{</span>intervals_method<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="TourismLarge-Evaluation_files/figure-html/cell-13-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Y_rec_df</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>td_levels <span class="op">=</span> hrec.level_names[<span class="st">'AutoARIMA/TopDown_method-average_proportions'</span>]</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>Y_rec_df[td_levels]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-98</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-96</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-94</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-92</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-90</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-88</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-86</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-84</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-82</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-lo-80</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-80</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-82</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-84</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-86</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-88</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-90</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-92</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-94</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-96</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions-hi-98</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>80750.389920</td>
+<td>80750.389920</td>
+<td>80750.389920</td>
+<td>82299.061781</td>
+<td>82299.061781</td>
+<td>82299.061781</td>
+<td>82600.022716</td>
+<td>82600.022716</td>
+<td>82600.022716</td>
+<td>82763.007090</td>
+<td>...</td>
+<td>88248.624229</td>
+<td>88248.624229</td>
+<td>88248.624229</td>
+<td>88248.624229</td>
+<td>88384.153447</td>
+<td>90507.444522</td>
+<td>90507.444522</td>
+<td>90507.444522</td>
+<td>90507.444522</td>
+<td>90507.444522</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>61825.843210</td>
+<td>61825.843210</td>
+<td>61825.843210</td>
+<td>61825.843210</td>
+<td>61825.843210</td>
+<td>61825.843210</td>
+<td>63374.515072</td>
+<td>63374.515072</td>
+<td>63374.515072</td>
+<td>63374.515072</td>
+<td>...</td>
+<td>68196.499405</td>
+<td>68196.499405</td>
+<td>68286.705654</td>
+<td>69324.077520</td>
+<td>69324.077520</td>
+<td>69437.018534</td>
+<td>71582.897812</td>
+<td>71582.897812</td>
+<td>71582.897812</td>
+<td>71582.897812</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>68249.624404</td>
+<td>68249.624404</td>
+<td>68249.624404</td>
+<td>68249.624404</td>
+<td>69798.296266</td>
+<td>69798.296266</td>
+<td>69798.296266</td>
+<td>69798.296266</td>
+<td>69798.296266</td>
+<td>69798.296266</td>
+<td>...</td>
+<td>74620.280598</td>
+<td>74620.280598</td>
+<td>74620.280598</td>
+<td>74699.211067</td>
+<td>75747.858714</td>
+<td>75747.858714</td>
+<td>75747.858714</td>
+<td>75815.623322</td>
+<td>78006.679006</td>
+<td>78006.679006</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>67456.030661</td>
+<td>67456.030661</td>
+<td>67456.030661</td>
+<td>67456.030661</td>
+<td>69004.702523</td>
+<td>69004.702523</td>
+<td>69004.702523</td>
+<td>69004.702523</td>
+<td>69004.702523</td>
+<td>69305.663457</td>
+<td>...</td>
+<td>73939.444667</td>
+<td>74954.264971</td>
+<td>74954.264971</td>
+<td>74954.264971</td>
+<td>74954.264971</td>
+<td>74954.264971</td>
+<td>75044.617782</td>
+<td>77213.085263</td>
+<td>77213.085263</td>
+<td>77213.085263</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>80371.819611</td>
+<td>80371.819611</td>
+<td>80371.819611</td>
+<td>80371.819611</td>
+<td>80371.819611</td>
+<td>81827.571161</td>
+<td>81920.491472</td>
+<td>81920.491472</td>
+<td>81920.491472</td>
+<td>81920.491472</td>
+<td>...</td>
+<td>87870.053920</td>
+<td>87870.053920</td>
+<td>87870.053920</td>
+<td>87870.053920</td>
+<td>88005.583138</td>
+<td>90128.874213</td>
+<td>90128.874213</td>
+<td>90128.874213</td>
+<td>90128.874213</td>
+<td>90128.874213</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">7115</td>
+<td>132.959504</td>
+<td>132.959504</td>
+<td>132.959504</td>
+<td>132.959504</td>
+<td>132.959504</td>
+<td>135.828870</td>
+<td>136.012021</td>
+<td>136.012021</td>
+<td>136.012021</td>
+<td>136.545910</td>
+<td>...</td>
+<td>147.738932</td>
+<td>147.738932</td>
+<td>147.738932</td>
+<td>152.191189</td>
+<td>152.191189</td>
+<td>152.191189</td>
+<td>152.191189</td>
+<td>152.191189</td>
+<td>152.191189</td>
+<td>152.191189</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7116</td>
+<td>158.417227</td>
+<td>158.417227</td>
+<td>158.417227</td>
+<td>158.417227</td>
+<td>158.417227</td>
+<td>161.469743</td>
+<td>161.469743</td>
+<td>161.469743</td>
+<td>161.469743</td>
+<td>162.062953</td>
+<td>...</td>
+<td>170.974136</td>
+<td>171.174163</td>
+<td>173.196654</td>
+<td>173.196654</td>
+<td>173.196654</td>
+<td>173.419267</td>
+<td>177.648912</td>
+<td>177.648912</td>
+<td>177.648912</td>
+<td>177.648912</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">7117</td>
+<td>122.066765</td>
+<td>122.066765</td>
+<td>125.119281</td>
+<td>125.119281</td>
+<td>125.119281</td>
+<td>125.119281</td>
+<td>125.712492</td>
+<td>125.712492</td>
+<td>125.712492</td>
+<td>125.712492</td>
+<td>...</td>
+<td>134.623675</td>
+<td>134.623675</td>
+<td>134.801476</td>
+<td>136.846192</td>
+<td>136.846192</td>
+<td>136.846192</td>
+<td>137.024283</td>
+<td>141.298450</td>
+<td>141.298450</td>
+<td>141.298450</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7118</td>
+<td>134.467576</td>
+<td>134.467576</td>
+<td>134.467576</td>
+<td>134.467576</td>
+<td>137.520093</td>
+<td>137.520093</td>
+<td>137.520093</td>
+<td>137.520093</td>
+<td>138.113303</td>
+<td>138.113303</td>
+<td>...</td>
+<td>145.762241</td>
+<td>145.875843</td>
+<td>147.202288</td>
+<td>149.247004</td>
+<td>149.247004</td>
+<td>149.247004</td>
+<td>149.425094</td>
+<td>153.699262</td>
+<td>153.699262</td>
+<td>153.699262</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">7119</td>
+<td>135.996894</td>
+<td>136.027420</td>
+<td>136.027420</td>
+<td>136.027420</td>
+<td>136.027420</td>
+<td>136.027420</td>
+<td>136.027420</td>
+<td>136.573173</td>
+<td>136.620630</td>
+<td>136.620630</td>
+<td>...</td>
+<td>145.531813</td>
+<td>145.531813</td>
+<td>145.709614</td>
+<td>147.754331</td>
+<td>147.754331</td>
+<td>147.754331</td>
+<td>147.932421</td>
+<td>152.206588</td>
+<td>152.206588</td>
+<td>152.206588</td>
+</tr>
+</tbody>
+</table>
+
+<p>7120 rows × 100 columns</p>
+</div>
+</div>
+</div>
+</section>
+<section id="evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="evaluation">4. Evaluation</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CodeTimer(<span class="st">'Evaluate Models CRPS  '</span>, verbose):</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    crps_results <span class="op">=</span> {<span class="st">'Dataset'</span>: [dataset] <span class="op">*</span> <span class="bu">len</span>([<span class="st">'Overall'</span>] <span class="op">+</span> <span class="bu">list</span>(tags.keys())),</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'Level'</span>: [<span class="st">'Overall'</span>] <span class="op">+</span> <span class="bu">list</span>(tags.keys()),}</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> model <span class="kw">in</span> hrec.level_names.keys():</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>        crps_results[model] <span class="op">=</span> []</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> level <span class="kw">in</span> crps_results[<span class="st">'Level'</span>]:</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> level<span class="op">==</span><span class="st">'Overall'</span>:</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>                row_idxs <span class="op">=</span> np.arange(<span class="bu">len</span>(S_df))</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>                row_idxs <span class="op">=</span> S_df.index.get_indexer(tags[level])</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>            col_idxs <span class="op">=</span> model_columns.get_indexer(hrec.level_names[model])</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            _y <span class="op">=</span> y_test[row_idxs,:]</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>            _y_rec_seeds <span class="op">=</span> y_rec[:,row_idxs,:,:][:,:,:,col_idxs]</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>            level_model_crps <span class="op">=</span> []</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> seed_idx <span class="kw">in</span> <span class="bu">range</span>(y_rec.shape[<span class="dv">0</span>]):</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>                _y_rec <span class="op">=</span> _y_rec_seeds[seed_idx,:,:,:]</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>                level_model_crps.append(scaled_crps(y<span class="op">=</span>_y, y_hat<span class="op">=</span>_y_rec,</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>                                                    quantiles<span class="op">=</span>QUANTILES))</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>            level_model_crps <span class="op">=</span> <span class="ss">f'</span><span class="sc">{</span>np<span class="sc">.</span>mean(level_model_crps)<span class="sc">:.4f}</span><span class="ss">±</span><span class="sc">{</span>(<span class="fl">1.96</span> <span class="op">*</span> np.std(level_model_crps))<span class="sc">:.4f}</span><span class="ss">'</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>            crps_results[model].append(level_model_crps)</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    crps_results <span class="op">=</span> pd.DataFrame(crps_results)</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>crps_results</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Code block 'Evaluate Models CRPS  ' took:   1.13514 seconds</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Dataset</th>
+<th data-quarto-table-cell-role="th">Level</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/BottomUp</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-proportion_averages</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-ols</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-wls_var</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-mint_shrink</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/ERM_method-closed_lambda_reg-0.01</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>TourismSmall</td>
+<td>Overall</td>
+<td>0.0895±0.0012</td>
+<td>0.1195±0.0008</td>
+<td>0.1197±0.0008</td>
+<td>0.0927±0.0010</td>
+<td>0.0890±0.0010</td>
+<td>0.0898±0.0009</td>
+<td>0.1116±0.0015</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>TourismSmall</td>
+<td>Country</td>
+<td>0.0481±0.0016</td>
+<td>0.0479±0.0011</td>
+<td>0.0479±0.0011</td>
+<td>0.0504±0.0010</td>
+<td>0.0510±0.0011</td>
+<td>0.0512±0.0011</td>
+<td>0.0525±0.0015</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>TourismSmall</td>
+<td>Country/Purpose</td>
+<td>0.0699±0.0016</td>
+<td>0.0928±0.0009</td>
+<td>0.0931±0.0009</td>
+<td>0.0804±0.0012</td>
+<td>0.0724±0.0012</td>
+<td>0.0741±0.0012</td>
+<td>0.0927±0.0015</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>TourismSmall</td>
+<td>Country/Purpose/State</td>
+<td>0.1085±0.0011</td>
+<td>0.1575±0.0009</td>
+<td>0.1579±0.0009</td>
+<td>0.1082±0.0011</td>
+<td>0.1043±0.0009</td>
+<td>0.1049±0.0008</td>
+<td>0.1325±0.0018</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>TourismSmall</td>
+<td>Country/Purpose/State/CityNonCity</td>
+<td>0.1316±0.0012</td>
+<td>0.1799±0.0008</td>
+<td>0.1800±0.0008</td>
+<td>0.1319±0.0013</td>
+<td>0.1282±0.0011</td>
+<td>0.1290±0.0010</td>
+<td>0.1685±0.0029</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CodeTimer(<span class="st">'Evaluate Models MSSE  '</span>, verbose):</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    msse_results <span class="op">=</span> {<span class="st">'Dataset'</span>: [dataset] <span class="op">*</span> <span class="bu">len</span>([<span class="st">'Overall'</span>] <span class="op">+</span> <span class="bu">list</span>(tags.keys())),</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'Level'</span>: [<span class="st">'Overall'</span>] <span class="op">+</span> <span class="bu">list</span>(tags.keys()),}</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> model <span class="kw">in</span> hrec.level_names.keys():</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        msse_results[model] <span class="op">=</span> []</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> level <span class="kw">in</span> msse_results[<span class="st">'Level'</span>]:</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> level<span class="op">==</span><span class="st">'Overall'</span>:</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>                row_idxs <span class="op">=</span> np.arange(<span class="bu">len</span>(S_df))</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>                row_idxs <span class="op">=</span> S_df.index.get_indexer(tags[level])</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>            col_idx <span class="op">=</span> model_columns.get_loc(model)</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>            _y <span class="op">=</span> y_test[row_idxs,:]</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>            _y_train <span class="op">=</span> y_train[row_idxs,:]</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>            _y_hat_seeds <span class="op">=</span> y_rec[:,row_idxs,:,:][:,:,:,col_idx]</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>            level_model_msse <span class="op">=</span> []</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> seed_idx <span class="kw">in</span> <span class="bu">range</span>(y_rec.shape[<span class="dv">0</span>]):</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>                _y_hat <span class="op">=</span> _y_hat_seeds[seed_idx,:,:]</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>                level_model_msse.append(msse(y<span class="op">=</span>_y, y_hat<span class="op">=</span>_y_hat, y_train<span class="op">=</span>_y_train))</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>            <span class="co">#level_model_msse = f'{np.mean(level_model_msse):.4f}±{(1.96 * np.std(level_model_msse)):.4f}'</span></span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>            level_model_msse <span class="op">=</span> <span class="ss">f'</span><span class="sc">{</span>np<span class="sc">.</span>mean(level_model_msse)<span class="sc">:.4f}</span><span class="ss">'</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>            msse_results[model].append(level_model_msse)</span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    msse_results <span class="op">=</span> pd.DataFrame(msse_results)</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>msse_results</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Code block 'Evaluate Models MSSE  ' took:   0.73303 seconds</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Dataset</th>
+<th data-quarto-table-cell-role="th">Level</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/BottomUp</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-proportion_averages</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-ols</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-wls_var</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-mint_shrink</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/ERM_method-closed_lambda_reg-0.01</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>TourismSmall</td>
+<td>Overall</td>
+<td>0.2530</td>
+<td>0.3628</td>
+<td>0.3649</td>
+<td>0.3039</td>
+<td>0.2789</td>
+<td>0.2822</td>
+<td>0.3942</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>TourismSmall</td>
+<td>Country</td>
+<td>0.2564</td>
+<td>0.3180</td>
+<td>0.3180</td>
+<td>0.3522</td>
+<td>0.3381</td>
+<td>0.3394</td>
+<td>0.4117</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>TourismSmall</td>
+<td>Country/Purpose</td>
+<td>0.2018</td>
+<td>0.3178</td>
+<td>0.3203</td>
+<td>0.2557</td>
+<td>0.2122</td>
+<td>0.2175</td>
+<td>0.3346</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>TourismSmall</td>
+<td>Country/Purpose/State</td>
+<td>0.3231</td>
+<td>0.5077</td>
+<td>0.5114</td>
+<td>0.2943</td>
+<td>0.2858</td>
+<td>0.2890</td>
+<td>0.4534</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>TourismSmall</td>
+<td>Country/Purpose/State/CityNonCity</td>
+<td>0.3423</td>
+<td>0.5047</td>
+<td>0.5099</td>
+<td>0.3238</td>
+<td>0.3083</td>
+<td>0.3115</td>
+<td>0.4791</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CodeTimer(<span class="st">'Evaluate Models EScore'</span>, verbose):</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    energy_results <span class="op">=</span> {<span class="st">'Dataset'</span>: [dataset] <span class="op">*</span> <span class="bu">len</span>([<span class="st">'Overall'</span>] <span class="op">+</span> <span class="bu">list</span>(tags.keys())),</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                        <span class="st">'Level'</span>: [<span class="st">'Overall'</span>] <span class="op">+</span> <span class="bu">list</span>(tags.keys()),}</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> model <span class="kw">in</span> hrec.sample_names.keys():</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>        energy_results[model] <span class="op">=</span> []</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> level <span class="kw">in</span> energy_results[<span class="st">'Level'</span>]:</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> level<span class="op">==</span><span class="st">'Overall'</span>:</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>                row_idxs <span class="op">=</span> np.arange(<span class="bu">len</span>(S_df))</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>                row_idxs <span class="op">=</span> S_df.index.get_indexer(tags[level])</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>            col_idxs <span class="op">=</span> model_columns.get_indexer(hrec.sample_names[model])</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>            _y <span class="op">=</span> y_test[row_idxs,:]</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>            _y_sample1 <span class="op">=</span> y_rec[<span class="dv">0</span>,row_idxs,:,:][:,:,col_idxs[:<span class="bu">len</span>(col_idxs)<span class="op">//</span><span class="dv">2</span>]]</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>            _y_sample2 <span class="op">=</span> y_rec[<span class="dv">0</span>,row_idxs,:,:][:,:,col_idxs[<span class="bu">len</span>(col_idxs)<span class="op">//</span><span class="dv">2</span>:]]</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>            level_model_energy <span class="op">=</span> energy_score(y<span class="op">=</span>_y, </span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>                                              y_sample1<span class="op">=</span>_y_sample1,</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>                                              y_sample2<span class="op">=</span>_y_sample2,</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>                                              beta<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>            energy_results[model].append(level_model_energy)</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>    energy_results <span class="op">=</span> pd.DataFrame(energy_results)</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>energy_results</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Code block 'Evaluate Models EScore' took:   0.19443 seconds</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Dataset</th>
+<th data-quarto-table-cell-role="th">Level</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/BottomUp</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-average_proportions</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/TopDown_method-proportion_averages</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-ols</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-wls_var</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/MinTrace_method-mint_shrink</th>
+<th data-quarto-table-cell-role="th">AutoARIMA/ERM_method-closed_lambda_reg-0.01</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>TourismSmall</td>
+<td>Overall</td>
+<td>6.874103e+07</td>
+<td>7.917294e+07</td>
+<td>7.962361e+07</td>
+<td>6.930268e+07</td>
+<td>6.914837e+07</td>
+<td>6.955018e+07</td>
+<td>8.235776e+07</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>TourismSmall</td>
+<td>Country</td>
+<td>3.292999e+07</td>
+<td>2.757131e+07</td>
+<td>2.757129e+07</td>
+<td>3.081254e+07</td>
+<td>3.392861e+07</td>
+<td>3.353851e+07</td>
+<td>3.350023e+07</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>TourismSmall</td>
+<td>Country/Purpose</td>
+<td>1.894485e+07</td>
+<td>2.661024e+07</td>
+<td>2.683828e+07</td>
+<td>2.218952e+07</td>
+<td>1.932895e+07</td>
+<td>1.984161e+07</td>
+<td>2.681792e+07</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>TourismSmall</td>
+<td>Country/Purpose/State</td>
+<td>9.393103e+06</td>
+<td>1.408613e+07</td>
+<td>1.419471e+07</td>
+<td>9.016056e+06</td>
+<td>8.778983e+06</td>
+<td>8.928542e+06</td>
+<td>1.211747e+07</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>TourismSmall</td>
+<td>Country/Purpose/State/CityNonCity</td>
+<td>7.473085e+06</td>
+<td>1.090527e+07</td>
+<td>1.101934e+07</td>
+<td>7.284562e+06</td>
+<td>7.111832e+06</td>
+<td>7.241519e+06</td>
+<td>9.922145e+06</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ul>
+<li><a href="https://proceedings.mlr.press/v139/rangapuram21a.html">Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). "End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series". Proceedings of the 38th International Conference on Machine Learning (ICML).</a></li>
+<li><a href="https://arxiv.org/pdf/2110.13179.pdf">Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker (2022). “Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures”. Submitted to the International Journal Forecasting, Working paper available at arxiv.</a></li>
+</ul>
+
+
+</section>
+
+<p>If you find the code useful, please ⭐ us on <a href="https://github.com/nixtla/hierarchicalforecast">Github</a></p></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
