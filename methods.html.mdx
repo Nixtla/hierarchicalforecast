@@ -449,8 +449,10 @@ covariance matrix of the coherency errors $\mathbf{W}_{h}$. The Min
 Trace algorithm minimizes the squared errors for the coherent forecasts
 under an unbiasedness assumption; the solution has a closed form.<br/>
 
-$$\mathbf{P}_{\text{MinT}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1}
-\mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
+$$
+\mathbf{P}_{\text{MinT}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1}
+\mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}
+$$
 
 **Parameters:**<br/> `method`: str, one of `ols`, `wls_struct`,
 `wls_var`, `mint_shrink`, `mint_cov`.<br/> `nonnegative`: bool,
@@ -782,7 +784,7 @@ $$\mathbf{P}^{*} = \text{argmin}_{\mathbf{P}} ||\mathbf{Y}-\mathbf{S} \mathbf{P}
 **References:**<br/> - [Ben Taieb, S., & Koo, B. (2019). Regularized
 regression for hierarchical forecasting without unbiasedness conditions.
 In Proceedings of the 25th ACM SIGKDD International Conference on
-Knowledge Discovery & Data Mining KDD ’19 (p. 1337{1347). New York, NY,
+Knowledge Discovery & Data Mining KDD ’19 (p. 1337-1347). New York, NY,
 USA: Association for Computing
 Machinery.](https://doi.org/10.1145/3292500.3330976).<br/>
 
@@ -944,7 +946,7 @@ reconciler_args = dict(S=S,
 -   [Ben Taieb, S., & Koo, B. (2019). Regularized regression for
     hierarchical forecasting without unbiasedness conditions. In
     Proceedings of the 25th ACM SIGKDD International Conference on
-    Knowledge Discovery & Data Mining KDD ’19 (p. 1337{1347). New York,
+    Knowledge Discovery & Data Mining KDD ’19 (p. 1337-1347). New York,
     NY, USA: Association for Computing
     Machinery.](https://doi.org/10.1145/3292500.3330976)<br/>
 
