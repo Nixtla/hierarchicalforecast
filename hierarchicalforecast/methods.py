@@ -741,7 +741,7 @@ class MinTrace(HReconciler):
                     for j in range(y_hat.shape[1]):
                         future = executor.submit(solve_qp, G=G, a=a @ y_hat[:, j], C=C, b=b)
                         futures.append(future)
-                    bottom_fcts = np.array([future.result()[0] for future in futures]).T
+                    bottom_fcts = np.hstack([f.result()[0][:, None] for f in futures])
             if not np.all(bottom_fcts > -1e-8):
                 raise Exception('nonnegative optimization failed')
             # remove negative values close to zero
