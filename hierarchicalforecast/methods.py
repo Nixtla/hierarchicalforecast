@@ -4,9 +4,9 @@
 __all__ = ['BottomUp', 'BottomUpSparse', 'TopDown', 'MiddleOut', 'MinTrace', 'MinTraceSparse', 'OptimalCombination', 'ERM']
 
 # %% ../nbs/methods.ipynb 3
-import concurrent.futures
 import warnings
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Union
 
@@ -737,7 +737,7 @@ class MinTrace(HReconciler):
                                                   axis=0, arr=y_hat)
             else:
                 futures = []
-                with concurrent.futures.ThreadPoolExecutor(self.num_threads) as executor:
+                with ThreadPoolExecutor(self.num_threads) as executor:
                     for j in range(y_hat.shape[1]):
                         future = executor.submit(solve_qp, G=G, a=a @ y_hat[:, j], C=C, b=b)
                         futures.append(future)
@@ -949,13 +949,12 @@ class OptimalCombination(MinTrace):
     """
     def __init__(self,
                  method: str,
-                 nonnegative: bool = False):
+                 nonnegative: bool = False,
+                 num_threads: int = 1):
         comb_methods = ['ols', 'wls_struct']
         if method not in comb_methods:
             raise ValueError(f"Optimal Combination class does not support method: \"{method}\"")
-
-        self.method = method
-        self.nonnegative = nonnegative
+        super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
 # %% ../nbs/methods.ipynb 58
