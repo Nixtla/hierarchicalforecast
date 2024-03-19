@@ -11,7 +11,7 @@ from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 from quadprog import solve_qp
 from scipy import sparse
 
@@ -609,10 +609,18 @@ class MinTrace(HReconciler):
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
             raise ValueError(f"For methods {', '.join(res_methods)} you need to pass residuals")
         n_hiers, n_bottom = S.shape
+        n_aggs = n_hiers - n_bottom
+        # Construct J and U.T
+        J = np.concatenate((np.zeros((n_bottom, n_aggs), dtype=np.float32), S[n_aggs:]), axis=1)
+        Ut = np.concatenate((np.eye(n_aggs, dtype=np.float32), -S[:n_aggs]), axis=1)
         if self.method == 'ols':
             W = np.eye(n_hiers)
+            UtW = Ut
         elif self.method == 'wls_struct':
-            W = np.diag(S @ np.ones((n_bottom,)))
+            # W = np.diag(S @ np.ones((n_bottom,)))
+            Wdiag = np.sum(S, axis=1)
+            UtW = Ut * Wdiag
+            W = np.diag(Wdiag)
         elif self.method in res_methods:
             # Residuals with shape (obs, n_hiers)
             residuals = (y_insample - y_hat_insample).T
@@ -625,61 +633,92 @@ class MinTrace(HReconciler):
             if zero_residual_prc > .98:
                 raise Exception(f'Insample residuals close to 0, zero_residual_prc={zero_residual_prc}. Check `Y_df`')
 
-            # Protection: cases where data is unavailable/nan
-            masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
-            covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
-
             if self.method == 'wls_var':
-                W = np.diag(np.diag(covm))
+                Wdiag = np.nansum(residuals**2, axis=0) / residuals.shape[0]
+                W = np.diag(Wdiag)
+                UtW = Ut * Wdiag
             elif self.method == 'mint_cov':
+                # Protection: cases where data is unavailable/nan
+                masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
+                covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
                 W = covm
+                UtW = Ut @ W
+
             elif self.method == 'mint_shrink':
                 # Schäfer and Strimmer 2005, scale invariant shrinkage
-                # lasso or ridge might improve numerical stability but
-                # this version follows https://robjhyndman.com/papers/MinT.pdf
-                tar = np.diag(np.diag(covm))
-
-                # Protections: constant's correlation set to 0
-                # standardized residuals 0 where residual_std=0
-                corm, residual_std = cov2corr(covm, return_std=True)
-                corm = np.nan_to_num(corm, nan=0.0)
-                xs = np.divide(residuals, residual_std, 
-                               out=np.zeros_like(residuals), where=residual_std!=0)
-
-                xs = xs[~np.isnan(xs).any(axis=1), :]
-                v = (1 / (n * (n - 1))) * (crossprod(xs ** 2) - (1 / n) * (crossprod(xs) ** 2))
-                np.fill_diagonal(v, 0)
-
-                # Protection: constant's correlation set to 0
-                corapn = cov2corr(tar)
-                corapn = np.nan_to_num(corapn, nan=0.0)
-                d = (corm - corapn) ** 2
-                lmd = v.sum() / d.sum()
-                lmd = max(min(lmd, 1), 0)
-
-                # Protection: final ridge diagonal protection
-                W = (lmd * tar + (1 - lmd) * covm) + self.mint_shr_ridge
+                residuals_mean = np.nanmean(residuals, axis=0)
+                residuals_std = np.maximum(np.nanstd(residuals, axis=0), 1e-6)
+                W = self._shrunk_covariance_schaferstrimmer(residuals.T, residuals_mean, residuals_std)
+                UtW = Ut @ W
         else:
             raise ValueError(f'Unknown reconciliation method {self.method}')
 
         if self.method not in diag_only_methods:
-            eigenvalues, _ = np.linalg.eig(W)
+            try:
+                L = np.linalg.cholesky(W)
+            except np.linalg.LinAlgError:
+                raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
         else:
             eigenvalues = np.diag(W)
-
-        if any(eigenvalues < 1e-8):
-            raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
-
-        else:
-            # compute P for free reconciliation
-            if self.method not in diag_only_methods:
-                R = S.T @ np.linalg.pinv(W)
-            else:
-                R = S.T * np.reciprocal(np.diag(W))
-            P = np.linalg.pinv(R @ S) @ R
+            if any(eigenvalues < 1e-8):
+                raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
+            
+        P = (J - np.linalg.solve(UtW[:, n_aggs:] @ Ut.T[n_aggs:] + UtW[:, :n_aggs], UtW[:, n_aggs:] @ J.T[n_aggs:]).T @ Ut)
 
         return P, W
 
+    @staticmethod
+    @njit(parallel=True)
+    def _shrunk_covariance_schaferstrimmer(residuals, residuals_mean, residuals_std):
+        """Shrink empirical covariance according to the following method:
+            Schäfer, Juliane, and Korbinian Strimmer. 
+            ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
+            Implications for Functional Genomics’. Statistical Applications in 
+            Genetics and Molecular Biology 4, no. 1 (14 January 2005). 
+            https://doi.org/10.2202/1544-6115.1175.
+
+        :meta private:
+        """
+        n_timeseries = residuals.shape[0]
+        n_samples = residuals.shape[1]
+        # We need the empirical covariance, the off-diagonal sum of the variance of 
+        # the empirical correlation matrix and the off-diagonal sum of the squared 
+        # empirical correlation matrix.
+        emp_cov = np.zeros((n_timeseries, n_timeseries), dtype=np.float32)
+        sum_var_emp_corr = np.float32(0)
+        sum_sq_emp_corr = np.float32(-n_timeseries)
+        factor_emp_corr = n_samples / (n_samples - 1)
+        factor_var_emp_cor = n_samples / (n_samples - 1)**3
+        for i in prange(n_timeseries):
+            # Calculate standardized residuals
+            X_i = (residuals[i] - residuals_mean[i]) 
+            Xs_i = X_i / residuals_std[i]
+            Xs_i_mean = np.nanmean(Xs_i)
+            for j in range(n_timeseries):
+                # Calculate standardized residuals
+                X_j = (residuals[j] - residuals_mean[j]) 
+                Xs_j = X_j / residuals_std[j]
+                Xs_j_mean = np.nanmean(Xs_j)
+                # Empirical covariance
+                emp_cov[i, j] = factor_emp_corr * np.nanmean(X_i * X_j)
+                # Sum off-diagonal variance of empirical correlation
+                w = (Xs_i - Xs_i_mean) * (Xs_j - Xs_j_mean)
+                w_mean = np.nanmean(w)
+                sum_var_emp_corr += (i != j) * factor_var_emp_cor * np.nansum(np.square(w - w_mean))
+                # Sum squared empirical correlation (off-diagonal correction made by initializing 
+                # with -n_timeseries, so (i != j) not necessary here)
+                sum_sq_emp_corr += np.square(factor_emp_corr * w_mean)
+
+        # Calculate shrinkage intensity 
+        shrinkage = sum_var_emp_corr / sum_sq_emp_corr
+        # Calculate shrunk covariance estimate
+        emp_cov_diag = np.diag(emp_cov)
+        W = (1 - shrinkage) * emp_cov
+        # Fill diagonal with original empirical covariance diagonal
+        np.fill_diagonal(W, emp_cov_diag)
+
+        return W
+    
     def fit(self,
             S,
             y_hat,
