@@ -2,8 +2,8 @@
 description: Introduction to Hierarchial Forecasting using `HierarchialForecast`
 output-file: introduction.html
 title: Introduction
-
 ---
+
 
 You can run these experiments using CPU or GPU with Google Colab.
 
@@ -20,8 +20,12 @@ for all disaggregate and aggregate series. A natural desire is for those
 predictions to be **“coherent”**, that is, for the bottom series to add
 up precisely to the forecasts of the aggregated series.
 
-![Figure 1. A two level time series hierarchical structure, with four
-bottom level variables.](/hierarchicalforecast/examples/./imgs/hierarchical_motivation1.png)
+<figure>
+<img src="./imgs/hierarchical_motivation1.png"
+alt="Figure 1. A two level time series hierarchical structure, with four bottom level variables." />
+<figcaption aria-hidden="true">Figure 1. A two level time series
+hierarchical structure, with four bottom level variables.</figcaption>
+</figure>
 
 Figure 1. shows a simple hierarchical structure where we have four
 bottom-level series, two middle-level series, and the top level
@@ -41,10 +45,14 @@ aggregations. For example, in Figure 2. the top level is the total
 aggregation of series within a country, the middle level being its
 states and the bottom level its regions.
 
-![Figure 2. A hierarchy can be composed of geographic levels. In this
-example the top level corresponds to country aggregation, middle level
-to states, and bottom level to
-regions.](/hierarchicalforecast/examples/./imgs/hierarchical_motivation2.png)
+<figure>
+<img src="./imgs/hierarchical_motivation2.png"
+alt="Figure 2. A hierarchy can be composed of geographic levels. In this example the top level corresponds to country aggregation, middle level to states, and bottom level to regions." />
+<figcaption aria-hidden="true">Figure 2. A hierarchy can be composed of
+geographic levels. In this example the top level corresponds to country
+aggregation, middle level to states, and bottom level to
+regions.</figcaption>
+</figure>
 
 ## 2. Hierarchical Forecast
 
