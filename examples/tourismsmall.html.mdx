@@ -193,13 +193,13 @@ evaluation = evaluator.evaluate(
 evaluation.filter(like='ARIMA', axis=1).T
 ```
 
-| level                                                                                       | Overall    | Country    | Country/Purpose | Country/Purpose/State | Country/Purpose/State/CityNonCity |
-|---------------------------------------------------------------------------------------------|------------|------------|-----------------|-----------------------|-----------------------------------|
-| metric                                                                                      | mse-scaled | mse-scaled | mse-scaled      | mse-scaled            | mse-scaled                        |
-| AutoARIMA                                                                                   | 0.168957   | 0.132836   | 0.193802        | 0.182351              | 0.199594                          |
-| AutoARIMA/BottomUp                                                                          | 0.100188   | 0.08518    | 0.077097        | 0.155771              | 0.199594                          |
-| AutoARIMA/TopDown_method-forecast_proportions                                               | 0.144239   | 0.132836   | 0.11976         | 0.204426              | 0.227395                          |
-| AutoARIMA/MiddleOut_middle_level-Country/Purpose/State_top_down_method-forecast_proportions | 0.134219   | 0.145776   | 0.091276        | 0.182351              | 0.215141                          |
+| level | Overall | Country | Country/Purpose | Country/Purpose/State | Country/Purpose/State/CityNonCity |
+|----|----|----|----|----|----|
+| metric | mse-scaled | mse-scaled | mse-scaled | mse-scaled | mse-scaled |
+| AutoARIMA | 0.168957 | 0.132836 | 0.193802 | 0.182351 | 0.199594 |
+| AutoARIMA/BottomUp | 0.100188 | 0.08518 | 0.077097 | 0.155771 | 0.199594 |
+| AutoARIMA/TopDown_method-forecast_proportions | 0.144239 | 0.132836 | 0.11976 | 0.204426 | 0.227395 |
+| AutoARIMA/MiddleOut_middle_level-Country/Purpose/State_top_down_method-forecast_proportions | 0.134219 | 0.145776 | 0.091276 | 0.182351 | 0.215141 |
 
 ### References
 

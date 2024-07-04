@@ -31,17 +31,17 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             is_balanced:bool=False, sparse_s:bool=False)
 > ```
 
-Utils Aggregation Function. Aggregates bottom level series contained in
+*Utils Aggregation Function. Aggregates bottom level series contained in
 the pandas DataFrame `df` according to levels defined in the `spec`
-list.
+list.*
 
-|             | **Type**             | **Default** | **Details**                                                                                     |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| df          | DataFrame            |             | Dataframe with columns `['ds', 'y']` and columns to aggregate.                                  |
-| spec        | List                 |             | List of levels. Each element of the list should contain a list of columns of `df` to aggregate. |
-| is_balanced | bool                 | False       | Deprecated.                                                                                     |
-| sparse_s    | bool                 | False       | Return `S_df` as a sparse dataframe.                                                            |
-| **Returns** | **pandas DataFrame** |             | **Hierarchically structured series.**                                                           |
+| df | DataFrame |  | Dataframe with columns `['ds', 'y']` and columns to aggregate. |
+| spec | List |  | List of levels. Each element of the list should contain a list of columns of `df` to aggregate. |
+| is_balanced | bool | False | Deprecated. |
+| sparse_s | bool | False | Return `S_df` as a sparse dataframe. |
+| **Returns** | **pandas DataFrame** |  | **Hierarchically structured series.** |
 
 # Hierarchical Visualization
 
@@ -58,7 +58,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                    tags:Dict[str,numpy.ndarray])
 > ```
 
-Hierarchical Plot
+\*Hierarchical Plot
 
 This class contains a collection of matplotlib visualization methods,
 suited for small to medium sized hierarchical series.
@@ -68,7 +68,7 @@ suited for small to medium sized hierarchical series.
 function](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br/>
 `tags`: np.ndarray, with hierarchical aggregation indexes, where each
 key is a level and its value contains tags associated to that
-level.<br/><br/>
+level.<br/><br/>\*
 
 ------------------------------------------------------------------------
 
@@ -82,10 +82,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  plot_summing_matrix ()
 > ```
 
-Summation Constraints plot
+\*Summation Constraints plot
 
 This method simply plots the hierarchical aggregation constraints matrix
-$\mathbf{S}$.
+$\mathbf{S}$.\*
 
 ------------------------------------------------------------------------
 
@@ -101,7 +101,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >               level:Optional[List[int]]=None)
 > ```
 
-Single Series plot
+\*Single Series plot
 
 **Parameters:**<br/> `series`: str, string identifying the `'unique_id'`
 any-level series to plot.<br/> `Y_df`: pd.DataFrame, hierarchically
@@ -112,12 +112,12 @@ list 0-100, confidence levels for prediction intervals available in
 `Y_df`.<br/>
 
 **Returns:**<br/> Single series plot with filtered models and prediction
-interval level.<br/><br/>
+interval level.<br/><br/>\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L316"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L319"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchically_linked_series
@@ -130,7 +130,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                     level:Optional[List[int]]=None)
 > ```
 
-Hierarchically Linked Series plot
+\*Hierarchically Linked Series plot
 
 **Parameters:**<br/> `bottom_series`: str, string identifying the
 `'unique_id'` bottom-level series to plot.<br/> `Y_df`: pd.DataFrame,
@@ -142,12 +142,12 @@ list 0-100, confidence levels for prediction intervals available in
 
 **Returns:**<br/> Collection of hierarchilly linked series plots
 associated with the `bottom_series` and filtered models and prediction
-interval level.<br/><br/>
+interval level.<br/><br/>\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L379"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L382"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchical_predictions_gap
@@ -159,7 +159,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                     ylabel:Optional=None)
 > ```
 
-Hierarchically Predictions Gap plot
+\*Hierarchically Predictions Gap plot
 
 **Parameters:**<br/> `Y_df`: pd.DataFrame, hierarchically structured
 series ($\mathbf{y}_{[a,b]}$). It contains columns \[‘unique_id’, ‘ds’,
@@ -170,7 +170,7 @@ label. `ylable`: str, string for the plot’s y axis label.
 **Returns:**<br/> Plots of aggregated predictions at different levels of
 the hierarchical structure. The aggregation is performed according to
 the tag levels see [aggregate
-function](https://nixtla.github.io/hierarchicalforecast/utils.html).<br/><br/>
+function](https://nixtla.github.io/hierarchicalforecast/utils.html).<br/><br/>\*
 
 ```python
 from statsforecast.core import StatsForecast
@@ -209,7 +209,7 @@ hplots.plot_hierarchical_predictions_gap(
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L476"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L479"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### samples_to_quantiles_df
@@ -222,7 +222,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                           model_name:Optional[str]='model')
 > ```
 
-Transform Random Samples into HierarchicalForecast input. Auxiliary
+\*Transform Random Samples into HierarchicalForecast input. Auxiliary
 function to create compatible HierarchicalForecast input `Y_hat_df`
 dataframe.
 
@@ -238,5 +238,5 @@ model.<br/>
 **Returns:**<br/> `quantiles`: float list in \[0., 1.\]. quantiles to
 estimate from y distribution .<br/> `Y_hat_df`: pd.DataFrame. With base
 quantile forecasts with columns ds and models to reconcile indexed by
-unique_id.
+unique_id.\*
 

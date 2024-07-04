@@ -30,7 +30,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  rel_mse (y, y_hat, y_train, mask=None)
 > ```
 
-Relative Mean Squared Error
+\*Relative Mean Squared Error
 
 Computes Relative mean squared error (RelMSE), as proposed by Hyndman &
 Koehler (2006) as an alternative to percentage errors, to avoid measure
@@ -57,7 +57,7 @@ Forecasting, Volume 22, Issue
 [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao,
 Lee Dicker. “Probabilistic Hierarchical Forecasting with Deep Poisson
 Mixtures. Submitted to the International Journal Forecasting, Working
-paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 
 ## Mean Squared Scaled Error
 
@@ -73,7 +73,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  msse (y, y_hat, y_train, mask=None)
 > ```
 
-Mean Squared Scaled Error
+\*Mean Squared Scaled Error
 
 Computes Mean squared scaled error (MSSE), as proposed by Hyndman &
 Koehler (2006) as an alternative to percentage errors, to avoid measure
@@ -100,7 +100,7 @@ consider in loss.<br/>
 **References:**<br/> - [Hyndman, R. J and Koehler, A. B. (2006). “Another
 look at measures of forecast accuracy”, International Journal of
 Forecasting, Volume 22, Issue
-4.](https://www.sciencedirect.com/science/article/pii/s0169207006000239)<br/>
+4.](https://www.sciencedirect.com/science/article/pii/s0169207006000239)<br/>\*
 
 ## Scaled CRPS
 
@@ -116,7 +116,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  scaled_crps (y, y_hat, quantiles)
 > ```
 
-Scaled Continues Ranked Probability Score
+\*Scaled Continues Ranked Probability Score
 
 Calculates a scaled variation of the CRPS, as proposed by Rangapuram
 (2021), to measure the accuracy of predicted quantiles `y_hat` compared
@@ -156,7 +156,7 @@ Forecasting.](https://www.sciencedirect.com/science/article/pii/s016920702100172
 Mercado, Jan Gasthaus, Tim Januschowski. (2021). “End-to-End Learning of
 Coherent Probabilistic Forecasts for Hierarchical Time Series”.
 Proceedings of the 38th International Conference on Machine Learning
-(ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
+(ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)\*
 
 ## Energy Score
 
@@ -172,7 +172,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  energy_score (y, y_sample1, y_sample2, beta=2)
 > ```
 
-Energy Score
+\*Energy Score
 
 Calculates Gneiting’s Energy Score sample approximation for `y` and
 independent multivariate samples `y_sample1` and `y_sample2`. The Energy
@@ -207,7 +207,7 @@ Association.](https://sites.stat.washington.edu/raftery/Research/PDF/gneiting200
 Rob J. Hyndman. (2022). “Probabilistic forecast reconciliation:
 Properties, evaluation and score optimisation”. European Journal of
 Operational
-Research.](https://www.sciencedirect.com/science/article/pii/s0377221722006087)
+Research.](https://www.sciencedirect.com/science/article/pii/s0377221722006087)\*
 
 ------------------------------------------------------------------------
 
@@ -221,7 +221,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  log_score (y, y_hat, cov, allow_singular=True)
 > ```
 
-Log Score.
+\*Log Score.
 
 One of the simplest multivariate probability scoring rules, it evaluates
 the negative density at the value of the realisation.
@@ -255,7 +255,7 @@ $$
 (`n_series`, `n_series`, `horizon`).<br/> `allow_singular`: bool=True, if
 true allows singular covariance.<br/>
 
-**Returns:**<br/> `score`: float.
+**Returns:**<br/> `score`: float.\*
 
 ```python
 x = np.linspace(0, 5, 10, endpoint=False)
@@ -277,7 +277,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  HierarchicalEvaluation (evaluators:List[Callable])
 > ```
 
-Hierarchical Evaluation Class.
+\*Hierarchical Evaluation Class.
 
 You can use your own metrics to evaluate the performance of each level
 in the structure. The metrics receive `y` and `y_hat` as arguments and
@@ -292,7 +292,7 @@ method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
 **Parameters:**<br/> `evaluators`: functions with arguments `y`, `y_hat`
 (numpy arrays).<br/>
 
-**References:**<br/>
+**References:**<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -310,7 +310,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                   benchmark:Optional[str]=None)
 > ```
 
-Hierarchical Evaluation Method.
+\*Hierarchical Evaluation Method.
 
 **Parameters:**<br/> `Y_hat_df`: pd.DataFrame, Forecasts indexed by
 `'unique_id'` with column `'ds'` and models to evaluate.<br/>
@@ -322,7 +322,7 @@ time series with columns `['ds', 'y']` indexed by `unique_id`.<br/>
 benchark.<br/>
 
 **Returns:**<br/> `evaluation`: pd.DataFrame with accuracy measurements
-across hierarchical levels.
+across hierarchical levels.\*
 
 # Example
 

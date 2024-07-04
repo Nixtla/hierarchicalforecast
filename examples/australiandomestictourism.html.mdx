@@ -115,13 +115,13 @@ Y_df.head()
 S_df.iloc[:5, :5]
 ```
 
-|                              | Australia/ACT/Canberra/Business | Australia/ACT/Canberra/Holiday | Australia/ACT/Canberra/Other | Australia/ACT/Canberra/Visiting | Australia/New South Wales/Blue Mountains/Business |
-|------------------------------|---------------------------------|--------------------------------|------------------------------|---------------------------------|---------------------------------------------------|
-| Australia                    | 1.0                             | 1.0                            | 1.0                          | 1.0                             | 1.0                                               |
-| Australia/ACT                | 1.0                             | 1.0                            | 1.0                          | 1.0                             | 0.0                                               |
-| Australia/New South Wales    | 0.0                             | 0.0                            | 0.0                          | 0.0                             | 1.0                                               |
-| Australia/Northern Territory | 0.0                             | 0.0                            | 0.0                          | 0.0                             | 0.0                                               |
-| Australia/Queensland         | 0.0                             | 0.0                            | 0.0                          | 0.0                             | 0.0                                               |
+|  | Australia/ACT/Canberra/Business | Australia/ACT/Canberra/Holiday | Australia/ACT/Canberra/Other | Australia/ACT/Canberra/Visiting | Australia/New South Wales/Blue Mountains/Business |
+|----|----|----|----|----|----|
+| Australia | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
+| Australia/ACT | 1.0 | 1.0 | 1.0 | 1.0 | 0.0 |
+| Australia/New South Wales | 0.0 | 0.0 | 0.0 | 0.0 | 1.0 |
+| Australia/Northern Territory | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| Australia/Queensland | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
 
 ```python
 tags['Country/Purpose']
@@ -224,14 +224,14 @@ The dataframe `Y_rec_df` contains the reconciled forecasts.
 Y_rec_df.head()
 ```
 
-|           | ds         | ETS          | ETS/BottomUp | ETS/MinTrace_method-mint_shrink | ETS/MinTrace_method-ols |
-|-----------|------------|--------------|--------------|---------------------------------|-------------------------|
-| unique_id |            |              |              |                                 |                         |
-| Australia | 2016-01-01 | 25990.068359 | 24379.679688 | 25438.888351                    | 25894.418893            |
-| Australia | 2016-04-01 | 24458.490234 | 22902.664062 | 23925.188541                    | 24357.230480            |
-| Australia | 2016-07-01 | 23974.056641 | 22412.984375 | 23440.310338                    | 23865.929521            |
-| Australia | 2016-10-01 | 24563.455078 | 23127.638672 | 24101.001833                    | 24470.783968            |
-| Australia | 2017-01-01 | 25990.068359 | 24516.175781 | 25556.667616                    | 25901.382401            |
+|  | ds | ETS | ETS/BottomUp | ETS/MinTrace_method-mint_shrink | ETS/MinTrace_method-ols |
+|----|----|----|----|----|----|
+| unique_id |  |  |  |  |  |
+| Australia | 2016-01-01 | 25990.068359 | 24379.679688 | 25438.888351 | 25894.418893 |
+| Australia | 2016-04-01 | 24458.490234 | 22902.664062 | 23925.188541 | 24357.230480 |
+| Australia | 2016-07-01 | 23974.056641 | 22412.984375 | 23440.310338 | 23865.929521 |
+| Australia | 2016-10-01 | 24563.455078 | 23127.638672 | 24101.001833 | 24470.783968 |
+| Australia | 2017-01-01 | 25990.068359 | 24516.175781 | 25556.667616 | 25901.382401 |
 
 ## 4. Evaluation
 

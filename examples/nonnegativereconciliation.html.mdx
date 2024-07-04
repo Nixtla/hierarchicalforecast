@@ -62,13 +62,13 @@ Y_df.head()
 S_df.iloc[:5, :5]
 ```
 
-|       | de_AAC_AAG_001 | de_AAC_AAG_010 | de_AAC_AAG_014 | de_AAC_AAG_045 | de_AAC_AAG_063 |
-|-------|----------------|----------------|----------------|----------------|----------------|
-| Total | 1              | 1              | 1              | 1              | 1              |
-| de    | 1              | 1              | 1              | 1              | 1              |
-| en    | 0              | 0              | 0              | 0              | 0              |
-| fr    | 0              | 0              | 0              | 0              | 0              |
-| ja    | 0              | 0              | 0              | 0              | 0              |
+|  | de_AAC_AAG_001 | de_AAC_AAG_010 | de_AAC_AAG_014 | de_AAC_AAG_045 | de_AAC_AAG_063 |
+|----|----|----|----|----|----|
+| Total | 1 | 1 | 1 | 1 | 1 |
+| de | 1 | 1 | 1 | 1 | 1 |
+| en | 0 | 0 | 0 | 0 | 0 |
+| fr | 0 | 0 | 0 | 0 | 0 |
+| ja | 0 | 0 | 0 | 0 | 0 |
 
 ```python
 tags
@@ -226,9 +226,9 @@ forecasts.
 Y_rec_df.query('`ETS/MinTrace_method-ols_nonnegative-True` < 0')
 ```
 
-|           | ds  | ETS | Naive | ETS/MinTrace_method-ols | Naive/MinTrace_method-ols | ETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
-|-----------|-----|-----|-------|-------------------------|---------------------------|------------------------------------------|--------------------------------------------|
-| unique_id |     |     |       |                         |                           |                                          |                                            |
+|  | ds | ETS | Naive | ETS/MinTrace_method-ols | Naive/MinTrace_method-ols | ETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
+|----|----|----|----|----|----|----|----|
+| unique_id |  |  |  |  |  |  |  |
 
 The free reconciliation method gets negative forecasts.
 
@@ -236,20 +236,20 @@ The free reconciliation method gets negative forecasts.
 Y_rec_df.query('`ETS/MinTrace_method-ols` < 0')
 ```
 
-|                | ds         | ETS          | Naive | ETS/MinTrace_method-ols | Naive/MinTrace_method-ols | ETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
-|----------------|------------|--------------|-------|-------------------------|---------------------------|------------------------------------------|--------------------------------------------|
-| unique_id      |            |              |       |                         |                           |                                          |                                            |
-| de_DES         | 2016-12-25 | -2553.932861 | 495.0 | -3468.745214            | 495.0                     | 2.262540e-15                             | 495.0                                      |
-| de_DES         | 2016-12-26 | -2155.228271 | 495.0 | -2985.587125            | 495.0                     | 1.356705e-30                             | 495.0                                      |
-| de_DES         | 2016-12-27 | -2720.993896 | 495.0 | -3698.680055            | 495.0                     | 6.857413e-30                             | 495.0                                      |
-| de_DES         | 2016-12-29 | -3429.432617 | 495.0 | -2965.207609            | 495.0                     | 2.456449e+02                             | 495.0                                      |
-| de_DES         | 2016-12-30 | -3963.202637 | 495.0 | -3217.360371            | 495.0                     | 3.646790e+02                             | 495.0                                      |
-| ...            | ...        | ...          | ...   | ...                     | ...                       | ...                                      | ...                                        |
-| zh_MOB_AAG_036 | 2016-12-26 | 75.298317    | 115.0 | -165.799776             | 115.0                     | 3.207772e-14                             | 115.0                                      |
-| zh_MOB_AAG_036 | 2016-12-27 | 72.895554    | 115.0 | -134.340626             | 115.0                     | 2.308198e-14                             | 115.0                                      |
-| zh_MOB_AAG_138 | 2016-12-25 | 94.796623    | 65.0  | -47.009813              | 65.0                      | 3.116938e-14                             | 65.0                                       |
-| zh_MOB_AAG_138 | 2016-12-26 | 71.293983    | 65.0  | -169.804110             | 65.0                      | 0.000000e+00                             | 65.0                                       |
-| zh_MOB_AAG_138 | 2016-12-27 | 62.049744    | 65.0  | -145.186436             | 65.0                      | 0.000000e+00                             | 65.0                                       |
+|  | ds | ETS | Naive | ETS/MinTrace_method-ols | Naive/MinTrace_method-ols | ETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
+|----|----|----|----|----|----|----|----|
+| unique_id |  |  |  |  |  |  |  |
+| de_DES | 2016-12-25 | -2553.932861 | 495.0 | -3468.745214 | 495.0 | 2.262540e-15 | 495.0 |
+| de_DES | 2016-12-26 | -2155.228271 | 495.0 | -2985.587125 | 495.0 | 1.356705e-30 | 495.0 |
+| de_DES | 2016-12-27 | -2720.993896 | 495.0 | -3698.680055 | 495.0 | 6.857413e-30 | 495.0 |
+| de_DES | 2016-12-29 | -3429.432617 | 495.0 | -2965.207609 | 495.0 | 2.456449e+02 | 495.0 |
+| de_DES | 2016-12-30 | -3963.202637 | 495.0 | -3217.360371 | 495.0 | 3.646790e+02 | 495.0 |
+| ... | ... | ... | ... | ... | ... | ... | ... |
+| zh_MOB_AAG_036 | 2016-12-26 | 75.298317 | 115.0 | -165.799776 | 115.0 | 3.207772e-14 | 115.0 |
+| zh_MOB_AAG_036 | 2016-12-27 | 72.895554 | 115.0 | -134.340626 | 115.0 | 2.308198e-14 | 115.0 |
+| zh_MOB_AAG_138 | 2016-12-25 | 94.796623 | 65.0 | -47.009813 | 65.0 | 3.116938e-14 | 65.0 |
+| zh_MOB_AAG_138 | 2016-12-26 | 71.293983 | 65.0 | -169.804110 | 65.0 | 0.000000e+00 | 65.0 |
+| zh_MOB_AAG_138 | 2016-12-27 | 62.049744 | 65.0 | -145.186436 | 65.0 | 0.000000e+00 | 65.0 |
 
 ## 4. Evaluation
 
@@ -275,12 +275,12 @@ evaluation = evaluator.evaluate(
 evaluation.filter(like='ETS', axis=1).T
 ```
 
-| level                                    | Overall    | Views      | Views/Country | Views/Country/Access | Views/Country/Access/Agent | Views/Country/Access/Agent/Topic |
-|------------------------------------------|------------|------------|---------------|----------------------|----------------------------|----------------------------------|
-| metric                                   | mse-scaled | mse-scaled | mse-scaled    | mse-scaled           | mse-scaled                 | mse-scaled                       |
-| ETS                                      | 1.011585   | 0.7358     | 1.190354      | 1.103657             | 1.089515                   | 1.397139                         |
-| ETS/MinTrace_method-ols                  | 0.979163   | 0.698355   | 1.062521      | 1.143277             | 1.113349                   | 1.354041                         |
-| ETS/MinTrace_method-ols_nonnegative-True | 0.945075   | 0.677892   | 1.004639      | 1.184719             | 1.141442                   | 1.158672                         |
+| level | Overall | Views | Views/Country | Views/Country/Access | Views/Country/Access/Agent | Views/Country/Access/Agent/Topic |
+|----|----|----|----|----|----|----|
+| metric | mse-scaled | mse-scaled | mse-scaled | mse-scaled | mse-scaled | mse-scaled |
+| ETS | 1.011585 | 0.7358 | 1.190354 | 1.103657 | 1.089515 | 1.397139 |
+| ETS/MinTrace_method-ols | 0.979163 | 0.698355 | 1.062521 | 1.143277 | 1.113349 | 1.354041 |
+| ETS/MinTrace_method-ols_nonnegative-True | 0.945075 | 0.677892 | 1.004639 | 1.184719 | 1.141442 | 1.158672 |
 
 Observe that the nonnegative reconciliation method performs better that
 its unconstrained counterpart.

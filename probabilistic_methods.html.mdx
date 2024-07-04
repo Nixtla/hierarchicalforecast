@@ -28,7 +28,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             sigmah:numpy.ndarray, W:numpy.ndarray, seed:int=0)
 > ```
 
-Normality Probabilistic Reconciliation Class.
+\*Normality Probabilistic Reconciliation Class.
 
 The Normality method leverages the Gaussian Distribution linearity, to
 generate hierarchically coherent prediction distributions. This class is
@@ -61,7 +61,7 @@ replicability.<br/>
 and Hyndman R. J. (2022). “Probabilistic forecast reconciliation:
 Properties, evaluation and score optimisation”. European Journal of
 Operational
-Research.](https://www.sciencedirect.com/science/article/pii/s0377221722006087)
+Research.](https://www.sciencedirect.com/science/article/pii/s0377221722006087)\*
 
 ------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Normality.get_samples (num_samples:int=None)
 > ```
 
-Normality Coherent Samples.
+\*Normality Coherent Samples.
 
 Obtains coherent samples under the Normality assumptions.
 
@@ -83,7 +83,7 @@ Obtains coherent samples under the Normality assumptions.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`base`, `horizon`,
-`num_samples`).
+`num_samples`).\*
 
 # 2. Bootstrap
 
@@ -101,7 +101,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             num_samples:int=100, seed:int=0, W:numpy.ndarray=None)
 > ```
 
-Bootstrap Probabilistic Reconciliation Class.
+\*Bootstrap Probabilistic Reconciliation Class.
 
 This method goes beyond the normality assumption for the base forecasts,
 the technique simulates future sample paths and uses them to generate
@@ -134,7 +134,7 @@ Reconciliation”](https://bridges.monash.edu/articles/thesis/Probabilistic_Fore
 [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J.
 (2022). “Probabilistic forecast reconciliation: Properties, evaluation
 and score optimisation”. European Journal of Operational
-Research.](https://www.sciencedirect.com/science/article/pii/s0377221722006087)
+Research.](https://www.sciencedirect.com/science/article/pii/s0377221722006087)\*
 
 ------------------------------------------------------------------------
 
@@ -148,7 +148,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Bootstrap.get_samples (num_samples:int=None)
 > ```
 
-Bootstrap Sample Reconciliation Method.
+\*Bootstrap Sample Reconciliation Method.
 
 Applies Bootstrap sample reconciliation method as defined by Gamakumara
 2020. Generating independent sample paths and reconciling them with
@@ -158,7 +158,7 @@ Bootstrap.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`base`, `horizon`,
-`num_samples`).
+`num_samples`).\*
 
 # 3. PERMBU
 
@@ -177,7 +177,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >          num_samples:int=None, seed:int=0, P:numpy.ndarray=None)
 > ```
 
-PERMBU Probabilistic Reconciliation Class.
+\*PERMBU Probabilistic Reconciliation Class.
 
 The PERMBU method leverages empirical bottom-level marginal
 distributions with empirical copula functions (describing bottom-level
@@ -209,7 +209,7 @@ numpy generator’s replicability.<br/>
 **References:**<br/> - [Taieb, Souhaib Ben and Taylor, James W and
 Hyndman, Rob J. (2017). Coherent probabilistic forecasts for
 hierarchical time series. International conference on machine learning
-ICML.](https://proceedings.mlr.press/v70/taieb17a.html)
+ICML.](https://proceedings.mlr.press/v70/taieb17a.html)\*
 
 ------------------------------------------------------------------------
 
@@ -223,7 +223,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  PERMBU.get_samples (num_samples:int=None)
 > ```
 
-PERMBU Sample Reconciliation Method.
+\*PERMBU Sample Reconciliation Method.
 
 Applies PERMBU reconciliation method as defined by Taieb et. al 2017.
 Generating independent base prediction samples, restoring its
@@ -234,7 +234,7 @@ applying the BottomUp aggregation to the new samples.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`base`, `horizon`,
-`num_samples`).
+`num_samples`).\*
 
 # References
 

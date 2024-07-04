@@ -31,7 +31,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  init (reconcilers:List[Callable])
 > ```
 
-Hierarchical Reconciliation Class.
+\*Hierarchical Reconciliation Class.
 
 The `core.HierarchicalReconciliation` class allows you to efficiently
 fit multiple HierarchicaForecast methods for a collection of time series
@@ -50,7 +50,7 @@ module .<br/>
 
 **References:**<br/> [Rob J. Hyndman and George Athanasopoulos (2018).
 “Forecasting principles and practice, Hierarchical and Grouped
-Series”.](https://otexts.com/fpp3/hierarchical.html)
+Series”.](https://otexts.com/fpp3/hierarchical.html)\*
 
 ------------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  HierarchicalReconciliation (reconcilers:List[Callable])
 > ```
 
-Hierarchical Reconciliation Class.
+\*Hierarchical Reconciliation Class.
 
 The `core.HierarchicalReconciliation` class allows you to efficiently
 fit multiple HierarchicaForecast methods for a collection of time series
@@ -83,7 +83,7 @@ module .<br/>
 
 **References:**<br/> [Rob J. Hyndman and George Athanasopoulos (2018).
 “Forecasting principles and practice, Hierarchical and Grouped
-Series”.](https://otexts.com/fpp3/hierarchical.html)
+Series”.](https://otexts.com/fpp3/hierarchical.html)\*
 
 ------------------------------------------------------------------------
 
@@ -102,7 +102,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             seed:int=0, sort_df:bool=True, is_balanced:bool=False)
 > ```
 
-Hierarchical Reconciliation Method.
+\*Hierarchical Reconciliation Method.
 
 The `reconcile` method is analogous to SKLearn `fit_predict` method, it
 applies different reconciliation techniques instantiated in the
@@ -140,7 +140,7 @@ sort `df` by \[`unique_id`,`ds`\].<br/> `is_balanced`: bool=False, wether
 balanced.<br/>
 
 **Returns:**<br/> `Y_tilde_df`: pd.DataFrame, with reconciled
-predictions.
+predictions.\*
 
 ------------------------------------------------------------------------
 
@@ -161,7 +161,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                       sort_df:bool=True)
 > ```
 
-Bootstraped Hierarchical Reconciliation Method.
+\*Bootstraped Hierarchical Reconciliation Method.
 
 Applies N times, based on different random seeds, the `reconcile` method
 for the different reconciliation techniques instantiated in the
@@ -185,7 +185,7 @@ numpy generator’s replicability.<br/> `sort_df` : bool (default=True), if
 True, sort `df` by \[`unique_id`,`ds`\].<br/>
 
 **Returns:**<br/> `Y_bootstrap_df`: pd.DataFrame, with bootstraped
-reconciled predictions.
+reconciled predictions.\*
 
 # Example
 

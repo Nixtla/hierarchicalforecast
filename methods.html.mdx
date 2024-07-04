@@ -40,7 +40,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  BottomUpSparse ()
 > ```
 
-BottomUpSparse Reconciliation Class.
+\*BottomUpSparse Reconciliation Class.
 
 This is the implementation of a Bottom Up reconciliation using the
 sparse matrix approach. It works much more efficient on datasets with
@@ -49,7 +49,7 @@ many time series. \[makoren: At least I hope so, I only checked up until
 check for smth like 1M time series, where the dense S matrix really
 stops fitting in memory\]
 
-See the parent class for more details.
+See the parent class for more details.\*
 
 ------------------------------------------------------------------------
 
@@ -63,7 +63,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  BottomUp ()
 > ```
 
-Bottom Up Reconciliation Class. The most basic hierarchical
+\*Bottom Up Reconciliation Class. The most basic hierarchical
 reconciliation is performed using an Bottom-Up strategy. It was proposed
 for the first time by Orcutt in 1968. The corresponding hierarchical
 “projection” matrix is defined as:
@@ -73,7 +73,7 @@ $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathr
 
 **References:**<br/> - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968).
 “Data aggregation and information loss”. The American Economic Review,
-58 , 773(787)](http://www.jstor.org/stable/1815532).
+58 , 773(787)](http://www.jstor.org/stable/1815532).\*
 
 ------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                tags:Dict[str,numpy.ndarray]=None)
 > ```
 
-Bottom Up Fit Method.
+\*Bottom Up Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
@@ -104,7 +104,7 @@ intervals.<br/> `intervals_method`: Sampler for prediction intevals, one
 of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
 sampler instantiation arguments.<br/>
 
-**Returns:**<br/> `self`: object, fitted reconciler.
+**Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
@@ -119,7 +119,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                    level:Optional[List[int]]=None)
 > ```
 
-Predict using reconciler.
+\*Predict using reconciler.
 
 Predict using fitted mean and probabilistic reconcilers.
 
@@ -127,7 +127,7 @@ Predict using fitted mean and probabilistic reconcilers.
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
 list 0-100, confidence levels for prediction intervals.<br/>
 
-**Returns:**<br/> `y_tilde`: Reconciliated predictions.
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
 
 ------------------------------------------------------------------------
 
@@ -150,7 +150,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        tags:Dict[str,numpy.ndarray]=None)
 > ```
 
-BottomUp Reconciliation Method.
+\*BottomUp Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
@@ -161,7 +161,7 @@ of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
 sampler instantiation arguments.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Bottom Up
-approach.
+approach.\*
 
 ------------------------------------------------------------------------
 
@@ -175,7 +175,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  BottomUp.sample (num_samples:int)
 > ```
 
-Sample probabilistic coherent distribution.
+\*Sample probabilistic coherent distribution.
 
 Generates n samples from a probabilistic coherent distribution. The
 method uses fitted mean and probabilistic reconcilers, defined by the
@@ -186,7 +186,7 @@ Currently available: `normality`, `bootstrap`, `permbu`.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
-`horizon`, `num_samples`).
+`horizon`, `num_samples`).\*
 
 # 2. Top-Down
 
@@ -202,7 +202,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  TopDown (method:str)
 > ```
 
-Top Down Reconciliation Class.
+\*Top Down Reconciliation Class.
 
 The Top Down hierarchical reconciliation method, distributes the total
 aggregate predictions and decomposes it down the hierarchy using
@@ -219,7 +219,7 @@ doi:10.1002/for.3980090304](https://onlinelibrary.wiley.com/doi/abs/10.1002/for.
 [G. Fliedner (1999). “An investigation of aggregate variable time series
 forecast strategies with specific subaggregate time series statistical
 correlation”. Computers and Operations Research, 26 , 1133–1149.
-doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/s0305-0548(99)00017-9).
+doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/s0305-0548(99)00017-9).\*
 
 ------------------------------------------------------------------------
 
@@ -239,7 +239,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >               idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
-TopDown Fit Method.
+\*TopDown Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
@@ -252,7 +252,7 @@ to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
 `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
 instantiation arguments.<br/>
 
-**Returns:**<br/> `self`: object, fitted reconciler.
+**Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
@@ -267,7 +267,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   level:Optional[List[int]]=None)
 > ```
 
-Predict using reconciler.
+\*Predict using reconciler.
 
 Predict using fitted mean and probabilistic reconcilers.
 
@@ -275,7 +275,7 @@ Predict using fitted mean and probabilistic reconcilers.
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
 list 0-100, confidence levels for prediction intervals.<br/>
 
-**Returns:**<br/> `y_tilde`: Reconciliated predictions.
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
 
 ------------------------------------------------------------------------
 
@@ -298,7 +298,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                       seed:Optional[int]=None)
 > ```
 
-Top Down Reconciliation Method.
+\*Top Down Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
@@ -312,7 +312,7 @@ to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
 instantiation arguments.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Top Down
-approach.
+approach.\*
 
 ------------------------------------------------------------------------
 
@@ -326,7 +326,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  TopDown.sample (num_samples:int)
 > ```
 
-Sample probabilistic coherent distribution.
+\*Sample probabilistic coherent distribution.
 
 Generates n samples from a probabilistic coherent distribution. The
 method uses fitted mean and probabilistic reconcilers, defined by the
@@ -337,7 +337,7 @@ Currently available: `normality`, `bootstrap`, `permbu`.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
-`horizon`, `num_samples`).
+`horizon`, `num_samples`).\*
 
 # 3. Middle-Out
 
@@ -353,7 +353,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MiddleOut (middle_level:str, top_down_method:str)
 > ```
 
-Middle Out Reconciliation Class.
+\*Middle Out Reconciliation Class.
 
 This method is only available for **strictly hierarchical structures**.
 It anchors the base predictions in a middle level. The levels above the
@@ -368,7 +368,7 @@ One of `forecast_proportions`, `average_proportions` and
 “Forecasting: principles and practice, 3rd edition: Chapter 11:
 Forecasting hierarchical and grouped series.”. OTexts: Melbourne,
 Australia. OTexts.com/fpp3 Accessed on July
-2022.](https://otexts.com/fpp3/hierarchical.html)
+2022.](https://otexts.com/fpp3/hierarchical.html)\*
 
 ------------------------------------------------------------------------
 
@@ -386,7 +386,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                         intervals_method:Optional[str]=None)
 > ```
 
-Middle Out Reconciliation Method.
+\*Middle Out Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
@@ -395,7 +395,7 @@ Insample values of size (`base`, `insample_size`). Only used for
 `forecast_proportions`<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Middle Out
-approach.
+approach.\*
 
 # 4. Min-Trace
 
@@ -412,7 +412,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                  mint_shr_ridge:Optional[float]=2e-08, num_threads:int=1)
 > ```
 
-MinTraceSparse Reconciliation Class.
+\*MinTraceSparse Reconciliation Class.
 
 This is the implementation of a subset of MinTrace features using the
 sparse matrix approach. It works much more efficient on datasets with
@@ -426,7 +426,7 @@ not supported).
 
 Note: due to the numerical instability of the matrix inversion when
 creating the P matrix, the method is NOT guaranteed to give identical
-results to the non-sparse version.
+results to the non-sparse version.\*
 
 ------------------------------------------------------------------------
 
@@ -441,7 +441,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >            mint_shr_ridge:Optional[float]=2e-08, num_threads:int=1)
 > ```
 
-MinTrace Reconciliation Class.
+\*MinTrace Reconciliation Class.
 
 This reconciliation algorithm proposed by Wickramasuriya et al. depends
 on a generalized least squares estimator and an estimator of the
@@ -470,7 +470,7 @@ American Statistical Association, 114 , 804–819.
 doi:10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/). -
 [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). “Optimal
 non-negative forecast reconciliation”. Stat Comput 30, 1167–1182,
-https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).\*
 
 ------------------------------------------------------------------------
 
@@ -490,7 +490,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
-MinTrace Fit Method.
+\*MinTrace Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
@@ -503,7 +503,7 @@ to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
 `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
 instantiation arguments.<br/>
 
-**Returns:**<br/> `self`: object, fitted reconciler.
+**Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
@@ -518,7 +518,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                    level:Optional[List[int]]=None)
 > ```
 
-Predict using reconciler.
+\*Predict using reconciler.
 
 Predict using fitted mean and probabilistic reconcilers.
 
@@ -526,7 +526,7 @@ Predict using fitted mean and probabilistic reconcilers.
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
 list 0-100, confidence levels for prediction intervals.<br/>
 
-**Returns:**<br/> `y_tilde`: Reconciliated predictions.
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
 
 ------------------------------------------------------------------------
 
@@ -549,7 +549,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        tags:Dict[str,numpy.ndarray]=None)
 > ```
 
-MinTrace Reconciliation Method.
+\*MinTrace Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
@@ -562,7 +562,7 @@ confidence levels for prediction intervals.<br/> `sampler`: Sampler for
 prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the MinTrace
-approach.
+approach.\*
 
 ------------------------------------------------------------------------
 
@@ -576,7 +576,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MinTrace.sample (num_samples:int)
 > ```
 
-Sample probabilistic coherent distribution.
+\*Sample probabilistic coherent distribution.
 
 Generates n samples from a probabilistic coherent distribution. The
 method uses fitted mean and probabilistic reconcilers, defined by the
@@ -587,7 +587,7 @@ Currently available: `normality`, `bootstrap`, `permbu`.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
-`horizon`, `num_samples`).
+`horizon`, `num_samples`).\*
 
 # 5. Optimal Combination
 
@@ -604,7 +604,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      num_threads:int=1)
 > ```
 
-Optimal Combination Reconciliation Class.
+\*Optimal Combination Reconciliation Class.
 
 This reconciliation algorithm was proposed by Hyndman et al. 2011, the
 method uses generalized least squares estimator using the coherency
@@ -630,7 +630,7 @@ Series”.](https://robjhyndman.com/papers/hierarchical6.pdf).<br/> -
 Series”.](https://robjhyndman.com/papers/mint.pdf). - [Wickramasuriya,
 S.L., Turlach, B.A. & Hyndman, R.J. (2020). “Optimal non-negative
 forecast reconciliation”. Stat Comput 30, 1167–1182,
-https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).\*
 
 ------------------------------------------------------------------------
 
@@ -652,7 +652,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                          idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
-MinTrace Fit Method.
+\*MinTrace Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
@@ -665,7 +665,7 @@ to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
 `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
 instantiation arguments.<br/>
 
-**Returns:**<br/> `self`: object, fitted reconciler.
+**Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
@@ -680,7 +680,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                              level:Optional[List[int]]=None)
 > ```
 
-Predict using reconciler.
+\*Predict using reconciler.
 
 Predict using fitted mean and probabilistic reconcilers.
 
@@ -688,7 +688,7 @@ Predict using fitted mean and probabilistic reconcilers.
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
 list 0-100, confidence levels for prediction intervals.<br/>
 
-**Returns:**<br/> `y_tilde`: Reconciliated predictions.
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
 
 ------------------------------------------------------------------------
 
@@ -711,7 +711,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                  tags:Dict[str,numpy.ndarray]=None)
 > ```
 
-MinTrace Reconciliation Method.
+\*MinTrace Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
@@ -724,7 +724,7 @@ confidence levels for prediction intervals.<br/> `sampler`: Sampler for
 prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the MinTrace
-approach.
+approach.\*
 
 ------------------------------------------------------------------------
 
@@ -738,7 +738,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  OptimalCombination.sample (num_samples:int)
 > ```
 
-Sample probabilistic coherent distribution.
+\*Sample probabilistic coherent distribution.
 
 Generates n samples from a probabilistic coherent distribution. The
 method uses fitted mean and probabilistic reconcilers, defined by the
@@ -749,7 +749,7 @@ Currently available: `normality`, `bootstrap`, `permbu`.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
-`horizon`, `num_samples`).
+`horizon`, `num_samples`).\*
 
 # 6. Emp. Risk Minimization
 
@@ -765,7 +765,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  ERM (method:str, lambda_reg:float=0.01)
 > ```
 
-Optimal Combination Reconciliation Class.
+\*Optimal Combination Reconciliation Class.
 
 The Empirical Risk Minimization reconciliation strategy relaxes the
 unbiasedness assumptions from previous reconciliation methods like MinT
@@ -790,7 +790,7 @@ regression for hierarchical forecasting without unbiasedness conditions.
 In Proceedings of the 25th ACM SIGKDD International Conference on
 Knowledge Discovery & Data Mining KDD ’19 (p. 1337-1347). New York, NY,
 USA: Association for Computing
-Machinery.](https://doi.org/10.1145/3292500.3330976).<br/>
+Machinery.](https://doi.org/10.1145/3292500.3330976).<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -809,7 +809,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >           idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
-ERM Fit Method.
+\*ERM Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
@@ -821,7 +821,7 @@ prediction intervals.<br/> `intervals_method`: Sampler for prediction
 intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
 `**sampler_kwargs`: Coherent sampler instantiation arguments.<br/>
 
-**Returns:**<br/> `self`: object, fitted reconciler.
+**Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
@@ -836,7 +836,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >               level:Optional[List[int]]=None)
 > ```
 
-Predict using reconciler.
+\*Predict using reconciler.
 
 Predict using fitted mean and probabilistic reconcilers.
 
@@ -844,7 +844,7 @@ Predict using fitted mean and probabilistic reconcilers.
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
 list 0-100, confidence levels for prediction intervals.<br/>
 
-**Returns:**<br/> `y_tilde`: Reconciliated predictions.
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
 
 ------------------------------------------------------------------------
 
@@ -866,7 +866,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   tags:Dict[str,numpy.ndarray]=None)
 > ```
 
-ERM Reconciliation Method.
+\*ERM Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
@@ -877,7 +877,8 @@ Insample train predictions of size (`base`, `insample_size`).<br/>
 prediction intervals.<br/> `intervals_method`: Sampler for prediction
 intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
 
-**Returns:**<br/> `y_tilde`: Reconciliated y_hat using the ERM approach.
+**Returns:**<br/> `y_tilde`: Reconciliated y_hat using the ERM
+approach.\*
 
 ------------------------------------------------------------------------
 
@@ -891,7 +892,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  ERM.sample (num_samples:int)
 > ```
 
-Sample probabilistic coherent distribution.
+\*Sample probabilistic coherent distribution.
 
 Generates n samples from a probabilistic coherent distribution. The
 method uses fitted mean and probabilistic reconcilers, defined by the
@@ -902,7 +903,7 @@ Currently available: `normality`, `bootstrap`, `permbu`.
 coherent distribution.<br/>
 
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
-`horizon`, `num_samples`).
+`horizon`, `num_samples`).\*
 
 ```python
 reconciler_args = dict(S=S, 
