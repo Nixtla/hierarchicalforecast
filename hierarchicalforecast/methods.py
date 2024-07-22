@@ -247,10 +247,11 @@ class BottomUpSparse(BottomUp):
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
-        P = sparse.lil_matrix(S.shape, dtype=np.float32)
-        P[idx_bottom] = S[idx_bottom]
-        P = sparse.csr_matrix(P.T)
-        W = sparse.identity(n_hiers, dtype=np.float32)
+        P = sparse.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float32, "csr")
+        if getattr(self, "intervals_method", False) is None:
+            W = None
+        else:
+            W = sparse.eye(n_hiers, dtype=np.float32, format="csr")
         return P, W
 
 # %% ../nbs/methods.ipynb 22
