@@ -143,10 +143,11 @@ class BottomUp(HReconciler):
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
-        P = np.zeros_like(S, dtype=np.float32)
-        P[idx_bottom] = S[idx_bottom]
-        P = P.T
-        W = np.eye(n_hiers, dtype=np.float32)
+        P = np.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float32)
+        if getattr(self, "intervals_method", False) is None:
+            W = None
+        else:
+            W = np.eye(n_hiers, dtype=np.float32)
         return P, W
 
     def fit(self,
@@ -173,6 +174,7 @@ class BottomUp(HReconciler):
         **Returns:**<br>
         `self`: object, fitted reconciler.
         """
+        self.intervals_method = intervals_method
         self.P, self.W = self._get_PW_matrices(S=S, idx_bottom=idx_bottom)
         self.sampler = self._get_sampler(S=S,
                                          P=self.P,
