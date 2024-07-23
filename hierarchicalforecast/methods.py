@@ -509,7 +509,7 @@ class MiddleOut(HReconciler):
         idxs_bu = np.hstack(idxs_bu)
         #bottom up forecasts
         bu = BottomUp().fit_predict(
-            S=np.unique(S[idxs_bu], axis=1), 
+            S=np.fliplr(np.unique(S[idxs_bu], axis=1)), 
             y_hat=y_hat[idxs_bu], 
             idx_bottom=np.arange(len(idxs_bu))[-len(cut_nodes):]
         )
