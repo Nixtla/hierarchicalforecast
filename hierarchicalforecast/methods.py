@@ -11,7 +11,7 @@ from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
-from numba import njit, prange
+from numba import njit
 from quadprog import solve_qp
 from scipy import sparse
 
