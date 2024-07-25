@@ -254,6 +254,8 @@ class BottomUpSparse(BottomUp):
 
 # %% ../nbs/methods.ipynb 22
 def _get_child_nodes(S: np.ndarray, tags: Dict[str, np.ndarray]):
+    if isinstance(S, sparse.spmatrix):
+        S = S.toarray()
     level_names = list(tags.keys())
     nodes = OrderedDict()
     for i_level, level in enumerate(level_names[:-1]):
