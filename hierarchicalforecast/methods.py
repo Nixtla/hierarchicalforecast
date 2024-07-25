@@ -143,10 +143,11 @@ class BottomUp(HReconciler):
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
-        P = np.zeros_like(S, dtype=np.float32)
-        P[idx_bottom] = S[idx_bottom]
-        P = P.T
-        W = np.eye(n_hiers, dtype=np.float32)
+        P = np.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float32)
+        if getattr(self, "intervals_method", False) is None:
+            W = None
+        else:
+            W = np.eye(n_hiers, dtype=np.float32)
         return P, W
 
     def fit(self,
@@ -173,6 +174,7 @@ class BottomUp(HReconciler):
         **Returns:**<br>
         `self`: object, fitted reconciler.
         """
+        self.intervals_method = intervals_method
         self.P, self.W = self._get_PW_matrices(S=S, idx_bottom=idx_bottom)
         self.sampler = self._get_sampler(S=S,
                                          P=self.P,
@@ -245,10 +247,11 @@ class BottomUpSparse(BottomUp):
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
-        P = sparse.lil_matrix(S.shape, dtype=np.float32)
-        P[idx_bottom] = S[idx_bottom]
-        P = sparse.csr_matrix(P.T)
-        W = sparse.identity(n_hiers, dtype=np.float32)
+        P = sparse.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float32, "csr")
+        if getattr(self, "intervals_method", False) is None:
+            W = None
+        else:
+            W = sparse.eye(n_hiers, dtype=np.float32, format="csr")
         return P, W
 
 # %% ../nbs/methods.ipynb 22
@@ -506,7 +509,7 @@ class MiddleOut(HReconciler):
         idxs_bu = np.hstack(idxs_bu)
         #bottom up forecasts
         bu = BottomUp().fit_predict(
-            S=np.unique(S[idxs_bu], axis=1), 
+            S=np.fliplr(np.unique(S[idxs_bu], axis=1)), 
             y_hat=y_hat[idxs_bu], 
             idx_bottom=np.arange(len(idxs_bu))[-len(cut_nodes):]
         )
@@ -575,7 +578,7 @@ class MinTrace(HReconciler):
     `method`: str, one of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`.<br>
     `nonnegative`: bool, reconciled forecasts should be nonnegative?<br>
     `mint_shr_ridge`: float=2e-8, ridge numeric protection to MinTrace-shr covariance estimator.<br>
-    `num_threads`: int=1, number of threads to use for solving the optimization problems.
+    `num_threads`: int=1, number of threads to use for solving the optimization problems (when nonnegative=True).
 
     **References:**<br>
     - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). \"Optimal forecast reconciliation for
@@ -596,6 +599,8 @@ class MinTrace(HReconciler):
         if method == 'mint_shrink':
             self.mint_shr_ridge = mint_shr_ridge
         self.num_threads = num_threads
+        if not self.nonnegative and self.num_threads > 1:
+            warnings.warn('`num_threads` is only used when `nonnegative=True`')
 
     def _get_PW_matrices(self, 
                   S: np.ndarray,
@@ -609,10 +614,18 @@ class MinTrace(HReconciler):
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
             raise ValueError(f"For methods {', '.join(res_methods)} you need to pass residuals")
         n_hiers, n_bottom = S.shape
+        n_aggs = n_hiers - n_bottom
+        # Construct J and U.T
+        J = np.concatenate((np.zeros((n_bottom, n_aggs), dtype=np.float64), S[n_aggs:]), axis=1)
+        Ut = np.concatenate((np.eye(n_aggs, dtype=np.float64), -S[:n_aggs]), axis=1)
         if self.method == 'ols':
             W = np.eye(n_hiers)
+            UtW = Ut
         elif self.method == 'wls_struct':
-            W = np.diag(S @ np.ones((n_bottom,)))
+            # W = np.diag(S @ np.ones((n_bottom,)))
+            Wdiag = np.sum(S, axis=1, dtype=np.float64)
+            UtW = Ut * Wdiag
+            W = np.diag(Wdiag)
         elif self.method in res_methods:
             # Residuals with shape (obs, n_hiers)
             residuals = (y_insample - y_hat_insample).T
@@ -625,18 +638,23 @@ class MinTrace(HReconciler):
             if zero_residual_prc > .98:
                 raise Exception(f'Insample residuals close to 0, zero_residual_prc={zero_residual_prc}. Check `Y_df`')
 
-            # Protection: cases where data is unavailable/nan
-            masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
-            covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
-
             if self.method == 'wls_var':
-                W = np.diag(np.diag(covm))
+                Wdiag = np.nansum(residuals**2, axis=0, dtype=np.float64) / residuals.shape[0]
+                W = np.diag(Wdiag)
+                UtW = Ut * Wdiag
             elif self.method == 'mint_cov':
+                # Protection: cases where data is unavailable/nan
+                masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
+                covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
                 W = covm
+                UtW = Ut @ W
+
             elif self.method == 'mint_shrink':
                 # Schäfer and Strimmer 2005, scale invariant shrinkage
-                # lasso or ridge might improve numerical stability but
-                # this version follows https://robjhyndman.com/papers/MinT.pdf
+
+                # Protection: cases where data is unavailable/nan
+                masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
+                covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
                 tar = np.diag(np.diag(covm))
 
                 # Protections: constant's correlation set to 0
@@ -659,24 +677,22 @@ class MinTrace(HReconciler):
 
                 # Protection: final ridge diagonal protection
                 W = (lmd * tar + (1 - lmd) * covm) + self.mint_shr_ridge
+
+                UtW = Ut @ W
         else:
             raise ValueError(f'Unknown reconciliation method {self.method}')
 
         if self.method not in diag_only_methods:
-            eigenvalues, _ = np.linalg.eig(W)
+            try:
+                L = np.linalg.cholesky(W)
+            except np.linalg.LinAlgError:
+                raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
         else:
             eigenvalues = np.diag(W)
-
-        if any(eigenvalues < 1e-8):
-            raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
-
-        else:
-            # compute P for free reconciliation
-            if self.method not in diag_only_methods:
-                R = S.T @ np.linalg.pinv(W)
-            else:
-                R = S.T * np.reciprocal(np.diag(W))
-            P = np.linalg.pinv(R @ S) @ R
+            if any(eigenvalues < 1e-8):
+                raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
+            
+        P = (J - np.linalg.solve(UtW[:, n_aggs:] @ Ut.T[n_aggs:] + UtW[:, :n_aggs], UtW[:, n_aggs:] @ J.T[n_aggs:]).T @ Ut)
 
         return P, W
 
