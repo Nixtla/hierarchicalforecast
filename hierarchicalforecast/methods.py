@@ -474,7 +474,7 @@ class TopDownSparse(TopDown):
 
         # Get the in-sample values of the top node and bottom nodes.
         y_top = y_insample[0]
-        y_btm = y_insample[(n_hiers - n_bottom):]
+        y_btm = y_insample[(n_hiers - n_bottom) :]
 
         # Calculate the disaggregation proportions.
         if self.method == "average_proportions":
@@ -486,21 +486,24 @@ class TopDownSparse(TopDown):
         else:
             raise Exception(f"{self.method} is an unknown disaggregation method.")
 
-        P = sparse.coo_matrix(
+        # Instantiate and allocate the "projection" matrix to distribute the
+        # disaggregated base forecast of the top node to the bottom nodes.
+        P = sparse.csr_matrix(
             (
                 prop,
-                (
-                    np.arange(len(prop), dtype=np.min_scalar_type(n_bottom)),
-                    np.zeros_like(prop, np.min_scalar_type(n_hiers)),
-                ),
+                np.zeros_like(prop, np.min_scalar_type(n_hiers)),
+                np.arange(len(prop) + 1, dtype=np.min_scalar_type(n_bottom)),
             ),
             shape=(n_bottom, n_hiers),
             dtype=np.float64,
-        ).tocsr()
+        )
+
+        # Instantiate and allocate the "weight" matrix.
         if getattr(self, "intervals_method", False) is None:
             W = None
         else:
             W = sparse.eye(n_hiers, dtype=np.float32, format="csr")
+        
         return P, W
 
 # %% ../nbs/methods.ipynb 35
