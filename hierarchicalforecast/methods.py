@@ -463,33 +463,35 @@ class TopDownSparse(TopDown):
         tags: Dict[str, np.ndarray],
         y_insample: Optional[np.ndarray] = None,
     ):
+        # Check if the data structure is strictly hierarchical.
         if not is_strictly_hierarchical(S, tags):
             raise ValueError(
-                "Top down reconciliation requires strictly hierarchical structures."
+                "Top-down reconciliation requires strictly hierarchical structures."
             )
 
+        # Get the dimensions of the "summing" matrix.
         n_hiers, n_bottom = S.shape
-        idx_top = int(S.sum(axis=1).argmax())
-        levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
-        idx_bottom = levels_[list(levels_)[-1]]
 
-        y_top = y_insample[idx_top]
-        y_btm = y_insample[idx_bottom]
+        # Get the in-sample values of the top node and bottom nodes.
+        y_top = y_insample[0]
+        y_btm = y_insample[(n_hiers - n_bottom):]
+
+        # Calculate the disaggregation proportions.
         if self.method == "average_proportions":
-            prop = np.mean(y_btm / y_top, axis=1)
+            prop = np.mean(y_btm / y_top, 1)
         elif self.method == "proportion_averages":
-            prop = np.mean(y_btm, axis=1) / np.mean(y_top)
+            prop = np.mean(y_btm, 1) / np.mean(y_top)
         elif self.method == "forecast_proportions":
-            raise Exception(f"Fit method not implemented for {self.method} yet.")
+            raise Exception(f"Fit method not yet implemented for {self.method}.")
         else:
-            raise Exception(f"Unknown method {self.method}.")
+            raise Exception(f"{self.method} is an unknown disaggregation method.")
 
         P = sparse.coo_matrix(
             (
                 prop,
                 (
                     np.arange(len(prop), dtype=np.min_scalar_type(n_bottom)),
-                    np.full_like(prop, idx_top, np.min_scalar_type(n_hiers)),
+                    np.zeros_like(prop, np.min_scalar_type(n_hiers)),
                 ),
             ),
             shape=(n_bottom, n_hiers),
