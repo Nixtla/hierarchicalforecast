@@ -491,7 +491,7 @@ class TopDownSparse(TopDown):
         P = sparse.csr_matrix(
             (
                 prop,
-                np.zeros_like(prop, np.min_scalar_type(n_hiers)),
+                np.zeros_like(prop, np.uint8),
                 np.arange(len(prop) + 1, dtype=np.min_scalar_type(n_bottom)),
             ),
             shape=(n_bottom, n_hiers),
