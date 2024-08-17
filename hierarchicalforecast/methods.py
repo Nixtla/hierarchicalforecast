@@ -713,11 +713,11 @@ class MiddleOutSparse(MiddleOut):
 
     __call__ = fit_predict
 
-# %% ../nbs/methods.ipynb 41
+# %% ../nbs/methods.ipynb 43
 def crossprod(x):
     return x.T @ x
 
-# %% ../nbs/methods.ipynb 42
+# %% ../nbs/methods.ipynb 44
 class MinTrace(HReconciler):
     """MinTrace Reconciliation Class.
 
@@ -986,7 +986,7 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/methods.ipynb 43
+# %% ../nbs/methods.ipynb 45
 class MinTraceSparse(MinTrace):
     """MinTraceSparse Reconciliation Class.
 
@@ -1096,7 +1096,7 @@ class MinTraceSparse(MinTrace):
 
         return P, W
 
-# %% ../nbs/methods.ipynb 53
+# %% ../nbs/methods.ipynb 55
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1130,7 +1130,7 @@ class OptimalCombination(MinTrace):
         super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
-# %% ../nbs/methods.ipynb 62
+# %% ../nbs/methods.ipynb 64
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -1162,7 +1162,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 63
+# %% ../nbs/methods.ipynb 65
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
