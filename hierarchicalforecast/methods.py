@@ -914,7 +914,7 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-# @njit(parallel=True, fastmath=True, error_model='numpy')
+@njit(parallel=True)
 def _shrunk_covariance_schaferstrimmer(residuals, residuals_mean, residuals_std):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
@@ -1077,7 +1077,7 @@ class MinTraceSparse(MinTrace):
 
         return P, W
 
-# %% ../nbs/methods.ipynb 52
+# %% ../nbs/methods.ipynb 53
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1111,7 +1111,7 @@ class OptimalCombination(MinTrace):
         super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
-# %% ../nbs/methods.ipynb 61
+# %% ../nbs/methods.ipynb 62
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -1143,7 +1143,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 62
+# %% ../nbs/methods.ipynb 63
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
