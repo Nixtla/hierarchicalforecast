@@ -761,11 +761,14 @@ class MinTrace(HReconciler):
             try:
                 L = np.linalg.cholesky(W)
             except np.linalg.LinAlgError:
-                try:
-                    eigenvalues, eigenvectors = np.linalg.eigh(W)
-                    eigenvalues[eigenvalues < 2e-8] = 2e-8
-                    W = eigenvectors * eigenvalues * eigenvectors.T
-                except np.linalg.LinAlgError:
+                if self.method == 'mint_shrink_fast':
+                    try:
+                        eigenvalues, eigenvectors = np.linalg.eigh(W)
+                        eigenvalues[eigenvalues < 2e-8] = 2e-8
+                        W = eigenvectors * eigenvalues * eigenvectors.T
+                    except np.linalg.LinAlgError:
+                        raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
+                else:
                     raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
         else:
             eigenvalues = np.diag(W)
@@ -824,11 +827,6 @@ class MinTrace(HReconciler):
             # https://scaron.info/blog/quadratic-programming-in-python.html
             a = S.T @ W_inv
             G = a @ S
-            if self.method not in ['ols', 'wls_struct', 'wls_var']:
-                try:
-                    L = np.linalg.cholesky(G)
-                except np.linalg.LinAlgError:
-                    raise Exception(f'min_trace ({self.method}) needs G matrix to be positive definite.')
             C = np.eye(n_bottom)
             b = np.zeros(n_bottom)
             # the quadratic programming problem
