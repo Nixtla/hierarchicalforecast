@@ -661,8 +661,8 @@ class MinTrace(HReconciler):
                  num_threads: int = 1):
         self.method = method
         self.nonnegative = nonnegative
-        self.insample = method in ['wls_var', 'mint_cov', 'mint_shrink', 'mint_shrink_fast']
-        if method in ('mint_shrink', 'mint_shrink_fast'):
+        self.insample = method in ['wls_var', 'mint_cov', 'mint_shrink', 'mint_shrink_legacy']
+        if method in ('mint_shrink', 'mint_shrink_legacy'):
             self.mint_shr_ridge = mint_shr_ridge
         self.num_threads = num_threads
         if not self.nonnegative and self.num_threads > 1:
@@ -675,7 +675,7 @@ class MinTrace(HReconciler):
                   y_hat_insample: Optional[np.ndarray] = None,
                   idx_bottom: Optional[List[int]] = None,):
         # shape residuals_insample (n_hiers, obs)
-        res_methods = ['wls_var', 'mint_cov', 'mint_shrink', 'mint_shrink_fast']
+        res_methods = ['wls_var', 'mint_cov', 'mint_shrink', 'mint_shrink_legacy']
         diag_only_methods = ['ols', 'wls_struct', 'wls_var']
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
             raise ValueError(f"For methods {', '.join(res_methods)} you need to pass residuals")
@@ -715,7 +715,7 @@ class MinTrace(HReconciler):
                 W = covm
                 UtW = Ut @ W
 
-            elif self.method == 'mint_shrink':
+            elif self.method == 'mint_shrink_legacy':
                 # Schäfer and Strimmer 2005, scale invariant shrinkage
 
                 # Protection: cases where data is unavailable/nan
@@ -748,10 +748,11 @@ class MinTrace(HReconciler):
                 # Protection: final ridge diagonal protection
                 W = (lmd * tar + (1 - lmd) * covm) + self.mint_shr_ridge
                 UtW = Ut @ W
-            elif self.method == 'mint_shrink_fast':
-                residuals_mean = np.nanmean(residuals, axis=0)
-                residuals_std = np.maximum(np.nanstd(residuals, axis=0), 1e-6)
-                W = _shrunk_covariance_schaferstrimmer(residuals.T, residuals_mean, residuals_std)
+            elif self.method == 'mint_shrink':
+                residuals_mean = np.nanmean(residuals, axis=0, dtype=np.float64)
+                residuals_std = np.maximum(np.nanstd(residuals, axis=0, dtype=np.float64), 1e-6)
+                safe_residuals = np.nan_to_num(residuals.T, copy=False)
+                W = _shrunk_covariance_schaferstrimmer(safe_residuals, residuals_mean, residuals_std)
                 UtW = Ut @ W
 
         else:
@@ -761,7 +762,7 @@ class MinTrace(HReconciler):
             try:
                 L = np.linalg.cholesky(W)
             except np.linalg.LinAlgError:
-                if self.method == 'mint_shrink_fast':
+                if self.method == 'mint_shrink':
                     try:
                         eigenvalues, eigenvectors = np.linalg.eigh(W)
                         eigenvalues[eigenvalues < 2e-8] = 2e-8
@@ -912,8 +913,8 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-@njit(parallel=True)
-def _shrunk_covariance_schaferstrimmer(residuals, residuals_mean, residuals_std):
+@njit(parallel=True, fastmath=True, error_model="numpy")
+def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np.ndarray, residuals_std: np.ndarray):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
         ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
@@ -931,17 +932,17 @@ def _shrunk_covariance_schaferstrimmer(residuals, residuals_mean, residuals_std)
     emp_cov = np.zeros((n_timeseries, n_timeseries), dtype=np.float64)
     sum_var_emp_corr = np.float64(0.0)
     sum_sq_emp_corr = np.float64(-n_timeseries)
-    factor_emp_corr = n_samples / (n_samples - 1)
-    factor_var_emp_cor = n_samples / (n_samples - 1)**3
-    epsilon = 2e-8
-    for i in range(n_timeseries):
+    factor_emp_corr = np.float64(n_samples / (n_samples - 1))
+    factor_var_emp_cor = np.float64(n_samples / (n_samples - 1)**3)
+    epsilon = np.float64(2e-8)
+    for i in prange(n_timeseries):
         # Calculate standardized residuals
-        X_i = np.nan_to_num(residuals[i] - residuals_mean[i]) 
+        X_i = residuals[i] - residuals_mean[i]
         Xs_i = X_i / (residuals_std[i] + epsilon)
         Xs_i_mean = np.mean(Xs_i)
         for j in range(n_timeseries):
             # Calculate standardized residuals
-            X_j = np.nan_to_num(residuals[j] - residuals_mean[j]) 
+            X_j = residuals[j] - residuals_mean[j]
             Xs_j = X_j / (residuals_std[j] + epsilon)
             Xs_j_mean = np.mean(Xs_j)
             # Empirical covariance
@@ -955,10 +956,10 @@ def _shrunk_covariance_schaferstrimmer(residuals, residuals_mean, residuals_std)
             sum_sq_emp_corr += np.square(factor_emp_corr * w_mean)
 
     # Calculate shrinkage intensity 
-    shrinkage = max(min(sum_var_emp_corr / (sum_sq_emp_corr + epsilon), 1), 0)
+    shrinkage = max(min(sum_var_emp_corr / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
     # Calculate shrunk covariance estimate
     emp_cov_diag = np.diag(emp_cov)
-    W = (1 - shrinkage) * emp_cov + epsilon
+    W = (1.0 - shrinkage) * emp_cov + epsilon
 
     # Fill diagonal with original empirical covariance diagonal
     np.fill_diagonal(W, emp_cov_diag)
@@ -1075,7 +1076,7 @@ class MinTraceSparse(MinTrace):
 
         return P, W
 
-# %% ../nbs/methods.ipynb 53
+# %% ../nbs/methods.ipynb 52
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1109,7 +1110,7 @@ class OptimalCombination(MinTrace):
         super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
-# %% ../nbs/methods.ipynb 62
+# %% ../nbs/methods.ipynb 61
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -1141,7 +1142,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 63
+# %% ../nbs/methods.ipynb 62
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
