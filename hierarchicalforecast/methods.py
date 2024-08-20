@@ -256,7 +256,7 @@ class BottomUpSparse(BottomUp):
         return P, W
 
 # %% ../nbs/methods.ipynb 22
-def _get_child_nodes(S: np.ndarray, tags: Dict[str, np.ndarray]):
+def _get_child_nodes(S: Union[np.ndarray, sparse.csr_matrix], tags: Dict[str, np.ndarray]):
     if isinstance(S, sparse.spmatrix):
         S = S.toarray()
     level_names = list(tags.keys())
@@ -752,7 +752,7 @@ class MinTrace(HReconciler):
                 residuals_mean = np.nanmean(residuals, axis=0, dtype=np.float64)
                 residuals_std = np.maximum(np.nanstd(residuals, axis=0, dtype=np.float64), 1e-6)
                 safe_residuals = np.nan_to_num(residuals.T, copy=False)
-                W = _shrunk_covariance_schaferstrimmer(safe_residuals, residuals_mean, residuals_std)
+                W = _shrunk_covariance_schaferstrimmer(safe_residuals, residuals_mean, residuals_std, self.mint_shr_ridge)
                 UtW = Ut @ W
 
         else:
@@ -914,7 +914,7 @@ class MinTrace(HReconciler):
     __call__ = fit_predict
 
 @njit(parallel=True, fastmath=True, error_model="numpy")
-def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np.ndarray, residuals_std: np.ndarray):
+def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np.ndarray, residuals_std: np.ndarray, mint_shr_ridge: float):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
         ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
@@ -959,7 +959,7 @@ def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np
     shrinkage = max(min(sum_var_emp_corr / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
     # Calculate shrunk covariance estimate
     emp_cov_diag = np.diag(emp_cov)
-    W = (1.0 - shrinkage) * emp_cov + epsilon
+    W = (1.0 - shrinkage) * emp_cov + mint_shr_ridge
 
     # Fill diagonal with original empirical covariance diagonal
     np.fill_diagonal(W, emp_cov_diag)
