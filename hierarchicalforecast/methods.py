@@ -722,9 +722,6 @@ class MinTrace(HReconciler):
                 masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
                 covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
 
-                masked_resT = np.ma.array(residuals.T, mask=np.isnan(residuals.T))
-                covmT = np.ma.cov(masked_resT, allow_masked=True).data
-
                 tar = np.diag(np.diag(covm))
 
                 # Protections: constant's correlation set to 0
@@ -733,8 +730,8 @@ class MinTrace(HReconciler):
                 corm = np.nan_to_num(corm, nan=0.0)
                 xs = np.divide(residuals, residual_std, 
                                out=np.zeros_like(residuals), where=residual_std!=0)
+                
                 xs = xs[~np.isnan(xs).any(axis=1), :]
-
                 v = (1 / (n * (n - 1))) * (crossprod(xs ** 2) - (1 / n) * (crossprod(xs) ** 2))
                 np.fill_diagonal(v, 0)
 
@@ -747,6 +744,7 @@ class MinTrace(HReconciler):
 
                 # Protection: final ridge diagonal protection
                 W = (lmd * tar + (1 - lmd) * covm) + self.mint_shr_ridge
+
                 UtW = Ut @ W
             elif self.method == 'mint_shrink':
                 residuals_mean = np.nanmean(residuals, axis=0, dtype=np.float64)
@@ -754,7 +752,6 @@ class MinTrace(HReconciler):
                 safe_residuals = np.nan_to_num(residuals.T, copy=False)
                 W = _shrunk_covariance_schaferstrimmer(safe_residuals, residuals_mean, residuals_std, self.mint_shr_ridge)
                 UtW = Ut @ W
-
         else:
             raise ValueError(f'Unknown reconciliation method {self.method}')
 
@@ -931,7 +928,7 @@ def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np
     # empirical correlation matrix.
     emp_cov = np.zeros((n_timeseries, n_timeseries), dtype=np.float64)
     sum_var_emp_corr = np.float64(0.0)
-    sum_sq_emp_corr = np.float64(-n_timeseries)
+    sum_sq_emp_corr = np.float64(0.0)
     factor_emp_corr = np.float64(n_samples / (n_samples - 1))
     factor_var_emp_cor = np.float64(n_samples / (n_samples - 1)**3)
     epsilon = np.float64(2e-8)
@@ -940,20 +937,20 @@ def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np
         X_i = residuals[i] - residuals_mean[i]
         Xs_i = X_i / (residuals_std[i] + epsilon)
         Xs_i_mean = np.mean(Xs_i)
-        for j in range(n_timeseries):
+        for j in range(i + 1):
             # Calculate standardized residuals
             X_j = residuals[j] - residuals_mean[j]
-            Xs_j = X_j / (residuals_std[j] + epsilon)
-            Xs_j_mean = np.mean(Xs_j)
             # Empirical covariance
-            emp_cov[i, j] = factor_emp_corr * np.mean(X_i * X_j)
-            # Sum off-diagonal variance of empirical correlation
-            w = (Xs_i - Xs_i_mean) * (Xs_j - Xs_j_mean)
-            w_mean = np.mean(w)
-            sum_var_emp_corr += (i != j) * factor_var_emp_cor * np.sum(np.square(w - w_mean))
-            # Sum squared empirical correlation (off-diagonal correction made by initializing 
-            # with -n_timeseries, so (i != j) not necessary here)
-            sum_sq_emp_corr += np.square(factor_emp_corr * w_mean)
+            emp_cov[i, j] = emp_cov[j, i] = factor_emp_corr * np.mean(X_i * X_j)
+            if i != j:
+                Xs_j = X_j / (residuals_std[j] + epsilon)
+                Xs_j_mean = np.mean(Xs_j)
+                # Sum off-diagonal variance of empirical correlation
+                w = (Xs_i - Xs_i_mean) * (Xs_j - Xs_j_mean)
+                w_mean = np.mean(w)
+                sum_var_emp_corr += 2 * factor_var_emp_cor * np.sum(np.square(w - w_mean))
+                # Sum squared empirical correlation
+                sum_sq_emp_corr += 2 * np.square(factor_emp_corr * w_mean)
 
     # Calculate shrinkage intensity 
     shrinkage = max(min(sum_var_emp_corr / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
