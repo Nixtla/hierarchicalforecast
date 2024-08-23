@@ -1015,6 +1015,7 @@ def _shrunk_covariance_schaferstrimmer(Xs: np.ndarray, mint_shr_ridge: float):
     """
     n_timeseries = Xs.shape[0]
     n_samples = Xs.shape[1]
+    
     # We need the empirical covariance, the off-diagonal sum of the variance of 
     # the empirical correlation matrix and the off-diagonal sum of the squared 
     # empirical correlation matrix.
@@ -1024,13 +1025,13 @@ def _shrunk_covariance_schaferstrimmer(Xs: np.ndarray, mint_shr_ridge: float):
     factor_emp_corr = np.float64(n_samples / (n_samples - 1))
     factor_shrinkage = np.float64(1 / (n_samples * (n_samples - 1)))
     epsilon = np.float64(2e-8)
-
     for i in prange(n_timeseries):
-        # Calculate standardized residuals
+        # Mean of the standardized residuals
         Xs_i_mean = np.mean(Xs[i])
         for j in range(i + 1):
-            # Calculate standardized residuals
+            # Empirical covariance
             W[i, j] = factor_emp_corr * np.mean(Xs[i] * Xs[j])
+            # Off-diagonal sums
             if i != j:
                 Xs_j_mean = np.mean(Xs[j])
                 # Sum off-diagonal variance of empirical correlation
