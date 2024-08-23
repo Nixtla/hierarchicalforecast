@@ -747,10 +747,14 @@ class MinTrace(HReconciler):
 
                 UtW = Ut @ W
             elif self.method == 'mint_shrink':
-                residuals_mean = np.nanmean(residuals, axis=0, dtype=np.float64)
-                residuals_std = np.maximum(np.nanstd(residuals, axis=0, dtype=np.float64), 1e-6)
+                # Compute variance of the residuals
+                residuals_mean = np.nanmean(residuals, axis=0, dtype=np.float64, keepdims=True).T
+                residuals_std = np.maximum(np.nanstd(residuals, axis=0, dtype=np.float64, keepdims=True), 1e-6).T
                 safe_residuals = np.nan_to_num(residuals.T, copy=False)
-                W = _shrunk_covariance_schaferstrimmer(safe_residuals, residuals_mean, residuals_std, self.mint_shr_ridge)
+                Xs = (safe_residuals - residuals_mean) / (residuals_std + 2e-8)
+                # Compute shrunk empirical covariance
+                W = _shrunk_covariance_schaferstrimmer(Xs, self.mint_shr_ridge)
+
                 UtW = Ut @ W
         else:
             raise ValueError(f'Unknown reconciliation method {self.method}')
@@ -759,15 +763,10 @@ class MinTrace(HReconciler):
             try:
                 L = np.linalg.cholesky(W)
             except np.linalg.LinAlgError:
-                if self.method == 'mint_shrink':
-                    try:
-                        eigenvalues, eigenvectors = np.linalg.eigh(W)
-                        eigenvalues[eigenvalues < 2e-8] = 2e-8
-                        W = eigenvectors * eigenvalues * eigenvectors.T
-                    except np.linalg.LinAlgError:
-                        raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
+                if self.method == "mint_shrink":
+                    raise Exception(f"min_trace ({self.method}) needs covariance matrix to be positive definite. \n You can try using method='mint_shrink_legacy' which may provide a positive definite result.")
                 else:
-                    raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
+                    raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite. \n Please use another reconciliation method.')
         else:
             eigenvalues = np.diag(W)
             if any(eigenvalues < 1e-8):
@@ -911,7 +910,7 @@ class MinTrace(HReconciler):
     __call__ = fit_predict
 
 @njit(parallel=True, fastmath=True, error_model="numpy")
-def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np.ndarray, residuals_std: np.ndarray, mint_shr_ridge: float):
+def _shrunk_covariance_schaferstrimmer(Xs: np.ndarray, mint_shr_ridge: float):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
         ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
@@ -921,45 +920,41 @@ def _shrunk_covariance_schaferstrimmer(residuals: np.ndarray, residuals_mean: np
 
     :meta private:
     """
-    n_timeseries = residuals.shape[0]
-    n_samples = residuals.shape[1]
+    n_timeseries = Xs.shape[0]
+    n_samples = Xs.shape[1]
     # We need the empirical covariance, the off-diagonal sum of the variance of 
     # the empirical correlation matrix and the off-diagonal sum of the squared 
     # empirical correlation matrix.
-    emp_cov = np.zeros((n_timeseries, n_timeseries), dtype=np.float64)
+    W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
     sum_var_emp_corr = np.float64(0.0)
     sum_sq_emp_corr = np.float64(0.0)
     factor_emp_corr = np.float64(n_samples / (n_samples - 1))
-    factor_var_emp_cor = np.float64(n_samples / (n_samples - 1)**3)
+    factor_shrinkage = np.float64(1 / (n_samples * (n_samples - 1)))
     epsilon = np.float64(2e-8)
+
     for i in prange(n_timeseries):
         # Calculate standardized residuals
-        X_i = residuals[i] - residuals_mean[i]
-        Xs_i = X_i / (residuals_std[i] + epsilon)
-        Xs_i_mean = np.mean(Xs_i)
+        Xs_i_mean = np.mean(Xs[i])
         for j in range(i + 1):
             # Calculate standardized residuals
-            X_j = residuals[j] - residuals_mean[j]
-            # Empirical covariance
-            emp_cov[i, j] = emp_cov[j, i] = factor_emp_corr * np.mean(X_i * X_j)
+            W[i, j] = factor_emp_corr * np.mean(Xs[i] * Xs[j])
             if i != j:
-                Xs_j = X_j / (residuals_std[j] + epsilon)
-                Xs_j_mean = np.mean(Xs_j)
+                Xs_j_mean = np.mean(Xs[j])
                 # Sum off-diagonal variance of empirical correlation
-                w = (Xs_i - Xs_i_mean) * (Xs_j - Xs_j_mean)
+                w = (Xs[i] - Xs_i_mean) * (Xs[j] - Xs_j_mean)
                 w_mean = np.mean(w)
-                sum_var_emp_corr += 2 * factor_var_emp_cor * np.sum(np.square(w - w_mean))
+                sum_var_emp_corr += np.sum(np.square(w - w_mean))
                 # Sum squared empirical correlation
-                sum_sq_emp_corr += 2 * np.square(factor_emp_corr * w_mean)
+                sum_sq_emp_corr += w_mean**2
 
     # Calculate shrinkage intensity 
-    shrinkage = max(min(sum_var_emp_corr / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
-    # Calculate shrunk covariance estimate
-    emp_cov_diag = np.diag(emp_cov)
-    W = (1.0 - shrinkage) * emp_cov + mint_shr_ridge
+    shrinkage = 1.0 - max(min((factor_shrinkage * sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
 
-    # Fill diagonal with original empirical covariance diagonal
-    np.fill_diagonal(W, emp_cov_diag)
+    # Shrink the empirical covariance
+    for i in prange(n_timeseries):
+        for j in range(i + 1):
+            if i != j:    
+                W[i, j] = W[j, i] = shrinkage * W[i, j] + mint_shr_ridge
 
     return W
 

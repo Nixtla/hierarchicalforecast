@@ -43,12 +43,12 @@ def _create_mint_inputs(n_bottom_timeseries):
 config_20 = _create_mint_inputs(20)
 config_200 = _create_mint_inputs(200)
 config_2000 = _create_mint_inputs(2000)
-config_20000 = _create_mint_inputs(20000)
+config_10000 = _create_mint_inputs(10000)
 
 configs = {20: config_20,
            200: config_200,
            2000: config_2000,
-           20000: config_20000}
+           10000: config_10000}
 
 @pytest.mark.parametrize("n_bottom_timeseries", [20, 200, 2000])
 def test_mint_legacy(benchmark, n_bottom_timeseries):
