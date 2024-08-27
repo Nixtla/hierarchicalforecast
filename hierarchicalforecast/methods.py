@@ -734,7 +734,7 @@ class MinTrace(HReconciler):
     $$
 
     **Parameters:**<br>
-    `method`: str, one of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`.<br>
+    `method`: str, one of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_shrink_legacy`, `mint_cov`.<br>
     `nonnegative`: bool, reconciled forecasts should be nonnegative?<br>
     `mint_shr_ridge`: float=2e-8, ridge numeric protection to MinTrace-shr covariance estimator.<br>
     `num_threads`: int=1, number of threads to use for solving the optimization problems (when nonnegative=True).
@@ -859,10 +859,7 @@ class MinTrace(HReconciler):
             try:
                 L = np.linalg.cholesky(W)
             except np.linalg.LinAlgError:
-                if self.method == "mint_shrink":
-                    raise Exception(f"min_trace ({self.method}) needs covariance matrix to be positive definite. \n You can try using method='mint_shrink_legacy' which may provide a positive definite result.")
-                else:
-                    raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite. \n Please use another reconciliation method.')
+                raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite. \n Please use another reconciliation method.')
         else:
             eigenvalues = np.diag(W)
             if any(eigenvalues < 1e-8):
