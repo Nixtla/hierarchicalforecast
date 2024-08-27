@@ -40,26 +40,25 @@ def _create_mint_inputs(n_bottom_timeseries):
 
     return S, y_hat, y_insample, y_hat_insample, idx_bottom
 
-config_20 = _create_mint_inputs(20)
-config_200 = _create_mint_inputs(200)
-config_2000 = _create_mint_inputs(2000)
-config_10000 = _create_mint_inputs(10000)
-
-configs = {20: config_20,
-           200: config_200,
-           2000: config_2000,
-           10000: config_10000}
-
-@pytest.mark.parametrize("n_bottom_timeseries", [20, 200, 2000])
-def test_mint_legacy(benchmark, n_bottom_timeseries):
+@pytest.mark.parametrize("n_bottom_timeseries", [20, 200])
+@pytest.mark.parametrize("with_nans", (True, False))
+def test_mint_legacy(benchmark, n_bottom_timeseries, with_nans):
     cls_min_trace_legacy = MinTrace(method='mint_shrink_legacy')
-    S, y_hat, y_insample, y_hat_insample, idx_bottom = configs[n_bottom_timeseries]
+    S, y_hat, y_insample, y_hat_insample, idx_bottom = _create_mint_inputs(n_bottom_timeseries)
+    if with_nans:
+        y_insample[-1, :-1] = np.nan
+        y_hat_insample[-1, :-1] = np.nan
+
     result_min_trace_legacy = benchmark(cls_min_trace_legacy, S=S, y_hat=y_hat, y_insample=y_insample, y_hat_insample=y_hat_insample, idx_bottom=idx_bottom)
 
 @pytest.mark.parametrize("n_bottom_timeseries", [20, 200, 2000])
-def test_mint(benchmark, n_bottom_timeseries):
+@pytest.mark.parametrize("with_nans", (True, False))
+def test_mint(benchmark, n_bottom_timeseries, with_nans):
     cls_min_trace = MinTrace(method='mint_shrink')
-    S, y_hat, y_insample, y_hat_insample, idx_bottom = configs[n_bottom_timeseries]
+    S, y_hat, y_insample, y_hat_insample, idx_bottom = _create_mint_inputs(n_bottom_timeseries)
+    if with_nans:
+        y_insample[-1, :-1] = np.nan
+        y_hat_insample[-1, :-1] = np.nan
     result_min_trace = benchmark(cls_min_trace, S=S, y_hat=y_hat, y_insample=y_insample, y_hat_insample=y_hat_insample, idx_bottom=idx_bottom)
 
     cls_min_trace_legacy = MinTrace(method='mint_shrink_legacy')
