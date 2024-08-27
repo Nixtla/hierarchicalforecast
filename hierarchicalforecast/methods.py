@@ -839,16 +839,19 @@ class MinTrace(HReconciler):
 
                 UtW = Ut @ W
             elif self.method == 'mint_shrink':
-                # Compute variance of the residuals
+                # Compute nans
                 nan_mask = np.isnan(residuals.T)
-                residuals_mean = np.nanmean(residuals, axis=0, dtype=np.float64, keepdims=True).T
-                residuals_std = np.maximum(np.nanstd(residuals, axis=0, dtype=np.float64, keepdims=True), 1e-6).T
-                safe_residuals = np.nan_to_num(residuals.T, copy=False)
-                Xs = (safe_residuals - residuals_mean) / (residuals_std + 2e-8)
                 # Compute shrunk empirical covariance
                 if np.any(nan_mask):
+                    residuals_mean = np.nanmean(residuals, axis=0, dtype=np.float64, keepdims=True).T
+                    residuals_std = np.maximum(np.nanstd(residuals, axis=0, dtype=np.float64, keepdims=True), 1e-6).T
+                    safe_residuals = np.nan_to_num(residuals.T, copy=False)
+                    Xs = (safe_residuals - residuals_mean) / (residuals_std + 2e-8)
                     W = _shrunk_covariance_schaferstrimmer_with_nans(Xs, ~nan_mask, self.mint_shr_ridge)
                 else:
+                    residuals_mean = np.mean(residuals, axis=0, dtype=np.float64, keepdims=True).T
+                    residuals_std = np.maximum(np.std(residuals, axis=0, dtype=np.float64, keepdims=True), 1e-6).T
+                    Xs = (residuals.T - residuals_mean) / (residuals_std + 2e-8)
                     W = _shrunk_covariance_schaferstrimmer_no_nans(Xs, self.mint_shr_ridge)
 
                 UtW = Ut @ W
