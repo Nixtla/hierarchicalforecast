@@ -734,7 +734,7 @@ class MinTrace(HReconciler):
     $$
 
     **Parameters:**<br>
-    `method`: str, one of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_shrink_legacy`, `mint_cov`.<br>
+    `method`: str, one of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`.<br>
     `nonnegative`: bool, reconciled forecasts should be nonnegative?<br>
     `mint_shr_ridge`: float=2e-8, ridge numeric protection to MinTrace-shr covariance estimator.<br>
     `num_threads`: int=1, number of threads to use for solving the optimization problems (when nonnegative=True).
@@ -754,8 +754,8 @@ class MinTrace(HReconciler):
                  num_threads: int = 1):
         self.method = method
         self.nonnegative = nonnegative
-        self.insample = method in ['wls_var', 'mint_cov', 'mint_shrink', 'mint_shrink_legacy']
-        if method in ('mint_shrink', 'mint_shrink_legacy'):
+        self.insample = method in ['wls_var', 'mint_cov', 'mint_shrink']
+        if method in ('mint_shrink'):
             self.mint_shr_ridge = mint_shr_ridge
         self.num_threads = num_threads
         if not self.nonnegative and self.num_threads > 1:
@@ -768,7 +768,7 @@ class MinTrace(HReconciler):
                   y_hat_insample: Optional[np.ndarray] = None,
                   idx_bottom: Optional[List[int]] = None,):
         # shape residuals_insample (n_hiers, obs)
-        res_methods = ['wls_var', 'mint_cov', 'mint_shrink', 'mint_shrink_legacy']
+        res_methods = ['wls_var', 'mint_cov', 'mint_shrink']
         diag_only_methods = ['ols', 'wls_struct', 'wls_var']
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
             raise ValueError(f"For methods {', '.join(res_methods)} you need to pass residuals")
@@ -805,37 +805,6 @@ class MinTrace(HReconciler):
                 masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
                 covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
                 W = covm
-                UtW = Ut @ W
-
-            elif self.method == 'mint_shrink_legacy':
-                # Schäfer and Strimmer 2005, scale invariant shrinkage
-
-                # Protection: cases where data is unavailable/nan
-                masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
-                covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
-                tar = np.diag(np.diag(covm))
-
-                # Protections: constant's correlation set to 0
-                # standardized residuals 0 where residual_std=0
-                corm, residual_std = cov2corr(covm, return_std=True)
-                corm = np.nan_to_num(corm, nan=0.0)
-                xs = np.divide(residuals, residual_std, 
-                               out=np.zeros_like(residuals), where=residual_std!=0)
-
-                xs = xs[~np.isnan(xs).any(axis=1), :]
-                v = (1 / (n * (n - 1))) * (crossprod(xs ** 2) - (1 / n) * (crossprod(xs) ** 2))
-                np.fill_diagonal(v, 0)
-
-                # Protection: constant's correlation set to 0
-                corapn = cov2corr(tar)
-                corapn = np.nan_to_num(corapn, nan=0.0)
-                d = (corm - corapn) ** 2
-                lmd = v.sum() / d.sum()
-                lmd = max(min(lmd, 1), 0)
-
-                # Protection: final ridge diagonal protection
-                W = (lmd * tar + (1 - lmd) * covm) + self.mint_shr_ridge
-
                 UtW = Ut @ W
             elif self.method == 'mint_shrink':
                 # Compute nans
@@ -1106,7 +1075,6 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
                     sum_sq_emp_corr += np.square(factor_emp_cov * n_samples * w_mean)
 
     # Calculate shrinkage intensity 
-    # print(sum_var_emp_corr)
     shrinkage = 1.0 - max(min((sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
 
     # Shrink the empirical covariance
