@@ -755,7 +755,7 @@ class MinTrace(HReconciler):
         self.method = method
         self.nonnegative = nonnegative
         self.insample = method in ['wls_var', 'mint_cov', 'mint_shrink']
-        if method in ('mint_shrink'):
+        if method == 'mint_shrink':
             self.mint_shr_ridge = mint_shr_ridge
         self.num_threads = num_threads
         if not self.nonnegative and self.num_threads > 1:
