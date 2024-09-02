@@ -813,7 +813,6 @@ class MinTrace(HReconciler):
                 # Protection: cases where data is unavailable/nan
                 masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
                 covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
-
                 tar = np.diag(np.diag(covm))
 
                 # Protections: constant's correlation set to 0
@@ -822,7 +821,7 @@ class MinTrace(HReconciler):
                 corm = np.nan_to_num(corm, nan=0.0)
                 xs = np.divide(residuals, residual_std, 
                                out=np.zeros_like(residuals), where=residual_std!=0)
-                
+
                 xs = xs[~np.isnan(xs).any(axis=1), :]
                 v = (1 / (n * (n - 1))) * (crossprod(xs ** 2) - (1 / n) * (crossprod(xs) ** 2))
                 np.fill_diagonal(v, 0)
@@ -1018,7 +1017,7 @@ def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_r
     W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
     sum_var_emp_corr = np.float64(0.0)
     sum_sq_emp_corr = np.float64(0.0)
-    factor_emp_cov = np.float64(n_samples / (n_samples - 1))
+    factor_emp_cov = np.float64(1 / (n_samples - 1))
     factor_shrinkage = np.float64(1 / (n_samples * (n_samples - 1)))
     epsilon = np.float64(2e-8)
     for i in prange(n_timeseries):
@@ -1049,7 +1048,7 @@ def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_r
             if i != j:    
                 W[i, j] = W[j, i] = shrinkage * W[i, j] + mint_shr_ridge
             else:
-                W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
+                W[i, j] = W[j, i] = W[i, j] + mint_shr_ridge
     return W
 
 @njit(parallel=True, fastmath=True, error_model="numpy")
@@ -1073,21 +1072,22 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
     sum_sq_emp_corr = np.float64(0.0)
     epsilon = np.float64(2e-8)
     for i in prange(n_timeseries):
-        # Mean of the standardized residuals
         not_nan_mask_i = not_nan_mask[i]
         for j in range(i + 1):
             not_nan_mask_j = not_nan_mask[j]
-            # Empirical covariance
             not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j   
             n_samples = np.sum(not_nan_mask_ij)
+            # Only compute if we have enough non-nan samples in the time series pair
             if n_samples > 1:
+                # Masked residuals
                 residuals_i = residuals[i][not_nan_mask_ij]
                 residuals_j = residuals[j][not_nan_mask_ij]
                 residuals_i_mean = np.mean(residuals_i)
                 residuals_j_mean = np.mean(residuals_j)
                 X_i = (residuals_i - residuals_i_mean)
                 X_j = (residuals_j - residuals_j_mean)
-                factor_emp_cov = np.float64(n_samples / (n_samples - 1))
+                # Empirical covariance
+                factor_emp_cov = np.float64(1 / (n_samples - 1))
                 W[i, j] = factor_emp_cov * np.mean(X_i * X_j)
                 # Off-diagonal sums
                 if i != j:
@@ -1103,9 +1103,10 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
                     w_mean = np.mean(w)
                     sum_var_emp_corr += factor_var_emp_cor * np.sum(np.square(w - w_mean))
                     # Sum squared empirical correlation
-                    sum_sq_emp_corr += np.square(factor_emp_cov * w_mean)
+                    sum_sq_emp_corr += np.square(factor_emp_cov * n_samples * w_mean)
 
     # Calculate shrinkage intensity 
+    # print(sum_var_emp_corr)
     shrinkage = 1.0 - max(min((sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
 
     # Shrink the empirical covariance
@@ -1114,7 +1115,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
             if i != j:    
                 W[i, j] = W[j, i] = shrinkage * W[i, j] + mint_shr_ridge
             else:
-                W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
+                W[i, j] = W[j, i] = W[i, j] + mint_shr_ridge
 
     return W
 
