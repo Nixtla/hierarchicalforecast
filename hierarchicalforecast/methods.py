@@ -1087,7 +1087,7 @@ class MinTraceSparse(MinTrace):
                 (b.size, b.size), matvec=lambda v: R @ (S @ v)
             )
 
-            x_tilde, exit_code = sparse.linalg.bicgstab(A, b, atol="legacy")
+            x_tilde, exit_code = sparse.linalg.bicgstab(A, b)
 
             return x_tilde
 
