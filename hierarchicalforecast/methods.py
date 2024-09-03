@@ -1024,11 +1024,6 @@ class MinTraceSparse(MinTrace):
                 "Only the methods with diagonal W are supported as sparse operations"
             )
 
-        if self.nonnegative:
-            raise NotImplementedError(
-                "Non-negative MinT is currently not implemented as sparse"
-            )
-
         S = sparse.csr_matrix(S)
 
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
@@ -1111,7 +1106,7 @@ class MinTraceSparse(MinTrace):
             idx_bottom: Optional[np.ndarray] = None):
         # Clip the base forecasts if required to align them with their use in practice.
         if self.nonnegative:
-            self.y_hat = np.clip(y_hat, 0)
+            self.y_hat = np.clip(y_hat, 0, None)
         else:
             self.y_hat = y_hat
         # Get the reconciliation matrices.
@@ -1136,7 +1131,7 @@ class MinTraceSparse(MinTrace):
             # Find if any of the forecasts are negative.
             if np.any(y_tilde < 0):
                 # Clip the negative forecasts.
-                y_tilde = np.clip(y_tilde, 0)
+                y_tilde = np.clip(y_tilde, 0, None)
                 # Force non-negative coherence by overwriting the base forecasts with 
                 # the aggregated, clipped bottom level forecasts.
                 self.y_hat = S @ y_tilde
@@ -1163,7 +1158,7 @@ class MinTraceSparse(MinTrace):
         self.fitted = True
         return self
 
-# %% ../nbs/methods.ipynb 55
+# %% ../nbs/methods.ipynb 56
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1197,7 +1192,7 @@ class OptimalCombination(MinTrace):
         super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
-# %% ../nbs/methods.ipynb 64
+# %% ../nbs/methods.ipynb 65
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -1229,7 +1224,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 65
+# %% ../nbs/methods.ipynb 66
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
