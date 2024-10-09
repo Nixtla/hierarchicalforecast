@@ -215,11 +215,19 @@ def aggregate(
     bottom = spec[-1]
     aggs = []
     tags = {}
+    # Prepare the aggregation dictionary
+    agg_dict = {
+        "y": ("y", "sum")
+    }
+
+    # Add exog_vars to the aggregation dictionary if it is not None
+    if exog_vars is not None:
+        agg_dict.update({key: (key, exog_vars[key]) for key in exog_vars.keys()})
+
+    # Perform the aggregation
+    
     for levels in spec:
-        agg = df.groupby(levels + ['ds'], observed=True).agg(
-            y = ("y", "sum"),
-            **{key: (key, exog_vars[key]) for key in exog_vars.keys()}  # Adding exog_vars as named aggregations
-        )
+        agg = df.groupby(levels + ['ds'], observed=True).agg(**agg_dict)
         if not agg.index.is_monotonic_increasing:
             agg = agg.sort_index()
         agg = agg.reset_index('ds')
