@@ -154,6 +154,7 @@ def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
 def aggregate(
     df: pd.DataFrame,
     spec: List[List[str]],
+    exog_vars: Dict[str, str] = None,
     is_balanced: bool = False,
     sparse_s: bool = False,
 ):
@@ -167,6 +168,9 @@ def aggregate(
         Dataframe with columns `['ds', 'y']` and columns to aggregate.
     spec : list of list of str
         List of levels. Each element of the list should contain a list of columns of `df` to aggregate.
+    exog_vars: dictionary of string keys & values
+        keys correspond to column names and the values represent the aggregation that will be applied to each column. Accepted values are those from Pandas aggregation Functions e.g. sum, np.mean etc.
+        acceptable_aggregations = {'sum', 'mean', 'median', 'min', 'max', 'count', 'std', 'var', 'first', 'last'}
     is_balanced : bool (default=False)
         Deprecated.
     sparse_s : bool (default=False)
@@ -190,6 +194,21 @@ def aggregate(
             "Don't set this argument to suppress this warning.",
             category=DeprecationWarning,
         )
+    
+    # Define acceptable aggregation functions
+    acceptable_aggregations = {
+        'sum', 'mean', 'median', 'min', 'max', 'count', 'std', 'var', 'first', 'last'
+    }    
+    # Check if exog_vars are present in df
+    if exog_vars is not None:
+        missing_vars = [var for var in exog_vars.keys() if var not in df.columns]
+        if missing_vars:
+            raise ValueError(f"The following exogenous variables are not present in the DataFrame: {', '.join(missing_vars)}")
+      
+        # Check if the aggregation functions are acceptable
+        invalid_aggregations = [agg for agg in exog_vars.values() if agg not in acceptable_aggregations]
+        if invalid_aggregations:
+            raise ValueError(f"The following aggregation functions are not acceptable: {', '.join(invalid_aggregations)}")       
             
     # compute aggregations and tags
     spec = sorted(spec, key=len)
@@ -197,7 +216,10 @@ def aggregate(
     aggs = []
     tags = {}
     for levels in spec:
-        agg = df.groupby(levels + ['ds'], observed=True)['y'].sum()
+        agg = df.groupby(levels + ['ds'], observed=True).agg(
+            y = ("y", "sum"),
+            **{key: (key, exog_vars[key]) for key in exog_vars.keys()}  # Adding exog_vars as named aggregations
+        )
         if not agg.index.is_monotonic_increasing:
             agg = agg.sort_index()
         agg = agg.reset_index('ds')
