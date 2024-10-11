@@ -223,7 +223,6 @@ def aggregate(
                     agg_dict[f"{key}_{agg_func}"] = (key, agg_func)
 
     # Perform the aggregation
-    
     for levels in spec:
         agg = df.groupby(levels + ['ds'], observed=True).agg(**agg_dict)
         if not agg.index.is_monotonic_increasing:
