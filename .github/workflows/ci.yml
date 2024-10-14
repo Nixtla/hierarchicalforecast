@@ -34,7 +34,7 @@ jobs:
           cache-environment: true
 
       - name: Install pip requirements
-        run: pip install ./
+        run: pip install uv && uv pip install --system ".[dev]"
 
       - name: Run tests
         run: nbdev_test --do_print --timing --n_workers 0
