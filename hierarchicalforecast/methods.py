@@ -970,7 +970,7 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-@njit(parallel=True, fastmath=True, error_model="numpy")
+@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
 def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
     """Masked empirical covariance matrix.
 
@@ -995,11 +995,11 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
                 X_j = (residuals_j - residuals_j_mean)
                 # Empirical covariance
                 factor_emp_cov = np.float64(1 / (n_samples - 1))
-                W[i, j] = W[j, i] = factor_emp_cov * np.mean(X_i * X_j)
+                W[i, j] = W[j, i] = factor_emp_cov * np.sum(X_i * X_j)
 
     return W    
 
-@njit(parallel=True, fastmath=True, error_model="numpy")
+@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
 def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_ridge: float):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
@@ -1030,7 +1030,7 @@ def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_r
         for j in range(i + 1):
             # Empirical covariance
             X_j = residuals[j] - np.mean(residuals[j])
-            W[i, j] = factor_emp_cov * np.mean(X_i * X_j)
+            W[i, j] = factor_emp_cov * np.sum(X_i * X_j)
             # Off-diagonal sums
             if i != j:
                 Xs_j = X_j / (np.std(residuals[j]) + epsilon)
@@ -1053,7 +1053,7 @@ def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_r
                 W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
     return W
 
-@njit(parallel=True, fastmath=True, error_model="numpy")
+@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
 def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_mask: np.ndarray, mint_shr_ridge: float):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
@@ -1090,7 +1090,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
                 X_j = (residuals_j - residuals_j_mean)
                 # Empirical covariance
                 factor_emp_cov = np.float64(1 / (n_samples - 1))
-                W[i, j] = factor_emp_cov * np.mean(X_i * X_j)
+                W[i, j] = factor_emp_cov * np.sum(X_i * X_j)
                 # Off-diagonal sums
                 if i != j:
                     factor_var_emp_cor = np.float64(n_samples / (n_samples - 1)**3)
