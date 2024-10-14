@@ -528,4 +528,4 @@ def samples_to_quantiles_df(samples: np.ndarray,
     df = pd.DataFrame(data=forecasts_quantiles, 
                       columns=col_names)
     
-    return quantiles, pd.concat([data,df], axis=1).set_index('unique_id')
+    return _quantiles, pd.concat([data,df], axis=1).set_index('unique_id')
