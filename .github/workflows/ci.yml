@@ -34,6 +34,7 @@ jobs:
           create-args: python=${{ matrix.python-version }}
           cache-environment: true
 
+      # https://github.com/mamba-org/mamba/issues/3467
       - name: Set up environment Windows
         if: matrix.os == 'windows-latest'
         uses: mamba-org/setup-micromamba@v1
