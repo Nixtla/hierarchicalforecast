@@ -5,7 +5,7 @@ __all__ = ['Normality']
 
 # %% ../nbs/probabilistic_methods.ipynb 3
 import warnings
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 from scipy.stats import norm
@@ -251,7 +251,7 @@ class PERMBU:
                  y_insample: np.ndarray,
                  y_hat_insample: np.ndarray,
                  sigmah: np.ndarray,
-                 num_samples: int,
+                 num_samples: Optional[int] = None,
                  seed: int=0,
                  P: np.ndarray = None):
         # PERMBU only works for strictly hierarchical structures
@@ -339,7 +339,7 @@ class PERMBU:
     def _nonzero_indexes_by_row(self, M):
         return [np.nonzero(M[row,:])[0] for row in range(len(M))]
 
-    def get_samples(self, num_samples: int):
+    def get_samples(self, num_samples: Optional[int] = None):
         """PERMBU Sample Reconciliation Method.
 
         Applies PERMBU reconciliation method as defined by Taieb et. al 2017.
@@ -357,6 +357,10 @@ class PERMBU:
         residuals = self.y_insample - self.y_hat_insample
         residuals = residuals[:, np.isnan(residuals).sum(axis=0) == 0]
 
+        # Sample h step-ahead base marginal distributions
+        if num_samples is None:
+            num_samples = residuals.shape[1]
+
         # Expand residuals to match num_samples [(a,b),T] -> [(a,b),num_samples]
         if num_samples > residuals.shape[1]:
             residuals_idxs = np.random.choice(residuals.shape[1], size=num_samples)
@@ -365,10 +369,6 @@ class PERMBU:
                                               replace=False)
         residuals = residuals[:,residuals_idxs]
         rank_permutations = self._obtain_ranks(residuals)
-
-        # Sample h step-ahead base marginal distributions
-        if num_samples is None:
-            num_samples = residuals.shape[1]
 
         state = np.random.RandomState(self.seed)
         n_series, n_horizon = self.y_hat.shape
