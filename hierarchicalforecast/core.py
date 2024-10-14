@@ -302,7 +302,7 @@ class HierarchicalReconciliation:
                                                      y_hat=reconciler_args['y_hat'], level=level)
                 else:
                     # Memory efficient reconciler's fit_predict
-                    fcsts_model = reconciler.fit_predict(**kwargs, level=level)
+                    fcsts_model = reconciler(**kwargs, level=level)
 
                 # Parse final outputs
                 Y_tilde_df[recmodel_name] = fcsts_model['mean'].flatten()

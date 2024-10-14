@@ -138,7 +138,9 @@ class HReconciler:
         *args,
         **kwargs):
 
-        raise NotImplementedError("This method is not implemented yet.")    
+        raise NotImplementedError("This method is not implemented yet.")  
+
+    __call__ = fit_predict      
 
 # %% ../nbs/methods.ipynb 8
 class BottomUp(HReconciler):
