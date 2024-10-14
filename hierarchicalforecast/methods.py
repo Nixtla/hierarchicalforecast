@@ -24,6 +24,7 @@ from .probabilistic_methods import Normality, Bootstrap, PERMBU
 class HReconciler:
     fitted = False
     is_sparse_method = False
+    insample = False
     P = None
     sampler = None
 
@@ -126,6 +127,18 @@ class HReconciler:
 
         samples = self.sampler.get_samples(num_samples=num_samples)
         return samples
+    
+    def fit(self,
+        *args,
+        **kwargs):
+
+        raise NotImplementedError("This method is not implemented yet.")
+    
+    def fit_predict(self,
+        *args,
+        **kwargs):
+
+        raise NotImplementedError("This method is not implemented yet.")    
 
 # %% ../nbs/methods.ipynb 8
 class BottomUp(HReconciler):
