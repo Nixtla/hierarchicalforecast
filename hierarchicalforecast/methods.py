@@ -1228,7 +1228,7 @@ class MinTraceSparse(MinTrace):
             intervals_method: Optional[str] = None,
             num_samples: Optional[int] = None,
             seed: Optional[int] = None,            
-            tags: Dict[str, np.ndarray] = None,
+            tags: Optional[Dict[str, np.ndarray]] = None,
             idx_bottom: Optional[np.ndarray] = None):
         # Clip the base forecasts if required to align them with their use in practice.
         if self.nonnegative:
