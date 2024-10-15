@@ -9,6 +9,7 @@ import timeit
 import warnings
 from itertools import chain
 from typing import Callable, Dict, List, Optional, Iterable
+from collections.abc import Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -476,7 +477,7 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(samples: np.ndarray, 
-                            unique_ids: List[str], 
+                            unique_ids: Sequence[str], 
                             dates: List[str], 
                             quantiles: Optional[List[float]] = None,
                             level: Optional[List[int]] = None, 
