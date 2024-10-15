@@ -811,9 +811,7 @@ class MinTrace(HReconciler):
             Wdiag = np.sum(S, axis=1, dtype=np.float64)
             UtW = Ut * Wdiag
             W = np.diag(Wdiag)
-        elif self.method in res_methods and y_insample is not None and y_hat_insample is not None:
-            if y_insample is None and y_hat_insample is None:
-                raise ValueError(f"For methods {', '.join(res_methods)} you need to pass residuals")            
+        elif self.method in res_methods and y_insample is not None and y_hat_insample is not None:         
             # Residuals with shape (obs, n_hiers)
             residuals = (y_insample - y_hat_insample).T
             n, _ = residuals.shape
