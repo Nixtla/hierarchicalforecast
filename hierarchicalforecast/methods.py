@@ -796,7 +796,6 @@ class MinTrace(HReconciler):
                   idx_bottom: Optional[List[int]] = None,):
         # shape residuals_insample (n_hiers, obs)
         res_methods = ['wls_var', 'mint_cov', 'mint_shrink']
-        diag_only_methods = ['ols', 'wls_struct', 'wls_var']
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
             raise ValueError(f"For methods {', '.join(res_methods)} you need to pass residuals")
         n_hiers, n_bottom = S.shape
@@ -909,7 +908,7 @@ class MinTrace(HReconciler):
             a = S.T @ W_inv
             G = a @ S
             try:
-                L = np.linalg.cholesky(G)
+                _ = np.linalg.cholesky(G)
             except np.linalg.LinAlgError:
                 raise Exception(f"min_trace ({self.method}) is ill-conditioned. Try setting nonnegative=False or use another reconciliation method.")            
             C = np.eye(n_bottom)
