@@ -72,7 +72,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### Normality.get_samples
 
 > ``` text
->  Normality.get_samples (num_samples:int=None)
+>  Normality.get_samples (num_samples:int)
 > ```
 
 \*Normality Coherent Samples.
@@ -145,7 +145,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### Bootstrap.get_samples
 
 > ``` text
->  Bootstrap.get_samples (num_samples:int=None)
+>  Bootstrap.get_samples (num_samples:int)
 > ```
 
 \*Bootstrap Sample Reconciliation Method.
@@ -174,7 +174,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  PERMBU (S:numpy.ndarray, tags:Dict[str,numpy.ndarray],
 >          y_hat:numpy.ndarray, y_insample:numpy.ndarray,
 >          y_hat_insample:numpy.ndarray, sigmah:numpy.ndarray,
->          num_samples:int=None, seed:int=0, P:numpy.ndarray=None)
+>          num_samples:Optional[int]=None, seed:int=0, P:numpy.ndarray=None)
 > ```
 
 \*PERMBU Probabilistic Reconciliation Class.
@@ -220,7 +220,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### PERMBU.get_samples
 
 > ``` text
->  PERMBU.get_samples (num_samples:int=None)
+>  PERMBU.get_samples (num_samples:Optional[int]=None)
 > ```
 
 \*PERMBU Sample Reconciliation Method.

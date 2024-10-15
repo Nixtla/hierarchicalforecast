@@ -22,13 +22,13 @@ method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br/
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L77"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L78"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### init
 
 > ``` text
->  init (reconcilers:List[Callable])
+>  init (reconcilers:List[hierarchicalforecast.methods.HReconciler])
 > ```
 
 \*Hierarchical Reconciliation Class.
@@ -55,13 +55,15 @@ Series”.](https://otexts.com/fpp3/hierarchical.html)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L77"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L78"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HierarchicalReconciliation
 
 > ``` text
->  HierarchicalReconciliation (reconcilers:List[Callable])
+>  HierarchicalReconciliation
+>                              (reconcilers:List[hierarchicalforecast.method
+>                              s.HReconciler])
 > ```
 
 \*Hierarchical Reconciliation Class.
@@ -88,7 +90,7 @@ Series”.](https://otexts.com/fpp3/hierarchical.html)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L181"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L182"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### reconcile
@@ -145,7 +147,7 @@ predictions.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L337"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L338"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### bootstrap_reconcile

@@ -96,7 +96,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### plot_series
 
 > ``` text
->  plot_series (series:str, Y_df:Optional[pandas.core.frame.DataFrame]=None,
+>  plot_series (series:str, Y_df:pandas.core.frame.DataFrame,
 >               models:Optional[List[str]]=None,
 >               level:Optional[List[int]]=None)
 > ```
@@ -124,8 +124,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 > ``` text
 >  plot_hierarchically_linked_series (bottom_series:str,
->                                     Y_df:Optional[pandas.core.frame.DataFr
->                                     ame]=None,
+>                                     Y_df:pandas.core.frame.DataFrame,
 >                                     models:Optional[List[str]]=None,
 >                                     level:Optional[List[int]]=None)
 > ```
@@ -155,8 +154,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  plot_hierarchical_predictions_gap (Y_df:pandas.core.frame.DataFrame,
 >                                     models:Optional[List[str]]=None,
->                                     xlabel:Optional=None,
->                                     ylabel:Optional=None)
+>                                     xlabel:Optional[str]=None,
+>                                     ylabel:Optional[str]=None)
 > ```
 
 \*Hierarchically Predictions Gap plot
@@ -215,10 +214,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### samples_to_quantiles_df
 
 > ``` text
->  samples_to_quantiles_df (samples:numpy.ndarray, unique_ids:Iterable[str],
->                           dates:Iterable,
->                           quantiles:Optional[Iterable[float]]=None,
->                           level:Optional[Iterable[int]]=None,
+>  samples_to_quantiles_df (samples:numpy.ndarray,
+>                           unique_ids:collections.abc.Sequence[str],
+>                           dates:List[str],
+>                           quantiles:Optional[List[float]]=None,
+>                           level:Optional[List[int]]=None,
 >                           model_name:Optional[str]='model')
 > ```
 
@@ -239,4 +239,13 @@ model.<br/>
 estimate from y distribution .<br/> `Y_hat_df`: pd.DataFrame. With base
 quantile forecasts with columns ds and models to reconcile indexed by
 unique_id.\*
+
+```python
+samples_to_quantiles_df(samples, unique_ids, dates, level=level)
+```
+
+
+```python
+samples_to_quantiles_df(samples, unique_ids, dates, quantiles=quantiles)
+```
 

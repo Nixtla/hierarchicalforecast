@@ -31,7 +31,7 @@ $\hat{\mathbf{y}}_{[a,b],\tau}$.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L236"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L253"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUpSparse
@@ -54,7 +54,7 @@ See the parent class for more details.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L129"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L146"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp
@@ -78,7 +78,7 @@ $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathr
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L154"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L171"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.fit
@@ -91,7 +91,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                sigmah:Optional[numpy.ndarray]=None,
 >                intervals_method:Optional[str]=None,
 >                num_samples:Optional[int]=None, seed:Optional[int]=None,
->                tags:Dict[str,numpy.ndarray]=None)
+>                tags:Optional[Dict[str,numpy.ndarray]]=None)
 > ```
 
 \*Bottom Up Fit Method.
@@ -109,7 +109,7 @@ sampler instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L83"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.predict
@@ -132,7 +132,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L194"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L211"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.fit_predict
@@ -147,7 +147,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        intervals_method:Optional[str]=None,
 >                        num_samples:Optional[int]=None,
 >                        seed:Optional[int]=None,
->                        tags:Dict[str,numpy.ndarray]=None)
+>                        tags:Optional[Dict[str,numpy.ndarray]]=None)
 > ```
 
 \*BottomUp Reconciliation Method.
@@ -166,7 +166,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L105"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.sample
@@ -193,7 +193,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L450"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L477"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDownSparse
@@ -213,7 +213,7 @@ See the parent class for more details.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L298"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L315"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown
@@ -244,18 +244,18 @@ doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L350"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L377"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.fit
 
 > ``` text
->  TopDown.fit (S, y_hat, y_insample:Optional[numpy.ndarray]=None,
+>  TopDown.fit (S, y_hat, y_insample:numpy.ndarray,
 >               y_hat_insample:Optional[numpy.ndarray]=None,
 >               sigmah:Optional[numpy.ndarray]=None,
 >               intervals_method:Optional[str]=None,
 >               num_samples:Optional[int]=None, seed:Optional[int]=None,
->               tags:Dict[str,numpy.ndarray]=None,
+>               tags:Optional[Dict[str,numpy.ndarray]]=None,
 >               idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -277,7 +277,7 @@ instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L83"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.predict
@@ -300,7 +300,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L393"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L420"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.fit_predict
@@ -337,7 +337,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L105"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.sample
@@ -364,7 +364,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L628"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L655"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOutSparse
@@ -384,7 +384,7 @@ See the parent class for more details.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L512"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L539"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut
@@ -413,7 +413,7 @@ Australia. OTexts.com/fpp3 Accessed on July
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L545"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L572"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut.fit_predict
@@ -442,7 +442,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1091"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1118"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTraceSparse
@@ -471,7 +471,7 @@ results to the non-sparse version.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L723"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L750"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace
@@ -515,7 +515,7 @@ https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L836"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L863"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.fit
@@ -526,7 +526,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                sigmah:Optional[numpy.ndarray]=None,
 >                intervals_method:Optional[str]=None,
 >                num_samples:Optional[int]=None, seed:Optional[int]=None,
->                tags:Dict[str,numpy.ndarray]=None,
+>                tags:Optional[Dict[str,numpy.ndarray]]=None,
 >                idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -548,7 +548,7 @@ instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L83"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.predict
@@ -571,7 +571,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L921"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L948"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.fit_predict
@@ -586,7 +586,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        intervals_method:Optional[str]=None,
 >                        num_samples:Optional[int]=None,
 >                        seed:Optional[int]=None,
->                        tags:Dict[str,numpy.ndarray]=None)
+>                        tags:Optional[Dict[str,numpy.ndarray]]=None)
 > ```
 
 \*MinTrace Reconciliation Method.
@@ -607,7 +607,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L105"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.sample
@@ -634,7 +634,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1201"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1228"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination
@@ -675,7 +675,7 @@ https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L836"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L863"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.fit
@@ -688,7 +688,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                          intervals_method:Optional[str]=None,
 >                          num_samples:Optional[int]=None,
 >                          seed:Optional[int]=None,
->                          tags:Dict[str,numpy.ndarray]=None,
+>                          tags:Optional[Dict[str,numpy.ndarray]]=None,
 >                          idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -710,7 +710,7 @@ instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L83"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.predict
@@ -733,7 +733,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L921"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L948"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.fit_predict
@@ -747,8 +747,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                  level:Optional[List[int]]=None,
 >                                  intervals_method:Optional[str]=None,
 >                                  num_samples:Optional[int]=None,
->                                  seed:Optional[int]=None,
->                                  tags:Dict[str,numpy.ndarray]=None)
+>                                  seed:Optional[int]=None, tags:Optional[Di
+>                                  ct[str,numpy.ndarray]]=None)
 > ```
 
 \*MinTrace Reconciliation Method.
@@ -769,7 +769,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L105"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.sample
@@ -796,7 +796,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1267"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1294"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM
@@ -835,7 +835,7 @@ Machinery.](https://doi.org/10.1145/3292500.3330976).<br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1341"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1368"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.fit
@@ -845,7 +845,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >           sigmah:Optional[numpy.ndarray]=None,
 >           intervals_method:Optional[str]=None,
 >           num_samples:Optional[int]=None, seed:Optional[int]=None,
->           tags:Dict[str,numpy.ndarray]=None,
+>           tags:Optional[Dict[str,numpy.ndarray]]=None,
 >           idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -866,7 +866,7 @@ intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L83"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.predict
@@ -889,7 +889,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1386"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1413"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.fit_predict
@@ -903,7 +903,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   level:Optional[List[int]]=None,
 >                   intervals_method:Optional[str]=None,
 >                   num_samples:Optional[int]=None, seed:Optional[int]=None,
->                   tags:Dict[str,numpy.ndarray]=None)
+>                   tags:Optional[Dict[str,numpy.ndarray]]=None)
 > ```
 
 \*ERM Reconciliation Method.
@@ -923,7 +923,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L105"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.sample
