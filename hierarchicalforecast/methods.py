@@ -9,7 +9,7 @@ import warnings
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 from numba import njit, prange
@@ -17,13 +17,16 @@ from quadprog import solve_qp
 from scipy import sparse
 
 # %% ../nbs/methods.ipynb 4
-from .utils import is_strictly_hierarchical, cov2corr
+from .utils import is_strictly_hierarchical
 from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
 # %% ../nbs/methods.ipynb 6
 class HReconciler:
     fitted = False
     is_sparse_method = False
+    insample = False
+    P = None
+    sampler = None
 
     def _get_sampler(self,
                      intervals_method,
@@ -64,7 +67,7 @@ class HReconciler:
                    y_hat: np.ndarray,
                    SP: np.ndarray = None,
                    level: Optional[List[int]] = None,
-                   sampler: Optional[Callable] = None):
+                   sampler: Optional[Union[Normality, PERMBU, Bootstrap]] = None):
 
         # Mean reconciliation
         res = {'mean': (S @ (P @ y_hat))}
@@ -124,6 +127,20 @@ class HReconciler:
 
         samples = self.sampler.get_samples(num_samples=num_samples)
         return samples
+    
+    def fit(self,
+        *args,
+        **kwargs):
+
+        raise NotImplementedError("This method is not implemented yet.")
+    
+    def fit_predict(self,
+        *args,
+        **kwargs):
+
+        raise NotImplementedError("This method is not implemented yet.")  
+
+    __call__ = fit_predict      
 
 # %% ../nbs/methods.ipynb 8
 class BottomUp(HReconciler):
@@ -161,7 +178,7 @@ class BottomUp(HReconciler):
             intervals_method: Optional[str] = None,
             num_samples: Optional[int] = None,
             seed: Optional[int] = None,            
-            tags: Dict[str, np.ndarray] = None):
+            tags: Optional[Dict[str, np.ndarray]] = None):
         """Bottom Up Fit Method.
 
         **Parameters:**<br>
@@ -202,7 +219,7 @@ class BottomUp(HReconciler):
                     intervals_method: Optional[str] = None,
                     num_samples: Optional[int] = None,
                     seed: Optional[int] = None,
-                    tags: Dict[str, np.ndarray] = None):
+                    tags: Optional[Dict[str, np.ndarray]] = None):
         """BottomUp Reconciliation Method.
 
         **Parameters:**<br>
@@ -321,18 +338,28 @@ class TopDown(HReconciler):
     def _get_PW_matrices(self,
                          S: np.ndarray,
                          y_hat: np.ndarray,
-                         tags: Dict[str, np.ndarray],
-                         y_insample: Optional[np.ndarray] = None):
-        if not is_strictly_hierarchical(S, tags):
-            raise ValueError('Top down reconciliation requires strictly hierarchical structures.')
+                         y_insample: np.ndarray,
+                         tags: Optional[Dict[str, np.ndarray]] = None,
+                         ):
 
         n_hiers, n_bottom = S.shape
-        idx_top = int(S.sum(axis=1).argmax())
-        levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
-        idx_bottom = levels_[list(levels_)[-1]]
+
+        # Check if the data structure is strictly hierarchical.
+        if tags is not None:
+            if not is_strictly_hierarchical(S, tags):
+                raise ValueError(
+                    "Top-down reconciliation requires strictly hierarchical structures."
+                )
+            idx_top = int(S.sum(axis=1).argmax())
+            levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
+            idx_bottom = levels_[list(levels_)[-1]]
+            y_btm = y_insample[idx_bottom]
+        else:
+            idx_top = 0
+            y_btm = y_insample[(n_hiers - n_bottom):]
 
         y_top = y_insample[idx_top]
-        y_btm = y_insample[idx_bottom]
+
         if self.method == 'average_proportions':
             prop = np.mean(y_btm / y_top, axis=1)
         elif self.method == 'proportion_averages':
@@ -350,13 +377,13 @@ class TopDown(HReconciler):
     def fit(self, 
             S,
             y_hat,
-            y_insample: Optional[np.ndarray] = None,
+            y_insample: np.ndarray,
             y_hat_insample: Optional[np.ndarray] = None,
             sigmah: Optional[np.ndarray] = None,
             intervals_method: Optional[str] = None,
             num_samples: Optional[int] = None,
             seed: Optional[int] = None,            
-            tags: Dict[str, np.ndarray] = None,
+            tags: Optional[Dict[str, np.ndarray]] = None,
             idx_bottom: Optional[np.ndarray] = None):
         """TopDown Fit Method.
 
@@ -462,8 +489,8 @@ class TopDownSparse(TopDown):
         self,
         S: sparse.csr_matrix,
         y_hat: np.ndarray,
+        y_insample: np.ndarray,
         tags: Optional[Dict[str, np.ndarray]] = None,
-        y_insample: Optional[np.ndarray] = None,
     ):
         # Check if the data structure is strictly hierarchical.
         if tags is not None and not is_strictly_hierarchical(S, tags):
@@ -693,14 +720,14 @@ class MiddleOutSparse(MiddleOut):
                 # the subgraph.
                 sub_tags = {}
                 acc = 0
-                for level, nodes in levels.items():
+                for level_, nodes in levels.items():
                     # Find all the nodes in the subgraph for the level.
                     nodes = np.intersect1d(nodes, sub_idx, True)
                     # Get the number of nodes in the level.
                     n = len(nodes)
                     # Exclude any levels above the cut node or empty ones below.
                     if len(nodes) > 0:
-                        sub_tags[level] = np.arange(acc, n + acc)
+                        sub_tags[level_] = np.arange(acc, n + acc)
                         acc += n
 
             # Perform sparse top-down reconciliation from the cut node.
@@ -769,7 +796,6 @@ class MinTrace(HReconciler):
                   idx_bottom: Optional[List[int]] = None,):
         # shape residuals_insample (n_hiers, obs)
         res_methods = ['wls_var', 'mint_cov', 'mint_shrink']
-        diag_only_methods = ['ols', 'wls_struct', 'wls_var']
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
             raise ValueError(f"For methods {', '.join(res_methods)} you need to pass residuals")
         n_hiers, n_bottom = S.shape
@@ -784,7 +810,7 @@ class MinTrace(HReconciler):
             Wdiag = np.sum(S, axis=1, dtype=np.float64)
             UtW = Ut * Wdiag
             W = np.diag(Wdiag)
-        elif self.method in res_methods:
+        elif self.method in res_methods and y_insample is not None and y_hat_insample is not None:         
             # Residuals with shape (obs, n_hiers)
             residuals = (y_insample - y_hat_insample).T
             n, _ = residuals.shape
@@ -798,13 +824,17 @@ class MinTrace(HReconciler):
 
             if self.method == 'wls_var':
                 Wdiag = np.nansum(residuals**2, axis=0, dtype=np.float64) / residuals.shape[0]
+                Wdiag += np.full(n_hiers, 2e-8, dtype=np.float64)
                 W = np.diag(Wdiag)
                 UtW = Ut * Wdiag
             elif self.method == 'mint_cov':
-                # Protection: cases where data is unavailable/nan
-                masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
-                covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
-                W = covm
+                # Compute nans
+                nan_mask = np.isnan(residuals.T)
+                if np.any(nan_mask):
+                    W = _ma_cov(residuals.T, ~nan_mask)
+                else:
+                    W = np.cov(residuals.T)
+
                 UtW = Ut @ W
             elif self.method == 'mint_shrink':
                 # Compute nans
@@ -814,22 +844,18 @@ class MinTrace(HReconciler):
                     W = _shrunk_covariance_schaferstrimmer_with_nans(residuals.T, ~nan_mask, self.mint_shr_ridge)
                 else:
                     W = _shrunk_covariance_schaferstrimmer_no_nans(residuals.T, self.mint_shr_ridge)
-
+                
                 UtW = Ut @ W
         else:
             raise ValueError(f'Unknown reconciliation method {self.method}')
 
-        if self.method not in diag_only_methods:
-            try:
-                L = np.linalg.cholesky(W)
-            except np.linalg.LinAlgError:
-                raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite. \n Please use another reconciliation method.')
-        else:
-            eigenvalues = np.diag(W)
-            if any(eigenvalues < 1e-8):
-                raise Exception(f'min_trace ({self.method}) needs covariance matrix to be positive definite.')
-            
-        P = (J - np.linalg.solve(UtW[:, n_aggs:] @ Ut.T[n_aggs:] + UtW[:, :n_aggs], UtW[:, n_aggs:] @ J.T[n_aggs:]).T @ Ut)
+        try:
+            P = (J - np.linalg.solve(UtW[:, n_aggs:] @ Ut.T[n_aggs:] + UtW[:, :n_aggs], UtW[:, n_aggs:] @ J.T[n_aggs:]).T @ Ut)
+        except np.linalg.LinAlgError:
+            if self.method == "mint_shrink":
+                raise Exception(f"min_trace ({self.method}) is ill-conditioned. Increase the value of parameter 'mint_shr_ridge' or use another reconciliation method.")            
+            else:
+                raise Exception(f'min_trace ({self.method}) is ill-conditioned. Please use another reconciliation method.')
 
         return P, W
 
@@ -842,7 +868,7 @@ class MinTrace(HReconciler):
             intervals_method: Optional[str] = None,
             num_samples: Optional[int] = None,
             seed: Optional[int] = None,            
-            tags: Dict[str, np.ndarray] = None,
+            tags: Optional[Dict[str, np.ndarray]] = None,
             idx_bottom: Optional[np.ndarray] = None):
         """MinTrace Fit Method.
 
@@ -881,6 +907,10 @@ class MinTrace(HReconciler):
             # https://scaron.info/blog/quadratic-programming-in-python.html
             a = S.T @ W_inv
             G = a @ S
+            try:
+                _ = np.linalg.cholesky(G)
+            except np.linalg.LinAlgError:
+                raise Exception(f"min_trace ({self.method}) is ill-conditioned. Try setting nonnegative=False or use another reconciliation method.")            
             C = np.eye(n_bottom)
             b = np.zeros(n_bottom)
             # the quadratic programming problem
@@ -929,7 +959,7 @@ class MinTrace(HReconciler):
                     intervals_method: Optional[str] = None,
                     num_samples: Optional[int] = None,
                     seed: Optional[int] = None,                    
-                    tags: Dict[str, np.ndarray] = None):
+                    tags: Optional[Dict[str, np.ndarray]] = None):
         """MinTrace Reconciliation Method.
 
         **Parameters:**<br>
@@ -966,7 +996,36 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-@njit(parallel=True, fastmath=True, error_model="numpy")
+@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
+def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
+    """Masked empirical covariance matrix.
+
+    :meta private:
+    """
+    n_timeseries = residuals.shape[0]
+    W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
+    for i in prange(n_timeseries):
+        not_nan_mask_i = not_nan_mask[i]
+        for j in range(i + 1):
+            not_nan_mask_j = not_nan_mask[j]
+            not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j   
+            n_samples = np.sum(not_nan_mask_ij)
+            # Only compute if we have enough non-nan samples in the time series pair
+            if n_samples > 1:
+                # Masked residuals
+                residuals_i = residuals[i][not_nan_mask_ij]
+                residuals_j = residuals[j][not_nan_mask_ij]
+                residuals_i_mean = np.mean(residuals_i)
+                residuals_j_mean = np.mean(residuals_j)
+                X_i = (residuals_i - residuals_i_mean)
+                X_j = (residuals_j - residuals_j_mean)
+                # Empirical covariance
+                factor_emp_cov = np.float64(1 / (n_samples - 1))
+                W[i, j] = W[j, i] = factor_emp_cov * np.sum(X_i * X_j)
+
+    return W    
+
+@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
 def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_ridge: float):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
@@ -997,7 +1056,7 @@ def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_r
         for j in range(i + 1):
             # Empirical covariance
             X_j = residuals[j] - np.mean(residuals[j])
-            W[i, j] = factor_emp_cov * np.mean(X_i * X_j)
+            W[i, j] = factor_emp_cov * np.sum(X_i * X_j)
             # Off-diagonal sums
             if i != j:
                 Xs_j = X_j / (np.std(residuals[j]) + epsilon)
@@ -1015,12 +1074,12 @@ def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_r
     for i in prange(n_timeseries):
         for j in range(i + 1):
             if i != j:    
-                W[i, j] = W[j, i] = shrinkage * W[i, j] + mint_shr_ridge
+                W[i, j] = W[j, i] = shrinkage * W[i, j]
             else:
-                W[i, j] = W[j, i] = W[i, j] + mint_shr_ridge
+                W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
     return W
 
-@njit(parallel=True, fastmath=True, error_model="numpy")
+@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
 def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_mask: np.ndarray, mint_shr_ridge: float):
     """Shrink empirical covariance according to the following method:
         Schäfer, Juliane, and Korbinian Strimmer. 
@@ -1057,7 +1116,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
                 X_j = (residuals_j - residuals_j_mean)
                 # Empirical covariance
                 factor_emp_cov = np.float64(1 / (n_samples - 1))
-                W[i, j] = factor_emp_cov * np.mean(X_i * X_j)
+                W[i, j] = factor_emp_cov * np.sum(X_i * X_j)
                 # Off-diagonal sums
                 if i != j:
                     factor_var_emp_cor = np.float64(n_samples / (n_samples - 1)**3)
@@ -1081,9 +1140,9 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
     for i in prange(n_timeseries):
         for j in range(i + 1):
             if i != j:    
-                W[i, j] = W[j, i] = shrinkage * W[i, j] + mint_shr_ridge
+                W[i, j] = W[j, i] = shrinkage * W[i, j]
             else:
-                W[i, j] = W[j, i] = W[i, j] + mint_shr_ridge
+                W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
 
     return W
 
@@ -1123,11 +1182,6 @@ class MinTraceSparse(MinTrace):
                 "Only the methods with diagonal W are supported as sparse operations"
             )
 
-        if self.nonnegative:
-            raise NotImplementedError(
-                "Non-negative MinT is currently not implemented as sparse"
-            )
-
         S = sparse.csr_matrix(S)
 
         if self.method in res_methods and y_insample is None and y_hat_insample is None:
@@ -1140,7 +1194,7 @@ class MinTraceSparse(MinTrace):
             W_diag = np.ones(n_hiers)
         elif self.method == "wls_struct":
             W_diag = S @ np.ones((n_bottom,))
-        elif self.method == "wls_var":
+        elif self.method == "wls_var" and y_insample is not None and y_hat_insample is not None:
             # Residuals with shape (obs, n_hiers)
             residuals = (y_insample - y_hat_insample).T
             n, _ = residuals.shape
@@ -1186,7 +1240,7 @@ class MinTraceSparse(MinTrace):
                 (b.size, b.size), matvec=lambda v: R @ (S @ v)
             )
 
-            x_tilde, exit_code = sparse.linalg.bicgstab(A, b, atol="legacy")
+            x_tilde, exit_code = sparse.linalg.bicgstab(A, b, atol=1e-5)
 
             return x_tilde
 
@@ -1197,7 +1251,72 @@ class MinTraceSparse(MinTrace):
 
         return P, W
 
-# %% ../nbs/methods.ipynb 55
+    def fit(self,
+            S: sparse.csr_matrix,
+            y_hat: np.ndarray,
+            y_insample: Optional[np.ndarray] = None,
+            y_hat_insample: Optional[np.ndarray] = None,
+            sigmah: Optional[np.ndarray] = None,
+            intervals_method: Optional[str] = None,
+            num_samples: Optional[int] = None,
+            seed: Optional[int] = None,            
+            tags: Optional[Dict[str, np.ndarray]] = None,
+            idx_bottom: Optional[np.ndarray] = None):
+        # Clip the base forecasts if required to align them with their use in practice.
+        if self.nonnegative:
+            self.y_hat = np.clip(y_hat, 0, None)
+        else:
+            self.y_hat = y_hat
+        # Get the reconciliation matrices.
+        self.P, self.W = self._get_PW_matrices(
+            S=S, 
+            y_hat=self.y_hat, 
+            y_insample=y_insample, 
+            y_hat_insample=y_hat_insample, 
+            idx_bottom=idx_bottom,
+        )
+
+        if self.nonnegative:
+            # Get the number of leaf nodes.
+            _, n_bottom = S.shape
+            # Although it is now sufficient to ensure that all of the entries in P are 
+            # positive, as it is implemented as a linear operator for the iterative 
+            # method to solve the sparse linear system, we need to reconcile to find 
+            # if any of the coherent bottom level point forecasts are negative.
+            y_tilde = self._reconcile(
+                S=S, P=self.P, y_hat=self.y_hat, level=None, sampler=None
+            )["mean"][-n_bottom:]
+            # Find if any of the forecasts are negative.
+            if np.any(y_tilde < 0):
+                # Clip the negative forecasts.
+                y_tilde = np.clip(y_tilde, 0, None)
+                # Force non-negative coherence by overwriting the base forecasts with 
+                # the aggregated, clipped bottom level forecasts.
+                self.y_hat = S @ y_tilde
+                # Overwrite the attributes for the P and W matrices with those for 
+                # bottom-up reconciliation to force projection onto the non-negative 
+                # coherent subspace.
+                self.P, self.W = BottomUpSparse()._get_PW_matrices(S=S, idx_bottom=None)  
+
+        # Get the sampler for probabilistic reconciliation.
+        self.sampler = self._get_sampler(
+            S=S,
+            P=self.P,
+            W=self.W,
+            y_hat=self.y_hat,
+            y_insample=y_insample,
+            y_hat_insample=y_hat_insample,
+            sigmah=sigmah,
+            intervals_method=intervals_method,
+            num_samples=num_samples,
+            seed=seed,
+            tags=tags,
+        )
+        # Set the instance as fitted.
+        self.fitted = True
+        return self
+
+# %% ../nbs/methods.ipynb 56
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1231,7 +1350,7 @@ class OptimalCombination(MinTrace):
         super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
-# %% ../nbs/methods.ipynb 64
+# %% ../nbs/methods.ipynb 65
 @njit
 def lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
@@ -1263,7 +1382,7 @@ def lasso(X: np.ndarray, y: np.ndarray,
     #print(it)
     return beta
 
-# %% ../nbs/methods.ipynb 65
+# %% ../nbs/methods.ipynb 66
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
@@ -1347,7 +1466,7 @@ class ERM(HReconciler):
             intervals_method: Optional[str] = None,
             num_samples: Optional[int] = None,
             seed: Optional[int] = None,
-            tags: Dict[str, np.ndarray] = None,
+            tags: Optional[Dict[str, np.ndarray]] = None,
             idx_bottom: Optional[np.ndarray] = None):
         """ERM Fit Method.
 
@@ -1394,7 +1513,7 @@ class ERM(HReconciler):
                     intervals_method: Optional[str] = None,
                     num_samples: Optional[int] = None,
                     seed: Optional[int] = None,
-                    tags: Dict[str, np.ndarray] = None):
+                    tags: Optional[Dict[str, np.ndarray]] = None):
         """ERM Reconciliation Method.
 
         **Parameters:**<br>
