@@ -3,13 +3,12 @@
 # %% auto 0
 __all__ = ['aggregate', 'HierarchicalPlot']
 
-# %% ../nbs/utils.ipynb 3
+# %% ../nbs/utils.ipynb 4
 import sys
 import timeit
 import warnings
 from itertools import chain
-from typing import Callable, Dict, List, Optional, Iterable
-from collections.abc import Sequence
+from typing import Callable, Dict, List, Optional, Iterable, Union, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,7 +17,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 plt.rcParams['font.family'] = 'serif'
 
-# %% ../nbs/utils.ipynb 5
+# %% ../nbs/utils.ipynb 8
 class CodeTimer:
     def __init__(self, name=None, verbose=True):
         self.name = " '"  + name + "'" if name else ''
@@ -33,7 +32,7 @@ class CodeTimer:
             print('Code block' + self.name + \
                   ' took:\t{0:.5f}'.format(self.took) + ' seconds')
 
-# %% ../nbs/utils.ipynb 6
+# %% ../nbs/utils.ipynb 9
 def is_strictly_hierarchical(S: np.ndarray, 
                              tags: Dict[str, np.ndarray]):
     # main idea:
@@ -51,7 +50,7 @@ def is_strictly_hierarchical(S: np.ndarray,
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
-# %% ../nbs/utils.ipynb 7
+# %% ../nbs/utils.ipynb 10
 def cov2corr(cov, return_std=False):
     """ convert covariance matrix to correlation matrix
 
@@ -70,7 +69,7 @@ def cov2corr(cov, return_std=False):
     else:
         return corr
 
-# %% ../nbs/utils.ipynb 9
+# %% ../nbs/utils.ipynb 12
 def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
     """Transforms the DataFrame `df` of hierarchies to a summing matrix S."""
     categories = [S_df[col].unique() for col in S_df.columns]
@@ -94,7 +93,7 @@ def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
     tags = dict(zip(S_df.columns, categories))
     return S, tags
 
-# %% ../nbs/utils.ipynb 10
+# %% ../nbs/utils.ipynb 13
 def aggregate_before(df: pd.DataFrame,
               spec: List[List[str]],
               agg_fn: Callable = np.sum,
@@ -139,7 +138,7 @@ def aggregate_before(df: pd.DataFrame,
     S, tags = _to_summing_matrix(S_df.loc[bottom_hier, hiers_cols], sparse_s)
     return Y_df, S, tags
 
-# %% ../nbs/utils.ipynb 11
+# %% ../nbs/utils.ipynb 14
 def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
     upper_split = upper_key.split('/')
     upper_idxs = [bottom_split.index(i) for i in upper_split]
@@ -150,10 +149,11 @@ def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
 
     return [join_upper(val) for val in bottom_values]
 
-# %% ../nbs/utils.ipynb 12
+# %% ../nbs/utils.ipynb 15
 def aggregate(
     df: pd.DataFrame,
     spec: List[List[str]],
+    exog_vars: Optional[Dict[str, Union[str, List[str]]]] = None,
     is_balanced: bool = False,
     sparse_s: bool = False,
 ):
@@ -167,6 +167,8 @@ def aggregate(
         Dataframe with columns `['ds', 'y']` and columns to aggregate.
     spec : list of list of str
         List of levels. Each element of the list should contain a list of columns of `df` to aggregate.
+    exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
+        keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas aggregation Functions, check the Pandas docs for guidance
     is_balanced : bool (default=False)
         Deprecated.
     sparse_s : bool (default=False)
@@ -190,14 +192,39 @@ def aggregate(
             "Don't set this argument to suppress this warning.",
             category=DeprecationWarning,
         )
+         
             
     # compute aggregations and tags
     spec = sorted(spec, key=len)
     bottom = spec[-1]
     aggs = []
     tags = {}
+    # Prepare the aggregation dictionary
+    agg_dict = {
+        "y": ("y", "sum")
+    }
+
+
+    # Check if exog_vars are present in df & add to the aggregation dictionary if it is not None
+    if exog_vars is not None:
+        missing_vars = [var for var in exog_vars.keys() if var not in df.columns]
+        if missing_vars:
+            raise ValueError(f"The following exogenous variables are not present in the DataFrame: {', '.join(missing_vars)}")    
+        else:
+          # Update agg_dict to handle multiple aggregations for each exog_vars key
+            for key, agg_func in exog_vars.items():
+                # Ensure agg_func is a list
+                if isinstance(agg_func, str):  # If it's a single string, convert to list
+                    agg_func = [agg_func]
+                elif not isinstance(agg_func, list):  # Raise an error if it's neither
+                    raise ValueError(f"Aggregation functions for '{key}' must be a string or a list of strings.")
+                
+                for func in agg_func:
+                    agg_dict[f"{key}_{func}"] = (key, func)  # Update the agg_dict with the new naming structure
+
+    # Perform the aggregation
     for levels in spec:
-        agg = df.groupby(levels + ['ds'], observed=True)['y'].sum()
+        agg = df.groupby(levels + ['ds'], observed=True).agg(**agg_dict)
         if not agg.index.is_monotonic_increasing:
             agg = agg.sort_index()
         agg = agg.reset_index('ds')
@@ -232,7 +259,7 @@ def aggregate(
     S_df = df_constructor(S, index=np.hstack(categories), columns=bottom_levels)
     return Y_df, S_df, tags
 
-# %% ../nbs/utils.ipynb 21
+# %% ../nbs/utils.ipynb 24
 class HierarchicalPlot:
     """ Hierarchical Plot
 
@@ -429,7 +456,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/utils.ipynb 36
+# %% ../nbs/utils.ipynb 39
 # convert levels to output quantile names
 def level_to_outputs(level:Iterable[int]):
     """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -473,7 +500,7 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../nbs/utils.ipynb 37
+# %% ../nbs/utils.ipynb 40
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(samples: np.ndarray, 
