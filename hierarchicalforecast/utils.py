@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['aggregate', 'HierarchicalPlot']
 
-# %% ../nbs/utils.ipynb 3
+# %% ../nbs/utils.ipynb 4
 import sys
 import timeit
 import warnings
@@ -14,11 +14,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
-from scipy import sparse
 
 plt.rcParams['font.family'] = 'serif'
 
-# %% ../nbs/utils.ipynb 5
+# %% ../nbs/utils.ipynb 6
+import sys
+import timeit
+import warnings
+from itertools import chain
+from typing import Callable, Dict, List, Optional, Iterable
+from collections.abc import Sequence
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+
+plt.rcParams['font.family'] = 'serif'
+
+# %% ../nbs/utils.ipynb 9
 class CodeTimer:
     def __init__(self, name=None, verbose=True):
         self.name = " '"  + name + "'" if name else ''
@@ -33,7 +47,7 @@ class CodeTimer:
             print('Code block' + self.name + \
                   ' took:\t{0:.5f}'.format(self.took) + ' seconds')
 
-# %% ../nbs/utils.ipynb 6
+# %% ../nbs/utils.ipynb 10
 def is_strictly_hierarchical(S: np.ndarray, 
                              tags: Dict[str, np.ndarray]):
     # main idea:
@@ -51,7 +65,7 @@ def is_strictly_hierarchical(S: np.ndarray,
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
-# %% ../nbs/utils.ipynb 7
+# %% ../nbs/utils.ipynb 11
 def cov2corr(cov, return_std=False):
     """ convert covariance matrix to correlation matrix
 
@@ -70,7 +84,7 @@ def cov2corr(cov, return_std=False):
     else:
         return corr
 
-# %% ../nbs/utils.ipynb 9
+# %% ../nbs/utils.ipynb 13
 def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
     """Transforms the DataFrame `df` of hierarchies to a summing matrix S."""
     categories = [S_df[col].unique() for col in S_df.columns]
@@ -94,7 +108,7 @@ def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
     tags = dict(zip(S_df.columns, categories))
     return S, tags
 
-# %% ../nbs/utils.ipynb 10
+# %% ../nbs/utils.ipynb 14
 def aggregate_before(df: pd.DataFrame,
               spec: List[List[str]],
               agg_fn: Callable = np.sum,
@@ -117,14 +131,14 @@ def aggregate_before(df: pd.DataFrame,
     """
     max_len_idx = np.argmax([len(hier) for hier in spec])
     bottom_comb = spec[max_len_idx]
-    df_hiers = []
+    hiers = []
     for hier in spec:
         df_hier = df.groupby(hier + ['ds'])['y'].apply(agg_fn).reset_index()
         df_hier['unique_id'] = df_hier[hier].agg('/'.join, axis=1)
         if hier == bottom_comb:
             bottom_hier = df_hier['unique_id'].unique()
-        df_hiers.append(df_hier)
-    df_hiers = pd.concat(df_hiers)
+        hiers.append(df_hier)
+    df_hiers = pd.concat(hiers)
     S_df = df_hiers[['unique_id'] + bottom_comb].drop_duplicates().reset_index(drop=True)
     S_df = S_df.set_index('unique_id')
     S_df = S_df.fillna('agg')
@@ -139,7 +153,7 @@ def aggregate_before(df: pd.DataFrame,
     S, tags = _to_summing_matrix(S_df.loc[bottom_hier, hiers_cols], sparse_s)
     return Y_df, S, tags
 
-# %% ../nbs/utils.ipynb 11
+# %% ../nbs/utils.ipynb 15
 def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
     upper_split = upper_key.split('/')
     upper_idxs = [bottom_split.index(i) for i in upper_split]
@@ -150,7 +164,7 @@ def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
 
     return [join_upper(val) for val in bottom_values]
 
-# %% ../nbs/utils.ipynb 12
+# %% ../nbs/utils.ipynb 16
 def aggregate(
     df: pd.DataFrame,
     spec: List[List[str]],
@@ -260,7 +274,7 @@ def aggregate(
     S_df = df_constructor(S, index=np.hstack(categories), columns=bottom_levels)
     return Y_df, S_df, tags
 
-# %% ../nbs/utils.ipynb 21
+# %% ../nbs/utils.ipynb 25
 class HierarchicalPlot:
     """ Hierarchical Plot
 
@@ -291,7 +305,7 @@ class HierarchicalPlot:
 
     def plot_series(self,
                     series: str,
-                    Y_df: Optional[pd.DataFrame] = None,
+                    Y_df: pd.DataFrame,
                     models: Optional[List[str]] = None,
                     level: Optional[List[int]] = None):
         """ Single Series plot
@@ -346,7 +360,7 @@ class HierarchicalPlot:
                     
     def plot_hierarchically_linked_series(self,
                                           bottom_series: str,
-                                          Y_df: Optional[pd.DataFrame] = None,
+                                          Y_df: pd.DataFrame,
                                           models: Optional[List[str]] = None,
                                           level: Optional[List[int]] = None):
         """ Hierarchically Linked Series plot
@@ -410,8 +424,8 @@ class HierarchicalPlot:
     def plot_hierarchical_predictions_gap(self,
                                           Y_df: pd.DataFrame,
                                           models: Optional[List[str]] = None,
-                                          xlabel: Optional=None,
-                                          ylabel: Optional=None,
+                                          xlabel: Optional[str] = None,
+                                          ylabel: Optional[str] = None,
                                           ):
         """ Hierarchically Predictions Gap plot
 
@@ -457,7 +471,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/utils.ipynb 36
+# %% ../nbs/utils.ipynb 40
 # convert levels to output quantile names
 def level_to_outputs(level:Iterable[int]):
     """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -501,15 +515,15 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../nbs/utils.ipynb 37
+# %% ../nbs/utils.ipynb 41
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
-def samples_to_quantiles_df(samples:np.ndarray, 
-                            unique_ids:Iterable[str], 
-                            dates:Iterable, 
-                            quantiles:Optional[Iterable[float]] = None,
-                            level:Optional[Iterable[int]] = None, 
-                            model_name:Optional[str] = "model"):
+def samples_to_quantiles_df(samples: np.ndarray, 
+                            unique_ids: Sequence[str], 
+                            dates: List[str], 
+                            quantiles: Optional[List[float]] = None,
+                            level: Optional[List[int]] = None, 
+                            model_name: Optional[str] = "model"):
     """ Transform Random Samples into HierarchicalForecast input.
     Auxiliary function to create compatible HierarchicalForecast input `Y_hat_df` dataframe.
 
@@ -540,17 +554,21 @@ def samples_to_quantiles_df(samples:np.ndarray,
     data = pd.DataFrame({"unique_id":unique_ids, "ds":ds, model_name:forecasts_mean})
 
     #create quantiles and quantile names
-    quantiles, quantile_names = level_to_outputs(level) if level is not None else quantiles_to_outputs(quantiles)
-    percentiles = [quantile * 100 for quantile in quantiles]
+    if level is not None:
+        _quantiles, quantile_names = level_to_outputs(level)
+    elif quantiles is not None:
+        _quantiles, quantile_names = quantiles_to_outputs(quantiles)
+
+    percentiles = [quantile * 100 for quantile in _quantiles]
     col_names = np.array([model_name + quantile_name for quantile_name in quantile_names])
     
     #add quantiles to dataframe
     forecasts_quantiles = np.percentile(samples, percentiles, axis=1)
 
     forecasts_quantiles = np.transpose(forecasts_quantiles, (1,2,0)) # [Q,H,N] -> [N,H,Q]
-    forecasts_quantiles = forecasts_quantiles.reshape(-1,len(quantiles))
+    forecasts_quantiles = forecasts_quantiles.reshape(-1,len(_quantiles))
 
     df = pd.DataFrame(data=forecasts_quantiles, 
                       columns=col_names)
     
-    return quantiles, pd.concat([data,df], axis=1).set_index('unique_id')
+    return _quantiles, pd.concat([data,df], axis=1).set_index('unique_id')
