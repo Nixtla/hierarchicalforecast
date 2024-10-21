@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['aggregate', 'HierarchicalPlot']
 
-# %% ../nbs/utils.ipynb 4
+# %% ../nbs/utils.ipynb 3
 import sys
 import timeit
 import warnings
@@ -17,7 +17,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 plt.rcParams['font.family'] = 'serif'
 
-# %% ../nbs/utils.ipynb 8
+# %% ../nbs/utils.ipynb 5
 class CodeTimer:
     def __init__(self, name=None, verbose=True):
         self.name = " '"  + name + "'" if name else ''
@@ -32,7 +32,7 @@ class CodeTimer:
             print('Code block' + self.name + \
                   ' took:\t{0:.5f}'.format(self.took) + ' seconds')
 
-# %% ../nbs/utils.ipynb 9
+# %% ../nbs/utils.ipynb 6
 def is_strictly_hierarchical(S: np.ndarray, 
                              tags: Dict[str, np.ndarray]):
     # main idea:
@@ -50,7 +50,7 @@ def is_strictly_hierarchical(S: np.ndarray,
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
-# %% ../nbs/utils.ipynb 10
+# %% ../nbs/utils.ipynb 7
 def cov2corr(cov, return_std=False):
     """ convert covariance matrix to correlation matrix
 
@@ -69,7 +69,7 @@ def cov2corr(cov, return_std=False):
     else:
         return corr
 
-# %% ../nbs/utils.ipynb 12
+# %% ../nbs/utils.ipynb 9
 def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
     """Transforms the DataFrame `df` of hierarchies to a summing matrix S."""
     categories = [S_df[col].unique() for col in S_df.columns]
@@ -93,7 +93,7 @@ def _to_summing_matrix(S_df: pd.DataFrame, sparse_s: bool = False):
     tags = dict(zip(S_df.columns, categories))
     return S, tags
 
-# %% ../nbs/utils.ipynb 13
+# %% ../nbs/utils.ipynb 10
 def aggregate_before(df: pd.DataFrame,
               spec: List[List[str]],
               agg_fn: Callable = np.sum,
@@ -138,7 +138,7 @@ def aggregate_before(df: pd.DataFrame,
     S, tags = _to_summing_matrix(S_df.loc[bottom_hier, hiers_cols], sparse_s)
     return Y_df, S, tags
 
-# %% ../nbs/utils.ipynb 14
+# %% ../nbs/utils.ipynb 11
 def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
     upper_split = upper_key.split('/')
     upper_idxs = [bottom_split.index(i) for i in upper_split]
@@ -149,7 +149,7 @@ def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
 
     return [join_upper(val) for val in bottom_values]
 
-# %% ../nbs/utils.ipynb 15
+# %% ../nbs/utils.ipynb 12
 def aggregate(
     df: pd.DataFrame,
     spec: List[List[str]],
@@ -259,7 +259,7 @@ def aggregate(
     S_df = df_constructor(S, index=np.hstack(categories), columns=bottom_levels)
     return Y_df, S_df, tags
 
-# %% ../nbs/utils.ipynb 24
+# %% ../nbs/utils.ipynb 21
 class HierarchicalPlot:
     """ Hierarchical Plot
 
@@ -456,7 +456,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/utils.ipynb 39
+# %% ../nbs/utils.ipynb 36
 # convert levels to output quantile names
 def level_to_outputs(level:Iterable[int]):
     """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -500,7 +500,7 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../nbs/utils.ipynb 40
+# %% ../nbs/utils.ipynb 37
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(samples: np.ndarray, 
