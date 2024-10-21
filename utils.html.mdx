@@ -21,13 +21,14 @@ external libraries into a compatible data frame format.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L154"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L153"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### aggregate
 
 > ``` text
 >  aggregate (df:pandas.core.frame.DataFrame, spec:List[List[str]],
+>             exog_vars:Optional[Dict[str,Union[str,List[str]]]]=None,
 >             is_balanced:bool=False, sparse_s:bool=False)
 > ```
 
@@ -39,6 +40,7 @@ list.*
 |------|------------------|-------------------------|-------------------------|
 | df | DataFrame |  | Dataframe with columns `['ds', 'y']` and columns to aggregate. |
 | spec | List |  | List of levels. Each element of the list should contain a list of columns of `df` to aggregate. |
+| exog_vars | Optional | None |  |
 | is_balanced | bool | False | Deprecated. |
 | sparse_s | bool | False | Return `S_df` as a sparse dataframe. |
 | **Returns** | **pandas DataFrame** |  | **Hierarchically structured series.** |
@@ -48,7 +50,7 @@ list.*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L236"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L263"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HierarchicalPlot
@@ -73,7 +75,7 @@ level.<br/><br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L253"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L280"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_summing_matrix
@@ -90,7 +92,7 @@ $\mathbf{S}$.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L264"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L291"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_series
@@ -117,7 +119,7 @@ interval level.<br/><br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L319"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L346"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchically_linked_series
@@ -146,7 +148,7 @@ interval level.<br/><br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L382"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L409"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchical_predictions_gap
@@ -208,14 +210,13 @@ hplots.plot_hierarchical_predictions_gap(
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L479"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L506"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### samples_to_quantiles_df
 
 > ``` text
->  samples_to_quantiles_df (samples:numpy.ndarray,
->                           unique_ids:collections.abc.Sequence[str],
+>  samples_to_quantiles_df (samples:numpy.ndarray, unique_ids:Sequence[str],
 >                           dates:List[str],
 >                           quantiles:Optional[List[float]]=None,
 >                           level:Optional[List[int]]=None,
@@ -239,13 +240,4 @@ model.<br/>
 estimate from y distribution .<br/> `Y_hat_df`: pd.DataFrame. With base
 quantile forecasts with columns ds and models to reconcile indexed by
 unique_id.\*
-
-```python
-samples_to_quantiles_df(samples, unique_ids, dates, level=level)
-```
-
-
-```python
-samples_to_quantiles_df(samples, unique_ids, dates, quantiles=quantiles)
-```
 
