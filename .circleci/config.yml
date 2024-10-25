@@ -11,11 +11,11 @@ jobs:
           command: |
             pip install uv
             uv venv --python 3.10
-            source .venv/bin/activate           
-            uv pip install ".[dev]"
       - run:
           name: Run nbdev tests
           command: |
+            source .venv/bin/activate           
+            uv pip install ".[dev]"
             nbdev_test --do_print --timing
   test-model-performance:
     resource_class: large
@@ -28,13 +28,13 @@ jobs:
           command: |
             pip install uv
             uv venv --python 3.10
+      - run:
+          name: Run model performance tests
+          command: |
             source .venv/bin/activate           
             uv pip install ".[dev]"
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-      - run:
-          name: Run model performance tests
-          command: |
             python -m src.models
             python -m src.evaluation
             cd ../../
