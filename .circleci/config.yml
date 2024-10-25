@@ -38,7 +38,7 @@ jobs:
             source .venv/bin/activate           
             uv pip install ".[dev]"
             cd ./action_files/test_models/
-            uv pip sync requirements.txt
+            uv pip install -r requirements.txt
             python -m src.models
             python -m src.evaluation
             cd ../../
