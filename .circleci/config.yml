@@ -16,7 +16,7 @@ jobs:
           command: |
             source .venv/bin/activate           
             uv pip install ".[dev]"
-            nbdev_test --do_print --timing
+            nbdev_test --do_print --timing --n_workers 1
   test-model-performance:
     resource_class: large
     docker:
