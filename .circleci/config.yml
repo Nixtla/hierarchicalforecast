@@ -41,9 +41,27 @@ jobs:
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
+  benchmark-reconcilers:
+    resource_class: large
+    docker:
+      - image: python:3.10-slim
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            pip install uv
+            uv venv --python 3.10
+      - run:
+          name: Run benchmark reconcilers
+          command: |
+            source .venv/bin/activate           
+            uv pip install ".[dev]"
+            pytest tests/test_benchmark.py -v -s --benchmark-min-rounds=20 --disable-warnings  
 
 workflows:
   sample:
     jobs:
       - nbdev-tests
       - test-model-performance
+      - benchmark-reconcilers

@@ -244,13 +244,13 @@ class HierarchicalReconciliation:
                 S_for_sparse = sparse.csr_matrix(S_df.sparse.to_coo())
             except AttributeError:
                 warnings.warn('Using dense S matrix for sparse reconciliation method.')
-                S_for_sparse = S_df.values.astype(np.float32)
+                S_for_sparse = S_df.values.astype(np.float64)
 
         if Y_df is not None:
             if is_balanced:
-                y_insample = Y_df['y'].values.reshape(len(S_df), -1).astype(np.float32)
+                y_insample = Y_df['y'].values.reshape(len(S_df), -1).astype(np.float64)
             else:
-                y_insample = Y_df.pivot(columns='ds', values='y').loc[S_df.index].values.astype(np.float32)
+                y_insample = Y_df.pivot(columns='ds', values='y').loc[S_df.index].values.astype(np.float64)
             reconciler_args['y_insample'] = y_insample
 
         Y_tilde_df= Y_hat_df.copy()
@@ -264,21 +264,21 @@ class HierarchicalReconciliation:
             if reconciler.is_sparse_method:
                 reconciler_args["S"] = S_for_sparse
             else:
-                reconciler_args["S"] = S_df.values.astype(np.float32)
+                reconciler_args["S"] = S_df.values.astype(np.float64)
 
             has_fitted = 'y_hat_insample' in signature(reconciler.fit_predict).parameters
             has_level = 'level' in signature(reconciler.fit_predict).parameters
 
             for model_name in self.model_names:
                 recmodel_name = f'{model_name}/{reconcile_fn_name}'
-                y_hat = Y_hat_df[model_name].values.reshape(len(S_df), -1).astype(np.float32)
+                y_hat = Y_hat_df[model_name].values.reshape(len(S_df), -1).astype(np.float64)
                 reconciler_args['y_hat'] = y_hat
 
                 if (self.insample and has_fitted) or intervals_method in ['bootstrap', 'permbu']:
                     if is_balanced:
-                        y_hat_insample = Y_df[model_name].values.reshape(len(S_df), -1).astype(np.float32)
+                        y_hat_insample = Y_df[model_name].values.reshape(len(S_df), -1).astype(np.float64)
                     else:
-                        y_hat_insample = Y_df.pivot(columns='ds', values=model_name).loc[S_df.index].values.astype(np.float32)
+                        y_hat_insample = Y_df.pivot(columns='ds', values=model_name).loc[S_df.index].values.astype(np.float64)
                     reconciler_args['y_hat_insample'] = y_hat_insample
 
                 if has_level and (level is not None):

@@ -12,12 +12,11 @@ from copy import deepcopy
 from typing import Dict, List, Optional, Union
 
 import numpy as np
-from numba import njit, prange
 from quadprog import solve_qp
 from scipy import sparse
 
 # %% ../nbs/src/methods.ipynb 4
-from .utils import is_strictly_hierarchical
+from .utils import is_strictly_hierarchical, _lasso, _ma_cov, _shrunk_covariance_schaferstrimmer_no_nans, _shrunk_covariance_schaferstrimmer_with_nans
 from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
 # %% ../nbs/src/methods.ipynb 6
@@ -161,11 +160,11 @@ class BottomUp(HReconciler):
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
-        P = np.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float32)
+        P = np.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float64)
         if getattr(self, "intervals_method", False) is None:
             W = None
         else:
-            W = np.eye(n_hiers, dtype=np.float32)
+            W = np.eye(n_hiers, dtype=np.float64)
         return P, W
 
     def fit(self,
@@ -265,11 +264,11 @@ class BottomUpSparse(BottomUp):
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
-        P = sparse.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float32, "csr")
+        P = sparse.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float64, "csr")
         if getattr(self, "intervals_method", False) is None:
             W = None
         else:
-            W = sparse.eye(n_hiers, dtype=np.float32, format="csr")
+            W = sparse.eye(n_hiers, dtype=np.float64, format="csr")
         return P, W
 
 # %% ../nbs/src/methods.ipynb 22
@@ -371,7 +370,7 @@ class TopDown(HReconciler):
 
         P = np.zeros_like(S, np.float64).T #float 64 if prop is too small, happens with wiki2
         P[:, idx_top] = prop
-        W = np.eye(n_hiers, dtype=np.float32)
+        W = np.eye(n_hiers, dtype=np.float64)
         return P, W
 
     def fit(self, 
@@ -531,7 +530,7 @@ class TopDownSparse(TopDown):
         if getattr(self, "intervals_method", False) is None:
             W = None
         else:
-            W = sparse.eye(n_hiers, dtype=np.float32, format="csr")
+            W = sparse.eye(n_hiers, dtype=np.float64, format="csr")
 
         return P, W
 
@@ -996,156 +995,6 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
-def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
-    """Masked empirical covariance matrix.
-
-    :meta private:
-    """
-    n_timeseries = residuals.shape[0]
-    W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
-    for i in prange(n_timeseries):
-        not_nan_mask_i = not_nan_mask[i]
-        for j in range(i + 1):
-            not_nan_mask_j = not_nan_mask[j]
-            not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j   
-            n_samples = np.sum(not_nan_mask_ij)
-            # Only compute if we have enough non-nan samples in the time series pair
-            if n_samples > 1:
-                # Masked residuals
-                residuals_i = residuals[i][not_nan_mask_ij]
-                residuals_j = residuals[j][not_nan_mask_ij]
-                residuals_i_mean = np.mean(residuals_i)
-                residuals_j_mean = np.mean(residuals_j)
-                X_i = (residuals_i - residuals_i_mean)
-                X_j = (residuals_j - residuals_j_mean)
-                # Empirical covariance
-                factor_emp_cov = np.float64(1 / (n_samples - 1))
-                W[i, j] = W[j, i] = factor_emp_cov * np.sum(X_i * X_j)
-
-    return W    
-
-@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
-def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_ridge: float):
-    """Shrink empirical covariance according to the following method:
-        Schäfer, Juliane, and Korbinian Strimmer. 
-        ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
-        Implications for Functional Genomics’. Statistical Applications in 
-        Genetics and Molecular Biology 4, no. 1 (14 January 2005). 
-        https://doi.org/10.2202/1544-6115.1175.
-
-    :meta private:
-    """
-    n_timeseries = residuals.shape[0]
-    n_samples = residuals.shape[1]
-    
-    # We need the empirical covariance, the off-diagonal sum of the variance of 
-    # the empirical correlation matrix and the off-diagonal sum of the squared 
-    # empirical correlation matrix.
-    W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
-    sum_var_emp_corr = np.float64(0.0)
-    sum_sq_emp_corr = np.float64(0.0)
-    factor_emp_cov = np.float64(1 / (n_samples - 1))
-    factor_shrinkage = np.float64(1 / (n_samples * (n_samples - 1)))
-    epsilon = np.float64(2e-8)
-    for i in prange(n_timeseries):
-        # Mean of the standardized residuals
-        X_i = residuals[i] - np.mean(residuals[i])
-        Xs_i = X_i / (np.std(residuals[i]) + epsilon)
-        Xs_i_mean = np.mean(Xs_i)
-        for j in range(i + 1):
-            # Empirical covariance
-            X_j = residuals[j] - np.mean(residuals[j])
-            W[i, j] = factor_emp_cov * np.sum(X_i * X_j)
-            # Off-diagonal sums
-            if i != j:
-                Xs_j = X_j / (np.std(residuals[j]) + epsilon)
-                Xs_j_mean = np.mean(Xs_j)
-                # Sum off-diagonal variance of empirical correlation
-                w = (Xs_i - Xs_i_mean) * (Xs_j - Xs_j_mean)
-                w_mean = np.mean(w)
-                sum_var_emp_corr += np.sum(np.square(w - w_mean))
-                # Sum squared empirical correlation
-                sum_sq_emp_corr += w_mean**2
-
-    # Calculate shrinkage intensity 
-    shrinkage = 1.0 - max(min((factor_shrinkage * sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
-    # Shrink the empirical covariance
-    for i in prange(n_timeseries):
-        for j in range(i + 1):
-            if i != j:    
-                W[i, j] = W[j, i] = shrinkage * W[i, j]
-            else:
-                W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
-    return W
-
-@njit(nogil=True, cache=True, parallel=True, fastmath=True, error_model="numpy")
-def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_mask: np.ndarray, mint_shr_ridge: float):
-    """Shrink empirical covariance according to the following method:
-        Schäfer, Juliane, and Korbinian Strimmer. 
-        ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
-        Implications for Functional Genomics’. Statistical Applications in 
-        Genetics and Molecular Biology 4, no. 1 (14 January 2005). 
-        https://doi.org/10.2202/1544-6115.1175.
-
-    :meta private:
-    """
-    n_timeseries = residuals.shape[0]
-    
-    # We need the empirical covariance, the off-diagonal sum of the variance of 
-    # the empirical correlation matrix and the off-diagonal sum of the squared 
-    # empirical correlation matrix.
-    W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
-    sum_var_emp_corr = np.float64(0.0)
-    sum_sq_emp_corr = np.float64(0.0)
-    epsilon = np.float64(2e-8)
-    for i in prange(n_timeseries):
-        not_nan_mask_i = not_nan_mask[i]
-        for j in range(i + 1):
-            not_nan_mask_j = not_nan_mask[j]
-            not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j   
-            n_samples = np.sum(not_nan_mask_ij)
-            # Only compute if we have enough non-nan samples in the time series pair
-            if n_samples > 1:
-                # Masked residuals
-                residuals_i = residuals[i][not_nan_mask_ij]
-                residuals_j = residuals[j][not_nan_mask_ij]
-                residuals_i_mean = np.mean(residuals_i)
-                residuals_j_mean = np.mean(residuals_j)
-                X_i = (residuals_i - residuals_i_mean)
-                X_j = (residuals_j - residuals_j_mean)
-                # Empirical covariance
-                factor_emp_cov = np.float64(1 / (n_samples - 1))
-                W[i, j] = factor_emp_cov * np.sum(X_i * X_j)
-                # Off-diagonal sums
-                if i != j:
-                    factor_var_emp_cor = np.float64(n_samples / (n_samples - 1)**3)
-                    residuals_i_std = np.std(residuals_i) + epsilon
-                    residuals_j_std = np.std(residuals_j) + epsilon
-                    Xs_i = X_i / (residuals_i_std + epsilon)
-                    Xs_j = X_j / (residuals_j_std + epsilon)
-                    Xs_im_mean = np.mean(Xs_i)
-                    Xs_jm_mean = np.mean(Xs_j)
-                    # Sum off-diagonal variance of empirical correlation
-                    w = (Xs_i - Xs_im_mean) * (Xs_j - Xs_jm_mean)
-                    w_mean = np.mean(w)
-                    sum_var_emp_corr += factor_var_emp_cor * np.sum(np.square(w - w_mean))
-                    # Sum squared empirical correlation
-                    sum_sq_emp_corr += np.square(factor_emp_cov * n_samples * w_mean)
-
-    # Calculate shrinkage intensity 
-    shrinkage = 1.0 - max(min((sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
-
-    # Shrink the empirical covariance
-    for i in prange(n_timeseries):
-        for j in range(i + 1):
-            if i != j:    
-                W[i, j] = W[j, i] = shrinkage * W[i, j]
-            else:
-                W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
-
-    return W
-
 # %% ../nbs/src/methods.ipynb 45
 class MinTraceSparse(MinTrace):
     """MinTraceSparse Reconciliation Class.
@@ -1351,38 +1200,6 @@ class OptimalCombination(MinTrace):
         self.insample = False
 
 # %% ../nbs/src/methods.ipynb 65
-@njit
-def lasso(X: np.ndarray, y: np.ndarray, 
-          lambda_reg: float, max_iters: int = 1_000,
-          tol: float = 1e-4):
-    # lasso cyclic coordinate descent
-    n, feats = X.shape
-    norms = (X ** 2).sum(axis=0)
-    beta = np.zeros(feats, dtype=np.float32)
-    beta_changes = np.zeros(feats, dtype=np.float32)
-    residuals = y.copy()
-    
-    for it in range(max_iters):
-        for i, betai in enumerate(beta):
-            # is feature is close to zero, we 
-            # continue to the next.
-            # in this case is optimal betai= 0
-            if abs(norms[i]) < 1e-8:
-                continue
-            xi = X[:, i]
-            #we calculate the normalized derivative
-            rho = betai + xi.flatten().dot(residuals) / norms[i] #(norms[i] + 1e-3)
-            #soft threshold
-            beta[i] = np.sign(rho) * max(np.abs(rho) - lambda_reg * n / norms[i], 0.)#(norms[i] + 1e-3), 0.)
-            beta_changes[i] = np.abs(betai - beta[i])
-            if beta[i] != betai:
-                residuals += (betai - beta[i]) * xi
-        if max(beta_changes) < tol:
-            break
-    #print(it)
-    return beta
-
-# %% ../nbs/src/methods.ipynb 66
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
@@ -1447,13 +1264,13 @@ class ERM(HReconciler):
                 lambda_reg = np.max(np.abs(X.T.dot(Y)))
             else:
                 lambda_reg = self.lambda_reg
-            P = lasso(X, Y, lambda_reg)
+            P = _lasso(X, Y, lambda_reg, max_iters=1_000, tol=1e-4)
             P = P + Pbu.T.flatten(order='F')
             P = P.reshape(-1, n_bottom, order='F').T
         else:
             raise ValueError(f'Unknown reconciliation method {self.method}')
 
-        W = np.eye(n_hiers, dtype=np.float32)
+        W = np.eye(n_hiers, dtype=np.float64)
 
         return P, W
 
