@@ -724,7 +724,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
 
 # %% ../nbs/src/utils.ipynb 47
 # Lasso cyclic coordinate descent
-@njit("Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, parallel=True, fastmath=True, error_model="numpy")
+@njit("Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, fastmath=NUMBA_FASTMATH, error_model="numpy")
 def _lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
           tol: float = 1e-4):
