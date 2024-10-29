@@ -57,7 +57,10 @@ jobs:
           command: |
             source .venv/bin/activate           
             uv pip install ".[dev]"
-            pytest tests/test_benchmark.py -v -s --benchmark-min-rounds=20 --disable-warnings  
+            pytest tests/test_benchmark.py -v -s --benchmark-min-rounds=20 --disable-warnings  --benchmark-json="./action_files/benchmarks/benchmark_reconcilers.json"
+      - store_artifacts:
+            path: ./action_files/benchmarks/benchmark_reconcilers.json
+            destination: benchmark_reconcilers.json
 
 workflows:
   sample:
