@@ -1,7 +1,7 @@
 version: 2.1
 jobs:
   nbdev-tests:
-    resource_class: large
+    resource_class: xlarge
     docker:
       - image: python:3.10-slim
     steps:
