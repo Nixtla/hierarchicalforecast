@@ -254,7 +254,6 @@ class HierarchicalReconciliation:
             reconciler_args['y_insample'] = y_insample
 
         Y_tilde_df= Y_hat_df.copy()
-        start = time.time()
         self.execution_times = {}
         self.level_names = {}
         self.sample_names = {}
@@ -270,6 +269,7 @@ class HierarchicalReconciliation:
             has_level = 'level' in signature(reconciler.fit_predict).parameters
 
             for model_name in self.model_names:
+                start = time.time()
                 recmodel_name = f'{model_name}/{reconcile_fn_name}'
                 y_hat = Y_hat_df[model_name].values.reshape(len(S_df), -1).astype(np.float64)
                 reconciler_args['y_hat'] = y_hat
