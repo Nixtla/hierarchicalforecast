@@ -248,7 +248,7 @@ class BottomUp(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 9
+# %% ../nbs/src/methods.ipynb 14
 class BottomUpSparse(BottomUp):
     """BottomUpSparse Reconciliation Class.
 
@@ -271,7 +271,7 @@ class BottomUpSparse(BottomUp):
             W = sparse.eye(n_hiers, dtype=np.float64, format="csr")
         return P, W
 
-# %% ../nbs/src/methods.ipynb 22
+# %% ../nbs/src/methods.ipynb 27
 def _get_child_nodes(
     S: Union[np.ndarray, sparse.csr_matrix], tags: Dict[str, np.ndarray]
 ):
@@ -293,7 +293,7 @@ def _get_child_nodes(
         nodes[level] = nodes_level
     return nodes
 
-# %% ../nbs/src/methods.ipynb 23
+# %% ../nbs/src/methods.ipynb 28
 def _reconcile_fcst_proportions(S: np.ndarray, y_hat: np.ndarray,
                                 tags: Dict[str, np.ndarray],
                                 nodes: Dict[str, Dict[int, np.ndarray]],
@@ -310,7 +310,7 @@ def _reconcile_fcst_proportions(S: np.ndarray, y_hat: np.ndarray,
                 reconciled[idx_child] = y_hat[idx_child] * fcst_parent / childs_sum
     return reconciled
 
-# %% ../nbs/src/methods.ipynb 24
+# %% ../nbs/src/methods.ipynb 29
 class TopDown(HReconciler):
     """Top Down Reconciliation Class.
 
@@ -472,7 +472,7 @@ class TopDown(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 25
+# %% ../nbs/src/methods.ipynb 35
 class TopDownSparse(TopDown):
     """TopDownSparse Reconciliation Class.
 
@@ -534,7 +534,7 @@ class TopDownSparse(TopDown):
 
         return P, W
 
-# %% ../nbs/src/methods.ipynb 35
+# %% ../nbs/src/methods.ipynb 45
 class MiddleOut(HReconciler):
     """Middle Out Reconciliation Class.
 
@@ -650,7 +650,7 @@ class MiddleOut(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 36
+# %% ../nbs/src/methods.ipynb 51
 class MiddleOutSparse(MiddleOut):
     """MiddleOutSparse Reconciliation Class.
 
@@ -741,11 +741,7 @@ class MiddleOutSparse(MiddleOut):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 43
-def crossprod(x):
-    return x.T @ x
-
-# %% ../nbs/src/methods.ipynb 44
+# %% ../nbs/src/methods.ipynb 61
 class MinTrace(HReconciler):
     """MinTrace Reconciliation Class.
 
@@ -995,7 +991,7 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 45
+# %% ../nbs/src/methods.ipynb 67
 class MinTraceSparse(MinTrace):
     """MinTraceSparse Reconciliation Class.
 
@@ -1165,7 +1161,7 @@ class MinTraceSparse(MinTrace):
         self.fitted = True
         return self
 
-# %% ../nbs/src/methods.ipynb 56
+# %% ../nbs/src/methods.ipynb 78
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1199,7 +1195,7 @@ class OptimalCombination(MinTrace):
         super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
-# %% ../nbs/src/methods.ipynb 65
+# %% ../nbs/src/methods.ipynb 87
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
