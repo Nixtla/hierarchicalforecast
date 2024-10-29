@@ -730,30 +730,36 @@ def _lasso(X: np.ndarray, y: np.ndarray,
           tol: float = 1e-4):
     # lasso cyclic coordinate descent
     n, feats = X.shape
-    norms = (X ** 2).sum(axis=0)
+    norms = np.sum(X ** 2, axis=0)
     beta = np.zeros(feats, dtype=np.float64)
     beta_changes = np.zeros(feats, dtype=np.float64)
     residuals = y.copy()
-    
+
     for it in range(max_iters):
-        for i, betai in enumerate(beta):
+        for i in range(feats):            
+            norms_i = norms[i]
             # is feature is close to zero, we 
             # continue to the next.
             # in this case is optimal betai= 0
-            if abs(norms[i]) < 1e-8:
+            if abs(norms_i) < 1e-8:
                 continue
-            xi = X[:, i]
+            beta_i = beta[i]
+
             #we calculate the normalized derivative
-            # rho = betai
-            # for j in range(n):
-            #     rho += xi[j] * residuals[j] / norms[i]
-            # rho = betai + np.dot(xi, residuals) / norms[i] #(norms[i] + 1e-3)
-            rho = betai + xi.flatten().dot(residuals) / norms[i] #(norms[i] + 1e-3)
+            rho = beta_i
+            for j in range(n):
+                rho += X[j, i] * residuals[j] / norms_i
+
             #soft threshold
-            beta[i] = np.sign(rho) * max(np.abs(rho) - lambda_reg * n / norms[i], 0.)#(norms[i] + 1e-3), 0.)
-            beta_changes[i] = np.abs(betai - beta[i])
-            if beta[i] != betai:
-                residuals += (betai - beta[i]) * xi
+            beta_i_next = np.sign(rho) * max(np.abs(rho) - lambda_reg * n / norms_i, 0.)#(norms[i] + 1e-3), 0.)
+            beta_delta = beta_i_next - beta_i
+            beta_changes[i] = np.abs(beta_delta)
+            if beta_delta != 0.0:
+                for j in range(n):
+                    residuals[j] += beta_delta * X[j, i]
+
+                beta[i] = beta_i_next
+        
         if max(beta_changes) < tol:
             break
 
