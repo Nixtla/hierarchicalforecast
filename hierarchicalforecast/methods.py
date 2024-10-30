@@ -16,7 +16,7 @@ from quadprog import solve_qp
 from scipy import sparse
 
 # %% ../nbs/src/methods.ipynb 4
-from .utils import is_strictly_hierarchical, _lasso, _ma_cov, _shrunk_covariance_schaferstrimmer_no_nans, _shrunk_covariance_schaferstrimmer_with_nans
+from .utils import is_strictly_hierarchical, _ma_cov, _shrunk_covariance_schaferstrimmer_no_nans, _shrunk_covariance_schaferstrimmer_with_nans, _lasso
 from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
 # %% ../nbs/src/methods.ipynb 6
@@ -1249,20 +1249,31 @@ class ERM(HReconciler):
             B = B.T
             P = np.linalg.pinv(y_hat_insample.T) @ B
             P = P.T
-        elif self.method in ['reg', 'reg_bu']:
-            X = np.kron(np.array(S, order='F'), np.array(y_hat_insample.T, order='F'))
-            Pbu = np.zeros_like(S)
-            if self.method == 'reg_bu':
-                Pbu[idx_bottom] = S[idx_bottom]
-            Pbu = Pbu.T
-            Y = y_insample.T.flatten(order='F') - X @ Pbu.T.flatten(order='F')
+        elif self.method == 'reg':
+            X = np.kron(S, y_hat_insample.T)
+            z = y_hat_insample.reshape(-1)
+
             if self.lambda_reg is None:
-                lambda_reg = np.max(np.abs(X.T.dot(Y)))
+                lambda_reg = np.max(np.abs(X.T.dot(z)))
             else:
-                lambda_reg = self.lambda_reg
-            P = _lasso(X, Y, lambda_reg, max_iters=1_000, tol=1e-4)
-            P = P + Pbu.T.flatten(order='F')
-            P = P.reshape(-1, n_bottom, order='F').T
+                lambda_reg = self.lambda_reg            
+
+            beta = _lasso(X, z, lambda_reg, max_iters=1000, tol=1e-4)
+            P = beta.reshape(S.shape).T
+        elif self.method == 'reg_bu':
+            X = np.kron(S, y_hat_insample.T)
+            Pbu = np.zeros_like(S)
+            Pbu[idx_bottom] = S[idx_bottom]
+            z = y_hat_insample.reshape(-1) - X @ Pbu.reshape(-1)
+             
+            if self.lambda_reg is None:
+                lambda_reg = np.max(np.abs(X.T.dot(z)))
+            else:
+                lambda_reg = self.lambda_reg             
+
+            beta = _lasso(X, z, lambda_reg, max_iters=1000, tol=1e-4)
+            P = beta + Pbu.reshape(-1)
+            P = P.reshape(S.shape).T            
         else:
             raise ValueError(f'Unknown reconciliation method {self.method}')
 

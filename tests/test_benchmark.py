@@ -74,5 +74,5 @@ def test_cov(benchmark, n_bottom_timeseries, with_nans):
 def test_erm_reg(benchmark, n_bottom_timeseries, erm_method):
     S, y_hat, y_insample, y_hat_insample, idx_bottom = _create_reconciler_inputs(n_bottom_timeseries)
 
-    cls_min_trace = ERM(method=erm_method)
-    result_min_trace = benchmark(cls_min_trace, S=S, y_hat=y_hat, y_insample=y_insample, y_hat_insample=y_hat_insample, idx_bottom=idx_bottom) # noqa: F841   
+    cls_erm = ERM(method=erm_method)
+    result_erm = benchmark(cls_erm, S=S, y_hat=y_hat, y_insample=y_insample, y_hat_insample=y_hat_insample, idx_bottom=idx_bottom) # noqa: F841   
