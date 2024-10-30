@@ -723,44 +723,35 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
     return W
 
 # %% ../nbs/src/utils.ipynb 47
-# Lasso cyclic coordinate descent
-@njit("Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, fastmath=NUMBA_FASTMATH, error_model="numpy")
+@njit
 def _lasso(X: np.ndarray, y: np.ndarray, 
           lambda_reg: float, max_iters: int = 1_000,
           tol: float = 1e-4):
     # lasso cyclic coordinate descent
     n, feats = X.shape
-    norms = np.sum(X ** 2, axis=0)
-    beta = np.zeros(feats, dtype=np.float64)
-    beta_changes = np.zeros(feats, dtype=np.float64)
+    norms = (X ** 2).sum(axis=0)
+    beta = np.zeros(feats, dtype=np.float32)
+    beta_changes = np.zeros(feats, dtype=np.float32)
     residuals = y.copy()
 
     for it in range(max_iters):
-        for i in range(feats):            
-            norms_i = norms[i]
+        for i, betai in enumerate(beta):
             # is feature is close to zero, we 
             # continue to the next.
             # in this case is optimal betai= 0
-            if abs(norms_i) < 1e-8:
+            # print(beta)
+
+            if abs(norms[i]) < 1e-8:
                 continue
-            beta_i = beta[i]
-
+            xi = X[:, i]
             #we calculate the normalized derivative
-            rho = beta_i
-            for j in range(n):
-                rho += X[j, i] * residuals[j] / norms_i
-
+            rho = betai + xi.flatten().dot(residuals) / norms[i] #(norms[i] + 1e-3)
             #soft threshold
-            beta_i_next = np.sign(rho) * max(np.abs(rho) - lambda_reg * n / norms_i, 0.)#(norms[i] + 1e-3), 0.)
-            beta_delta = beta_i_next - beta_i
-            beta_changes[i] = np.abs(beta_delta)
-            if beta_delta != 0.0:
-                for j in range(n):
-                    residuals[j] += beta_delta * X[j, i]
-
-                beta[i] = beta_i_next
-        
+            beta[i] = np.sign(rho) * max(np.abs(rho) - lambda_reg * n / norms[i], 0.)#(norms[i] + 1e-3), 0.)
+            beta_changes[i] = np.abs(betai - beta[i])
+            if beta[i] != betai:
+                residuals += (betai - beta[i]) * xi
         if max(beta_changes) < tol:
             break
-
+    #print(it)
     return beta

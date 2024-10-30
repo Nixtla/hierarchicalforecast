@@ -1195,7 +1195,7 @@ class OptimalCombination(MinTrace):
         super().__init__(method=method, nonnegative=nonnegative, num_threads=num_threads)
         self.insample = False
 
-# %% ../nbs/src/methods.ipynb 87
+# %% ../nbs/src/methods.ipynb 86
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
