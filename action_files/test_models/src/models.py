@@ -7,7 +7,9 @@ from hierarchicalforecast.core import HierarchicalReconciliation
 from hierarchicalforecast.methods import (
     BottomUp, BottomUpSparse, TopDown, TopDownSparse, MiddleOut, MiddleOutSparse, 
     MinTrace, 
-    # MinTraceSparse, OptimalCombination 
+    MinTraceSparse, 
+    OptimalCombination,
+    ERM,
 )
 
 from src.data import get_data
@@ -29,6 +31,14 @@ def main():
                    MinTrace(method='wls_var'),
                    MinTrace(method='mint_cov'),
                    MinTrace(method='mint_shrink'),
+                   MinTraceSparse(method='ols'),
+                   MinTraceSparse(method='wls_struct'),
+                   MinTraceSparse(method='wls_var'),
+                   OptimalCombination(method='ols'),
+                   OptimalCombination(method='wls_struct'),
+                   ERM(method='closed'),
+                #    ERM(method='reg'), # This is so insanely slow that we don't run it
+                #    ERM(method='reg_bu'), # This is so insanely slow that we don't run it
     ]
     hrec = HierarchicalReconciliation(reconcilers=reconcilers)
     Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df,
