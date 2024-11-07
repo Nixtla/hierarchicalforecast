@@ -8,7 +8,10 @@ from inspect import signature
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
-import pandas as pd
+import utilsforecast.processing as ufp
+
+from .utils import pivot, df_constructor
+from utilsforecast.compat import DFType
 from scipy.stats import multivariate_normal
 
 # %% ../nbs/src/evaluation.ipynb 6
@@ -338,55 +341,89 @@ class HierarchicalEvaluation:
         self.evaluators = evaluators
 
     def evaluate(self, 
-                 Y_hat_df: pd.DataFrame,
-                 Y_test_df: pd.DataFrame,
+                 Y_hat_df: DFType,
+                 Y_test_df: DFType,
                  tags: Dict[str, np.ndarray],
-                 Y_df: Optional[pd.DataFrame] = None,
-                 benchmark: Optional[str] = None):
+                 Y_df: Optional[DFType] = None,
+                 benchmark: Optional[str] = None,
+                 id_col: str = "unique_id",
+                 time_col: str = "ds", 
+                 target_col: str = "y", 
+                 ):
         """Hierarchical Evaluation Method.
 
         **Parameters:**<br>
-        `Y_hat_df`: pd.DataFrame, Forecasts indexed by `'unique_id'` with column `'ds'` and models to evaluate.<br>
-        `Y_test_df`:  pd.DataFrame, True values with columns `['ds', 'y']`.<br>
+        `Y_hat_df`: DataFrame, Forecasts indexed by `'unique_id'` with column `'ds'` and models to evaluate.<br>
+        `Y_test_df`:  DataFrame, True values with columns `['ds', 'y']`.<br>
         `tags`: np.array, each str key is a level and its value contains tags associated to that level.<br>
-        `Y_df`: pd.DataFrame, Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`.<br>
+        `Y_df`: DataFrame, Training set of base time series with columns `['ds', 'y']` indexed by `unique_id`.<br>
         `benchmark`: str, If passed, evaluators are scaled by the error of this benchark.<br>
+        `id_col` : str='unique_id', column that identifies each serie.<br>
+        `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
+        `target_col` : str='y', column that contains the target.
 
         **Returns:**<br>
-        `evaluation`: pd.DataFrame with accuracy measurements across hierarchical levels.
+        `evaluation`: DataFrame with accuracy measurements across hierarchical levels.
         """
-        drop_cols = ['ds', 'y'] if 'y' in Y_hat_df.columns else ['ds']
-        h = len(Y_hat_df.loc[[Y_hat_df.index[0]]])
-        model_names = Y_hat_df.drop(columns=drop_cols, axis=1).columns.to_list()
+        n_series = len(set(Y_hat_df[id_col]))
+        h = len(set(Y_hat_df[time_col]))
+        if len(Y_hat_df) != n_series * h:
+            raise Exception('Y_hat_df should have a forecast for each series and horizon')
+
         fn_names = [fn.__name__ for fn in self.evaluators]
         has_y_insample = any(['y_insample' in signature(fn).parameters for fn in self.evaluators])
         if has_y_insample and Y_df is None:
-            raise Exception('At least one evaluator needs y insample, please pass `Y_df`')
+            raise Exception('At least one evaluator needs y_insample, please pass `Y_df`')
+
         if benchmark is not None:
             fn_names = [f'{fn_name}-scaled' for fn_name in fn_names]
+
         tags_ = {'Overall': np.concatenate(list(tags.values()))}
         tags_ = {**tags_, **tags}
-        index = pd.MultiIndex.from_product([tags_.keys(), fn_names], names=['level', 'metric'])
-        evaluation = pd.DataFrame(columns=model_names, index=index)
-        for level, cats in tags_.items():
-            Y_h_cats = Y_hat_df.loc[cats]
-            y_test_cats = Y_test_df.loc[cats, 'y'].values.reshape(-1, h)
+
+        model_names = list(set(Y_hat_df.columns) - set([time_col, target_col, id_col]))
+        evaluation_np = np.empty((len(tags_), len(fn_names), len(model_names)), dtype=np.float64)
+        evaluation_index_np = np.empty((len(tags_) * len(fn_names), 2), dtype=object)
+        for i_level, (level, cats) in enumerate(tags_.items()):
+            mask = ufp.is_in(Y_hat_df[id_col], cats)
+            Y_h_cats = ufp.filter_with_mask(Y_hat_df, mask)
+
+            mask = ufp.is_in(Y_test_df[id_col], cats)
+            y_test_cats = ufp.filter_with_mask(Y_test_df, mask)[target_col]\
+                             .to_numpy()\
+                             .reshape(-1, h)
+
             if has_y_insample and Y_df is not None:
-                y_insample = Y_df.pivot(columns='ds', values='y').loc[cats].values
+                y_insample = pivot(Y_df, index = id_col, columns = time_col, values = target_col)
+                mask = ufp.is_in(y_insample[id_col], cats)
+                y_insample = ufp.filter_with_mask(y_insample, mask)
+                y_insample = ufp.drop_columns(y_insample, id_col)
+                y_insample = y_insample.to_numpy()
+
             for i_fn, fn in enumerate(self.evaluators):
                 if 'y_insample' in signature(fn).parameters:
                     kwargs = {'y_insample': y_insample}
                 else:
                     kwargs = {}
                 fn_name = fn_names[i_fn]
-                for model in model_names:
-                    loss = fn(y_test_cats, Y_h_cats[model].values.reshape(-1, h), **kwargs)
+                for i_model, model in enumerate(model_names):
+                    loss = fn(y_test_cats, Y_h_cats[model].to_numpy().reshape(-1, h), **kwargs)
                     if benchmark is not None:
-                        scale = fn(y_test_cats, Y_h_cats[benchmark].values.reshape(-1, h), **kwargs)
+                        scale = fn(y_test_cats, Y_h_cats[benchmark].to_numpy().reshape(-1, h), **kwargs)
                         if np.isclose(scale, 0., atol=np.finfo(float).eps):
                             scale += np.finfo(float).eps
                             if np.isclose(scale, loss, atol=1e-8):
                                 scale = 1.
                         loss /= scale
-                    evaluation.loc[(level, fn_name), model] = loss
+
+                    evaluation_np[i_level, i_fn, i_model] = loss
+                    evaluation_index_np[i_level * len(fn_names) + i_fn, 0] = level
+                    evaluation_index_np[i_level * len(fn_names) + i_fn, 1] = fn_name
+
+        evaluation_np = evaluation_np.reshape(-1, len(model_names))
+        evaluation = df_constructor(dftype=type(Y_hat_df), 
+                                    X=evaluation_index_np, 
+                                    columns=["level", "metric"])
+        evaluation = ufp.assign_columns(evaluation, model_names, evaluation_np)
+
         return evaluation
