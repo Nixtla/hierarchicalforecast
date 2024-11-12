@@ -7,11 +7,11 @@ __all__ = ['rel_mse', 'msse', 'scaled_crps', 'energy_score', 'log_score', 'Hiera
 from inspect import signature
 from typing import Callable, Dict, List, Optional, Union
 
+import narwhals as nw
 import numpy as np
-import utilsforecast.processing as ufp
 
-from .utils import pivot, df_constructor
-from utilsforecast.compat import DFType
+from .core import pivot
+from narwhals.typing import FrameT
 from scipy.stats import multivariate_normal
 
 # %% ../nbs/src/evaluation.ipynb 6
@@ -341,10 +341,10 @@ class HierarchicalEvaluation:
         self.evaluators = evaluators
 
     def evaluate(self, 
-                 Y_hat_df: DFType,
-                 Y_test_df: DFType,
+                 Y_hat_df: FrameT,
+                 Y_test_df: FrameT,
                  tags: Dict[str, np.ndarray],
-                 Y_df: Optional[DFType] = None,
+                 Y_df: Optional[FrameT] = None,
                  benchmark: Optional[str] = None,
                  id_col: str = "unique_id",
                  time_col: str = "ds", 
@@ -365,14 +365,20 @@ class HierarchicalEvaluation:
         **Returns:**<br>
         `evaluation`: DataFrame with accuracy measurements across hierarchical levels.
         """
-        n_series = len(set(Y_hat_df[id_col]))
-        h = len(set(Y_hat_df[time_col]))
-        if len(Y_hat_df) != n_series * h:
+        Y_hat_df_ = nw.from_native(Y_hat_df)
+        Y_test_df_ = nw.from_native(Y_test_df)
+        native_namespace = nw.get_native_namespace(Y_hat_df_)
+        if Y_df is not None:
+            Y_df_ = nw.from_native(Y_df)
+
+        n_series = len(set(Y_hat_df_[id_col]))
+        h = len(set(Y_hat_df_[time_col]))
+        if len(Y_hat_df_) != n_series * h:
             raise Exception('Y_hat_df should have a forecast for each series and horizon')
 
         fn_names = [fn.__name__ for fn in self.evaluators]
         has_y_insample = any(['y_insample' in signature(fn).parameters for fn in self.evaluators])
-        if has_y_insample and Y_df is None:
+        if has_y_insample and Y_df_ is None:
             raise Exception('At least one evaluator needs y_insample, please pass `Y_df`')
 
         if benchmark is not None:
@@ -381,24 +387,18 @@ class HierarchicalEvaluation:
         tags_ = {'Overall': np.concatenate(list(tags.values()))}
         tags_ = {**tags_, **tags}
 
-        model_names = list(set(Y_hat_df.columns) - set([time_col, target_col, id_col]))
+        model_names = Y_hat_df_.drop([id_col, time_col, target_col], strict=False).columns
         evaluation_np = np.empty((len(tags_), len(fn_names), len(model_names)), dtype=np.float64)
         evaluation_index_np = np.empty((len(tags_) * len(fn_names), 2), dtype=object)
+        Y_h = Y_hat_df_.join(Y_test_df_, how="left", on=[id_col, time_col])
         for i_level, (level, cats) in enumerate(tags_.items()):
-            mask = ufp.is_in(Y_hat_df[id_col], cats)
-            Y_h_cats = ufp.filter_with_mask(Y_hat_df, mask)
-
-            mask = ufp.is_in(Y_test_df[id_col], cats)
-            y_test_cats = ufp.filter_with_mask(Y_test_df, mask)[target_col]\
-                             .to_numpy()\
-                             .reshape(-1, h)
+            Y_h_cats = Y_h.filter(nw.col(id_col).is_in(cats))
+            y_test_cats = Y_h_cats[target_col].to_numpy().reshape(-1, h)
 
             if has_y_insample and Y_df is not None:
-                y_insample = pivot(Y_df, index = id_col, columns = time_col, values = target_col)
-                mask = ufp.is_in(y_insample[id_col], cats)
-                y_insample = ufp.filter_with_mask(y_insample, mask)
-                y_insample = ufp.drop_columns(y_insample, id_col)
-                y_insample = y_insample.to_numpy()
+                y_insample = pivot(Y_df_, index = id_col, columns = time_col, values = target_col)
+                y_insample = y_insample.filter(nw.col(id_col).is_in(cats))
+                y_insample = y_insample.drop(id_col).to_numpy()
 
             for i_fn, fn in enumerate(self.evaluators):
                 if 'y_insample' in signature(fn).parameters:
@@ -421,9 +421,11 @@ class HierarchicalEvaluation:
                     evaluation_index_np[i_level * len(fn_names) + i_fn, 1] = fn_name
 
         evaluation_np = evaluation_np.reshape(-1, len(model_names))
-        evaluation = df_constructor(dftype=type(Y_hat_df), 
-                                    X=evaluation_index_np, 
-                                    columns=["level", "metric"])
-        evaluation = ufp.assign_columns(evaluation, model_names, evaluation_np)
+        evaluation_index_dict = {"level": evaluation_index_np[:, 0], "metric": evaluation_index_np[:, 1]}
+        evaluation_index_df = nw.from_dict(evaluation_index_dict, native_namespace=native_namespace)
+        evaluation_dict = dict(zip(model_names, evaluation_np.T))
+        evaluation_df = nw.from_dict(evaluation_dict, native_namespace=native_namespace)
+        evaluation = nw.concat([evaluation_index_df, evaluation_df], how="horizontal")
+        evaluation = evaluation[["level", "metric"] + model_names]
 
-        return evaluation
+        return evaluation.to_native()

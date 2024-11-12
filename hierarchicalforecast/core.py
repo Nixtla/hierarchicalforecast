@@ -7,19 +7,20 @@ __all__ = ['HierarchicalReconciliation']
 import re
 import time
 import copy
+
 from .methods import HReconciler
 from .utils import pivot
 from inspect import signature
+from narwhals.typing import FrameT
 from scipy.stats import norm
 from scipy import sparse
 from typing import Dict, List, Optional
-from utilsforecast.compat import DFType
-import utilsforecast.processing as ufp
-
 import warnings
 
+import narwhals as nw
 import numpy as np
 import pandas as pd
+
 
 # %% ../nbs/src/core.ipynb 6
 def _build_fn_name(fn) -> str:
@@ -42,7 +43,12 @@ def _build_fn_name(fn) -> str:
     return fn_name
 
 # %% ../nbs/src/core.ipynb 10
-def _reverse_engineer_sigmah(Y_hat_df: DFType, y_hat: np.ndarray, model_name: str) -> np.ndarray:
+def _reverse_engineer_sigmah(Y_hat_df: FrameT, 
+                             y_hat: np.ndarray, 
+                             model_name: str,
+                             id_col: str = "unique_id",
+                             time_col: str = "ds",
+                             target_col: str = "y") -> np.ndarray:
     """
     This function assumes that the model creates prediction intervals
     under a normality with the following the Equation:
@@ -52,17 +58,17 @@ def _reverse_engineer_sigmah(Y_hat_df: DFType, y_hat: np.ndarray, model_name: st
     direct usage of an estimated $\hat{sigma}_{h}$
     """
 
-    drop_cols = ['ds']
-    if 'y' in Y_hat_df.columns:
-        drop_cols.append('y')
+    drop_cols = [time_col]
+    if target_col in Y_hat_df.columns:
+        drop_cols.append(target_col)
     if model_name+'-median' in Y_hat_df.columns:
         drop_cols.append(model_name+'-median')
-    model_names = ufp.drop_columns(Y_hat_df, drop_cols).columns
+    model_names = Y_hat_df.drop(drop_cols).columns
     pi_model_names = [name for name in model_names if ('-lo' in name or '-hi' in name)]
     pi_model_name = [pi_name for pi_name in pi_model_names if model_name in pi_name]
     pi = len(pi_model_name) > 0
 
-    n_series = len(Y_hat_df["unique_id"].unique())
+    n_series = len(Y_hat_df[id_col].unique())
 
     if not pi:
         raise Exception(f'Please include `{model_name}` prediction intervals in `Y_hat_df`')
@@ -100,9 +106,9 @@ class HierarchicalReconciliation:
         self.insample = any([method.insample for method in reconcilers])
     
     def _prepare_fit(self,
-                     Y_hat_df: DFType,
-                     S_df: DFType,
-                     Y_df: Optional[DFType],
+                     Y_hat_df: FrameT,
+                     S_df: FrameT,
+                     Y_df: Optional[FrameT],
                      tags: Dict[str, np.ndarray],
                      level: Optional[List[int]] = None,
                      intervals_method: str = 'normality',
@@ -114,18 +120,26 @@ class HierarchicalReconciliation:
         """
         Performs preliminary wrangling and protections
         """
+        Y_hat_df_ = nw.from_native(Y_hat_df)
+        S_df_ = nw.from_native(S_df)
+        Y_df_ = None
+        self.native_namespace = nw.get_native_namespace(Y_hat_df_)
 
         #-------------------------------- Match Y_hat/Y/S index order --------------------------------#
         # TODO: This is now a bit slow as we always sort.
-        S_df = ufp.assign_columns(S_df, f"{id_col}_id", np.arange(len(S_df)))
-        Y_hat_df = ufp.join(Y_hat_df, S_df[[id_col, f"{id_col}_id"]], on=id_col, how='left')
-        Y_hat_df = ufp.sort(Y_hat_df, by=[f"{id_col}_id", time_col])
-        Y_hat_df = ufp.drop_columns(Y_hat_df, f"{id_col}_id")
+        S_df_ = S_df_.with_columns(nw.from_dict({f"{id_col}_id": np.arange(len(S_df_))}, 
+                                                native_namespace=self.native_namespace)[f"{id_col}_id"])
+        Y_hat_df_ = Y_hat_df_.join(S_df_[[id_col, f"{id_col}_id"]], on=id_col, how='left')
+        Y_hat_df_ = Y_hat_df_.sort(by=[f"{id_col}_id", time_col])
+        Y_hat_df_ = Y_hat_df_.drop(f"{id_col}_id")
+
         if Y_df is not None:
-            Y_df = ufp.join(Y_df, S_df[[id_col, f"{id_col}_id"]], on=id_col, how='left')
-            Y_df = ufp.sort(Y_df, by=[f"{id_col}_id", time_col])
-            Y_df = ufp.drop_columns(Y_df, f"{id_col}_id")
-        S_df = ufp.drop_columns(S_df, f"{id_col}_id")
+            Y_df_ = nw.from_native(Y_df)
+            Y_df_ = Y_df_.join(S_df_[[id_col, f"{id_col}_id"]], on=id_col, how='left')
+            Y_df_ = Y_df_.sort(by=[f"{id_col}_id", time_col])
+            Y_df_ = Y_df_.drop(f"{id_col}_id")
+
+        S_df_ = S_df_.drop(f"{id_col}_id")
 
         #----------------------------------- Check Input's Validity ----------------------------------#
 
@@ -144,37 +158,37 @@ class HierarchicalReconciliation:
                 raise ValueError("Level must be a list containing floating values in the interval [0, 100).")
 
         # Declare output names
-        model_names = list(set(Y_hat_df.columns) - set([id_col, time_col, target_col]))
-        for model_name in model_names:
-            # Ensure numeric columns
-            ufp.validate_format(Y_hat_df[[id_col, time_col, model_name]], id_col=id_col, time_col=time_col, target_col=model_name)
+        model_names = list(set(Y_hat_df_.columns) - set([id_col, time_col, target_col]))
 
-            # Ensure no null values
-            assert not ufp.is_none(Y_hat_df[model_name]).any(), f"Column {model_name} in `Y_hat_df` contains null values. Make sure no column in `Y_hat_df` contains null values."
+        # Ensure numeric columns
+        assert Y_hat_df_[model_names].columns == Y_hat_df_[model_names].select(nw.selectors.numeric()).columns, "All models in `Y_hat_df` must contain numeric values."
+
+        # Ensure no null values
+        assert not Y_hat_df_[model_names].select(nw.all().is_null().any()).to_numpy().any(), "`Y_hat_df` contains null values. Make sure no column in `Y_hat_df` contains null values."
         
         # TODO: Complete y_hat_insample protection
         model_names = [name for name in model_names if not ('-lo' in name or '-hi' in name or '-median' in name)]        
-        if intervals_method in ['bootstrap', 'permbu'] and Y_df is not None:
-            if not (set(model_names) <= set(Y_df.columns)):
+        if intervals_method in ['bootstrap', 'permbu'] and Y_df_ is not None:
+            if not (set(model_names) <= set(Y_df_.columns)):
                 raise Exception(f"Check `Y_df` columns, {model_names} must be in `Y_df` columns.")
 
         # Assert S is an identity matrix at the bottom
-        S_np = ufp.to_numpy(ufp.drop_columns(S_df, id_col))
+        S_np = S_df_.drop(id_col).to_numpy()
         if not np.allclose(S_np[-S_np.shape[1]:], np.eye(S_np.shape[1])):
             raise ValueError(f"The bottom {S_np.shape[1]}x{S_np.shape[1]} part of S must be an identity matrix.")
 
         # Check Y_hat_df\S_df series difference
         # TODO: this logic should be method specific
-        S_diff = set(S_df[id_col]) - set(Y_hat_df[id_col])
-        Y_hat_diff = set(Y_hat_df[id_col]) - set(S_df[id_col])
+        S_diff = set(S_df_[id_col]) - set(Y_hat_df_[id_col])
+        Y_hat_diff = set(Y_hat_df_[id_col]) - set(S_df_[id_col])
         if S_diff:
             raise Exception(f'There are unique_ids in S_df that are not in Y_hat_df: {S_diff}')
         if Y_hat_diff:
             raise Exception(f'There are unique_ids in Y_hat_df that are not in S_df: {Y_hat_diff}')
 
-        if Y_df is not None:
-            Y_diff = set(Y_df[id_col]) - set(Y_hat_df[id_col])
-            Y_hat_diff = set(Y_hat_df[id_col]) - set(Y_df[id_col])
+        if Y_df_ is not None:
+            Y_diff = set(Y_df_[id_col]) - set(Y_hat_df_[id_col])
+            Y_hat_diff = set(Y_hat_df_[id_col]) - set(Y_df_[id_col])
             if Y_diff:
                 raise Exception(f'There are unique_ids in Y_df that are not in Y_hat_df: {Y_diff}')
             if Y_hat_diff:
@@ -182,15 +196,14 @@ class HierarchicalReconciliation:
 
         # Same Y_hat_df/S_df/Y_df's unique_ids. Order is guaranteed by the sort_df flag.
         # TODO: this logic should be method specific
-        unique_ids = set(Y_hat_df[id_col])
-        mask = ufp.is_in(S_df[id_col], unique_ids)
-        S_df = ufp.filter_with_mask(S_df, mask)
+        unique_ids = set(Y_hat_df_[id_col])
+        S_df_ = S_df_.filter(nw.col(id_col).is_in(unique_ids))
 
-        return Y_hat_df, S_df, Y_df, model_names
+        return Y_hat_df_, S_df_, Y_df_, model_names
 
     def _prepare_Y(self, 
-                          Y_df: DFType, 
-                          S_df: DFType, 
+                          Y_df: FrameT, 
+                          S_df: FrameT, 
                           is_balanced: bool = True,
                           id_col: str = "unique_id",
                           time_col: str = "ds", 
@@ -206,8 +219,8 @@ class HierarchicalReconciliation:
 
             # TODO: check if this is the best way to do it
             pos_in_Y = np.searchsorted(Y_pivot[id_col], S_df[id_col])
-            Y_pivot = ufp.drop_columns(Y_pivot, id_col)
-            Y_pivot = ufp.take_rows(Y_pivot, pos_in_Y)
+            Y_pivot = Y_pivot.drop(id_col)
+            Y_pivot = Y_pivot[pos_in_Y]
             Y = Y_pivot.to_numpy()
 
         # TODO: the result is a Fortran contiguous array, see if we can avoid the below copy
@@ -216,10 +229,10 @@ class HierarchicalReconciliation:
 
 
     def reconcile(self, 
-                  Y_hat_df: DFType,
-                  S: DFType,
+                  Y_hat_df: FrameT,
+                  S: FrameT,
                   tags: Dict[str, np.ndarray],
-                  Y_df: Optional[DFType] = None,
+                  Y_df: Optional[FrameT] = None,
                   level: Optional[List[int]] = None,
                   intervals_method: str = 'normality',
                   num_samples: int = -1,
@@ -282,7 +295,7 @@ class HierarchicalReconciliation:
         # Initialize reconciler arguments
         reconciler_args = dict(
             idx_bottom=np.arange(len(S_df))[-S_df.shape[1]:],
-            tags={key: ufp.is_in(S_df[id_col], val).to_numpy().nonzero()[0] for key, val in tags.items()}
+            tags={key: S_df.with_columns(nw.col(id_col).is_in(val).alias("in_cols"))["in_cols"].to_numpy().nonzero()[0] for key, val in tags.items()},
         )
 
         any_sparse = any([method.is_sparse_method for method in self.reconcilers])
@@ -308,7 +321,7 @@ class HierarchicalReconciliation:
                                          target_col=target_col)     
             reconciler_args['y_insample'] = y_insample
 
-        Y_tilde_df = ufp.copy_if_pandas(Y_hat_df)
+        Y_tilde_df = Y_hat_df.clone()
         self.execution_times = {}
         self.level_names = {}
         self.sample_names = {}
@@ -318,8 +331,9 @@ class HierarchicalReconciliation:
             if reconciler.is_sparse_method:
                 reconciler_args["S"] = S_for_sparse
             else:
-                reconciler_args["S"] = ufp.to_numpy(ufp.drop_columns(S_df, id_col))\
-                                          .astype(np.float64, copy=False)
+                reconciler_args["S"] = S_df.drop(id_col)\
+                                           .to_numpy()\
+                                           .astype(np.float64, copy=False)
 
             has_fitted = 'y_hat_insample' in signature(reconciler.fit_predict).parameters
             has_level = 'level' in signature(reconciler.fit_predict).parameters
@@ -370,31 +384,35 @@ class HierarchicalReconciliation:
                     fcsts_model = reconciler(**kwargs, level=level)
 
                 # Parse final outputs
-                Y_tilde_df = ufp.assign_columns(Y_tilde_df, recmodel_name, fcsts_model['mean'].flatten())
+                Y_tilde_df = nw.concat([Y_tilde_df, nw.from_dict({recmodel_name: fcsts_model['mean'].flatten()}, native_namespace=self.native_namespace)], how="horizontal")
+
                 if intervals_method in ['bootstrap', 'normality', 'permbu'] and level is not None:
                     level.sort()
                     lo_names = [f'{recmodel_name}-lo-{lv}' for lv in reversed(level)]
                     hi_names = [f'{recmodel_name}-hi-{lv}' for lv in level]
                     self.level_names[recmodel_name] = lo_names + hi_names
                     sorted_quantiles = np.reshape(fcsts_model['quantiles'], (len(Y_tilde_df), -1))
-                    Y_tilde_df = ufp.assign_columns(Y_tilde_df, self.level_names[recmodel_name], sorted_quantiles)
+                    y_tilde = dict(zip(self.level_names[recmodel_name], sorted_quantiles.T))
+                    Y_tilde_df = nw.concat([Y_tilde_df, nw.from_dict(y_tilde, native_namespace=self.native_namespace)], how="horizontal")
 
                     if num_samples > 0:
                         samples = reconciler.sample(num_samples=num_samples)
                         self.sample_names[recmodel_name] = [f'{recmodel_name}-sample-{i}' for i in range(num_samples)]
-                        samples = np.reshape(samples, (len(Y_tilde_df),-1))
-                        Y_tilde_df = ufp.assign_columns(Y_tilde_df, self.sample_names[recmodel_name], samples)
+                        samples = np.reshape(samples, (len(Y_tilde_df),-1))        
+                        y_tilde = dict(zip(self.sample_names[recmodel_name], samples.T))
+                        Y_tilde_df = nw.concat([Y_tilde_df, nw.from_dict(y_tilde, native_namespace=self.native_namespace)], how="horizontal")
+                      
 
                 end = time.time()
                 self.execution_times[f'{model_name}/{reconcile_fn_name}'] = (end - start)
 
-        return Y_tilde_df
+        return Y_tilde_df.to_native()
 
     def bootstrap_reconcile(self,
-                            Y_hat_df: DFType,
-                            S_df: DFType,
+                            Y_hat_df: FrameT,
+                            S_df: FrameT,
                             tags: Dict[str, np.ndarray],
-                            Y_df: Optional[DFType] = None,
+                            Y_df: Optional[FrameT] = None,
                             level: Optional[List[int]] = None,
                             intervals_method: str = 'normality',
                             num_samples: int = -1,
@@ -442,16 +460,15 @@ class HierarchicalReconciliation:
                                         num_samples=num_samples,
                                         seed=seed,
                                         sort_df=False)
-            Y_tilde_df = ufp.assign_columns(Y_tilde_df, 'seed', seed)
+            Y_tilde_df_ = nw.from_native(Y_tilde_df)
+            Y_tilde_df_ = Y_tilde_df_.with_columns(nw.lit(seed).alias('seed'))
 
             # TODO: fix broken recmodel_names
             if seed==0:
-                first_columns = Y_tilde_df.columns
-            Y_tilde_df.columns = first_columns
-            Y_tilde_list.append(Y_tilde_df)
+                first_columns = Y_tilde_df_.columns
+            Y_tilde_df_ = Y_tilde_df_.rename({col: first_columns[i] for i, col in enumerate(first_columns)})
+            Y_tilde_list.append(Y_tilde_df_)
 
-        Y_bootstrap_df = ufp.vertical_concat(Y_tilde_list)
-        # del Y_tilde_list
-        # gc.collect()
+        Y_bootstrap_df = nw.concat(Y_tilde_list, how="vertical")
 
-        return Y_bootstrap_df
+        return Y_bootstrap_df.to_native()
