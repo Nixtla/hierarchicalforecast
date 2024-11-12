@@ -38,7 +38,7 @@ def evaluate():
             Y_hat_df=Y_rec_df, Y_test_df=Y_test_df,
             tags=eval_tags, Y_df=Y_train_df
     )
-    evaluation = evaluation.drop('Overall')
+    evaluation = evaluation.query("level != 'Overall'").set_index(['level', 'metric'])
 
     evaluation.columns = ['Base'] + models
     evaluation = evaluation.applymap('{:.2f}'.format)
