@@ -50,8 +50,8 @@ def get_data():
 
     sf = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')],
                        freq='QS', n_jobs=-1)
-    Y_hat_df = sf.forecast(df=Y_train_df, h=8, fitted=True)
-    Y_fitted_df = sf.forecast_fitted_values()
+    Y_hat_df = sf.forecast(df=Y_train_df, h=8, fitted=True).reset_index()
+    Y_fitted_df = sf.forecast_fitted_values().reset_index()
     
     # Save Data
     if not os.path.exists('./data'):

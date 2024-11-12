@@ -19,8 +19,6 @@ import warnings
 
 import narwhals as nw
 import numpy as np
-import pandas as pd
-
 
 # %% ../nbs/src/core.ipynb 6
 def _build_fn_name(fn) -> str:
@@ -279,6 +277,11 @@ class HierarchicalReconciliation:
         """
 
         # Check input's validity and sort dataframes
+        is_pandas_Y_hat_df = nw.dependencies.is_pandas_like_dataframe(Y_hat_df)
+        is_pandas_S_df = nw.dependencies.is_pandas_like_dataframe(S)
+        if Y_df is not None:
+            is_pandas_Y_df = nw.dependencies.is_pandas_like_dataframe(Y_df)
+
         Y_hat_df, S_df, Y_df, self.model_names = \
                     self._prepare_fit(Y_hat_df=Y_hat_df,
                                       S_df=S,
@@ -300,10 +303,8 @@ class HierarchicalReconciliation:
 
         any_sparse = any([method.is_sparse_method for method in self.reconcilers])
         if any_sparse:
-            if not isinstance(S_df, pd.DataFrame):
-                raise ValueError("You have one or more sparse reconciliation methods. Please convert `S_df` to a pandas DataFrame.")
-            if not isinstance(Y_hat_df, pd.DataFrame):
-                raise ValueError("You have one or more sparse reconciliation methods. Please convert `Y_hat_df` to a pandas DataFrame.")
+            if not is_pandas_Y_hat_df or not is_pandas_S_df:
+                raise ValueError("You have one or more sparse reconciliation methods. Please convert `S_df` and `Y_hat_df` to a pandas DataFrame.")
             try:
                 S_for_sparse = sparse.csr_matrix(S_df.sparse.to_coo())
             except AttributeError:
@@ -311,7 +312,7 @@ class HierarchicalReconciliation:
                 S_for_sparse = S_df.values.astype(np.float64, copy=False)
 
         if Y_df is not None:
-            if any_sparse and not isinstance(Y_df, pd.DataFrame):
+            if any_sparse and not is_pandas_Y_df:
                 raise ValueError("You have one or more sparse reconciliation methods. Please convert `Y_df` to a pandas DataFrame.")      
             y_insample = self._prepare_Y(Y_df=Y_df, 
                                          S_df=S_df, 

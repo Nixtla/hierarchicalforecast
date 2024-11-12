@@ -22,10 +22,6 @@ def evaluate():
     Y_test_df = pd.read_csv('data/Y_test.csv')
     Y_train_df = pd.read_csv('data/Y_train.csv')
 
-    Y_rec_df = Y_rec_df.set_index('unique_id')
-    Y_test_df = Y_test_df.set_index('unique_id')
-    Y_train_df = Y_train_df.set_index('unique_id')
-
     with open('data/tags.pickle', 'rb') as handle:
         tags = pickle.load(handle)
 
