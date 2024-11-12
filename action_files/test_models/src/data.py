@@ -42,7 +42,6 @@ def get_data():
     ]
 
     Y_df, S_df, tags = aggregate(Y_df, spec)
-    Y_df = Y_df.reset_index()
 
     # Train/Test Splits
     Y_test_df = Y_df.groupby('unique_id').tail(8)

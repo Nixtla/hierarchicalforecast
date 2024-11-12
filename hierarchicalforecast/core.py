@@ -256,8 +256,8 @@ class HierarchicalReconciliation:
         base predictions $\hat{\mathbf{y}}_{[a,b],\\tau}$.
 
         **Parameters:**<br>
-        `Y_hat_df`: DataFrame, base forecasts with columns `ds` and models to reconcile indexed by `unique_id`.<br>
-        `Y_df`: DataFrame, training set of base time series with columns `['ds', 'y']` indexed by `unique_id`.<br>
+        `Y_hat_df`: DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.<br>
+        `Y_df`: DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.<br>
         If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.<br>
         `S`: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
         `tags`: Each key is a level and its value contains tags associated to that level.<br>
@@ -423,8 +423,8 @@ class HierarchicalReconciliation:
         for the different reconciliation techniques instantiated in the `reconcilers` list. 
 
         **Parameters:**<br>
-        `Y_hat_df`: DataFrame, base forecasts with columns `ds` and models to reconcile indexed by `unique_id`.<br>
-        `Y_df`: DataFrame, training set of base time series with columns `['ds', 'y']` indexed by `unique_id`.<br>
+        `Y_hat_df`: DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.<br>
+        `Y_df`: DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.<br>
         If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.<br>
         `S`: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
         `tags`: Each key is a level and its value contains tags associated to that level.<br>
