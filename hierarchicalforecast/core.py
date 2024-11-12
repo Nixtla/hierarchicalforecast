@@ -15,7 +15,6 @@ from narwhals.typing import FrameT
 from scipy.stats import norm
 from scipy import sparse
 from typing import Dict, List, Optional
-import warnings
 
 import narwhals as nw
 import numpy as np
@@ -306,10 +305,9 @@ class HierarchicalReconciliation:
             if not is_pandas_Y_hat_df or not is_pandas_S_df:
                 raise ValueError("You have one or more sparse reconciliation methods. Please convert `S_df` and `Y_hat_df` to a pandas DataFrame.")
             try:
-                S_for_sparse = sparse.csr_matrix(S_df.sparse.to_coo())
+                S_for_sparse = sparse.csr_matrix(S_df.drop(id_col).to_native().sparse.to_coo())                
             except AttributeError:
-                warnings.warn("Using dense S matrix for sparse reconciliation method.")
-                S_for_sparse = S_df.values.astype(np.float64, copy=False)
+                S_for_sparse = sparse.csr_matrix(S_df.drop(id_col).to_numpy().astype(np.float64, copy=False))
 
         if Y_df is not None:
             if any_sparse and not is_pandas_Y_df:
