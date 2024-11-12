@@ -161,17 +161,17 @@ def aggregate(
     if sparse_s and not is_pandas:
         raise ValueError("Sparse output is only supported for Pandas DataFrames.")
 
-    df_ = nw.from_native(df)
-    df_ = nw.maybe_reset_index(df_)
-    native_namespace = nw.get_native_namespace(df_)
+    df_nw = nw.from_native(df)
+    df_nw = nw.maybe_reset_index(df_nw)
+    native_namespace = nw.get_native_namespace(df_nw)
 
-    for col in df_.columns:
-        assert not df_[col].is_null().any(), f"Column {col} contains null values. Make sure no column in the DataFrame contains null values."
+    for col in df_nw.columns:
+        assert not df_nw[col].is_null().any(), f"Column {col} contains null values. Make sure no column in the DataFrame contains null values."
 
     # Check whether all columns in the spec are in the df
     aggregation_cols_in_spec = list(dict.fromkeys([col for cols in spec for col in cols]))
     for col in aggregation_cols_in_spec:
-        assert col in df_.columns, f"Column {col} in spec not present in df"
+        assert col in df_nw.columns, f"Column {col} in spec not present in df"
 
     # Prepare the aggregation dictionary
     agg_dict = {
@@ -209,7 +209,7 @@ def aggregate(
         level_name = '/'.join(level)
 
         # Create Y_df
-        Y_level = df_.group_by(level + [time_col]).agg(
+        Y_level = df_nw.group_by(level + [time_col]).agg(
             *[getattr(nw.col(col), agg)().alias(col_name) for col_name, (col, agg) in agg_dict.items()]
         )
         Y_level = Y_level.select(nw.concat_str( [nw.col(col) for col in level],
@@ -309,12 +309,12 @@ class HierarchicalPlot:
         **Returns:**<br>
         Single series plot with filtered models and prediction interval level.<br><br>
         """
-        Y_df_ = nw.from_native(Y_df)
+        Y_df_nw = nw.from_native(Y_df)
 
         if series not in self.S[id_col]:
             raise Exception(f'time series {series} not found')
         fig, ax = plt.subplots(1, 1, figsize = (20, 7))
-        df_plot = Y_df_.filter(nw.col(id_col) == series)
+        df_plot = Y_df_nw.filter(nw.col(id_col) == series)
         cols = models if models is not None else df_plot.drop([id_col, time_col]).columns
         cols_wo_levels = [col for col in cols if ('-lo-' not in col and '-hi-' not in col)]
         try:
@@ -374,20 +374,20 @@ class HierarchicalPlot:
         Collection of hierarchilly linked series plots associated with the `bottom_series`
         and filtered models and prediction interval level.<br><br>
         """
-        Y_df_ = nw.from_native(Y_df)
+        Y_df_nw = nw.from_native(Y_df)
 
         if bottom_series not in self.S.columns:
             raise Exception(f'bottom time series {bottom_series} not found')
 
         linked_series = self.S[[id_col, bottom_series]].filter(nw.col(bottom_series) == 1)[id_col].to_numpy()
         fig, axs = plt.subplots(len(linked_series), 1, figsize=(20, 2 * len(linked_series)))
-        cols = models if models is not None else Y_df_.drop([id_col, time_col]).columns
+        cols = models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
         cols_wo_levels = [col for col in cols if ('-lo-' not in col and '-hi-' not in col)]
         cmap = plt.cm.get_cmap("tab10", 10)
         cmap = [cmap(i) for i in range(10)][:len(cols_wo_levels)]
         cmap_dict = dict(zip(cols_wo_levels, cmap))
         for idx, series in enumerate(linked_series):
-            df_plot = Y_df_.filter(nw.col(id_col) == series)
+            df_plot = Y_df_nw.filter(nw.col(id_col) == series)
             for col in cols_wo_levels:
                 axs[idx].plot(df_plot[time_col].to_numpy(), df_plot[col].to_numpy(), linewidth=2, label=col, color=cmap_dict[col])
                 if level is not None and col != target_col:
@@ -448,23 +448,23 @@ class HierarchicalPlot:
         The aggregation is performed according to the tag levels see 
         [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html).<br><br>
         """
-        Y_df_ = nw.from_native(Y_df)
+        Y_df_nw = nw.from_native(Y_df)
         
         # Parse predictions dataframe
-        horizon_dates = Y_df_['ds'].unique().to_numpy()
-        cols = models if models is not None else Y_df_.drop([id_col, time_col]).columns
+        horizon_dates = Y_df_nw['ds'].unique().to_numpy()
+        cols = models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
         
         # Plot predictions across tag levels
         fig, ax = plt.subplots(figsize=(8, 5))
         
-        if target_col in Y_df_.columns:
+        if target_col in Y_df_nw.columns:
             idx_top = self.S.with_columns(sum_cols = nw.sum_horizontal(cols)).sort(by="sum_cols", descending=True)[0][id_col].to_numpy()
-            y_plot = Y_df_.filter(nw.col(id_col) == idx_top)[target_col].to_numpy()
+            y_plot = Y_df_nw.filter(nw.col(id_col) == idx_top)[target_col].to_numpy()
             plt.plot(horizon_dates, y_plot, label='True')
 
         ys = []
         for tag in self.tags:
-            y_plot = sum([Y_df_.filter(nw.col(id_col) == idx)[cols].to_numpy() \
+            y_plot = sum([Y_df_nw.filter(nw.col(id_col) == idx)[cols].to_numpy() \
                           for idx in self.tags[tag]])
             plt.plot(horizon_dates, y_plot, label=f'Level: {tag}')
             

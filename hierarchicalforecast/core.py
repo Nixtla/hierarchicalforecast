@@ -117,26 +117,26 @@ class HierarchicalReconciliation:
         """
         Performs preliminary wrangling and protections
         """
-        Y_hat_df_ = nw.from_native(Y_hat_df)
-        S_df_ = nw.from_native(S_df)
-        Y_df_ = None
-        self.native_namespace = nw.get_native_namespace(Y_hat_df_)
+        Y_hat_df_nw = nw.from_native(Y_hat_df)
+        S_df_nw = nw.from_native(S_df)
+        Y_df_nw = None
+        self.native_namespace = nw.get_native_namespace(Y_hat_df_nw)
 
         #-------------------------------- Match Y_hat/Y/S index order --------------------------------#
         # TODO: This is now a bit slow as we always sort.
-        S_df_ = S_df_.with_columns(nw.from_dict({f"{id_col}_id": np.arange(len(S_df_))}, 
+        S_df_nw = S_df_nw.with_columns(nw.from_dict({f"{id_col}_id": np.arange(len(S_df_nw))}, 
                                                 native_namespace=self.native_namespace)[f"{id_col}_id"])
-        Y_hat_df_ = Y_hat_df_.join(S_df_[[id_col, f"{id_col}_id"]], on=id_col, how='left')
-        Y_hat_df_ = Y_hat_df_.sort(by=[f"{id_col}_id", time_col])
-        Y_hat_df_ = Y_hat_df_.drop(f"{id_col}_id")
+        Y_hat_df_nw = Y_hat_df_nw.join(S_df_nw[[id_col, f"{id_col}_id"]], on=id_col, how='left')
+        Y_hat_df_nw = Y_hat_df_nw.sort(by=[f"{id_col}_id", time_col])
+        Y_hat_df_nw = Y_hat_df_nw.drop(f"{id_col}_id")
 
         if Y_df is not None:
-            Y_df_ = nw.from_native(Y_df)
-            Y_df_ = Y_df_.join(S_df_[[id_col, f"{id_col}_id"]], on=id_col, how='left')
-            Y_df_ = Y_df_.sort(by=[f"{id_col}_id", time_col])
-            Y_df_ = Y_df_.drop(f"{id_col}_id")
+            Y_df_nw = nw.from_native(Y_df)
+            Y_df_nw = Y_df_nw.join(S_df_nw[[id_col, f"{id_col}_id"]], on=id_col, how='left')
+            Y_df_nw = Y_df_nw.sort(by=[f"{id_col}_id", time_col])
+            Y_df_nw = Y_df_nw.drop(f"{id_col}_id")
 
-        S_df_ = S_df_.drop(f"{id_col}_id")
+        S_df_nw = S_df_nw.drop(f"{id_col}_id")
 
         #----------------------------------- Check Input's Validity ----------------------------------#
 
@@ -155,37 +155,37 @@ class HierarchicalReconciliation:
                 raise ValueError("Level must be a list containing floating values in the interval [0, 100).")
 
         # Declare output names
-        model_names = list(set(Y_hat_df_.columns) - set([id_col, time_col, target_col]))
+        model_names = list(set(Y_hat_df_nw.columns) - set([id_col, time_col, target_col]))
 
         # Ensure numeric columns
-        assert Y_hat_df_[model_names].columns == Y_hat_df_[model_names].select(nw.selectors.numeric()).columns, "All models in `Y_hat_df` must contain numeric values."
+        assert Y_hat_df_nw[model_names].columns == Y_hat_df_nw[model_names].select(nw.selectors.numeric()).columns, "All models in `Y_hat_df` must contain numeric values."
 
         # Ensure no null values
-        assert not Y_hat_df_[model_names].select(nw.all().is_null().any()).to_numpy().any(), "`Y_hat_df` contains null values. Make sure no column in `Y_hat_df` contains null values."
+        assert not Y_hat_df_nw[model_names].select(nw.all().is_null().any()).to_numpy().any(), "`Y_hat_df` contains null values. Make sure no column in `Y_hat_df` contains null values."
         
         # TODO: Complete y_hat_insample protection
         model_names = [name for name in model_names if not ('-lo' in name or '-hi' in name or '-median' in name)]        
-        if intervals_method in ['bootstrap', 'permbu'] and Y_df_ is not None:
-            if not (set(model_names) <= set(Y_df_.columns)):
+        if intervals_method in ['bootstrap', 'permbu'] and Y_df_nw is not None:
+            if not (set(model_names) <= set(Y_df_nw.columns)):
                 raise Exception(f"Check `Y_df` columns, {model_names} must be in `Y_df` columns.")
 
         # Assert S is an identity matrix at the bottom
-        S_np = S_df_.drop(id_col).to_numpy()
+        S_np = S_df_nw.drop(id_col).to_numpy()
         if not np.allclose(S_np[-S_np.shape[1]:], np.eye(S_np.shape[1])):
             raise ValueError(f"The bottom {S_np.shape[1]}x{S_np.shape[1]} part of S must be an identity matrix.")
 
         # Check Y_hat_df\S_df series difference
         # TODO: this logic should be method specific
-        S_diff = set(S_df_[id_col]) - set(Y_hat_df_[id_col])
-        Y_hat_diff = set(Y_hat_df_[id_col]) - set(S_df_[id_col])
+        S_diff = set(S_df_nw[id_col]) - set(Y_hat_df_nw[id_col])
+        Y_hat_diff = set(Y_hat_df_nw[id_col]) - set(S_df_nw[id_col])
         if S_diff:
             raise Exception(f'There are unique_ids in S_df that are not in Y_hat_df: {S_diff}')
         if Y_hat_diff:
             raise Exception(f'There are unique_ids in Y_hat_df that are not in S_df: {Y_hat_diff}')
 
-        if Y_df_ is not None:
-            Y_diff = set(Y_df_[id_col]) - set(Y_hat_df_[id_col])
-            Y_hat_diff = set(Y_hat_df_[id_col]) - set(Y_df_[id_col])
+        if Y_df_nw is not None:
+            Y_diff = set(Y_df_nw[id_col]) - set(Y_hat_df_nw[id_col])
+            Y_hat_diff = set(Y_hat_df_nw[id_col]) - set(Y_df_nw[id_col])
             if Y_diff:
                 raise Exception(f'There are unique_ids in Y_df that are not in Y_hat_df: {Y_diff}')
             if Y_hat_diff:
@@ -193,10 +193,10 @@ class HierarchicalReconciliation:
 
         # Same Y_hat_df/S_df/Y_df's unique_ids. Order is guaranteed by the sort_df flag.
         # TODO: this logic should be method specific
-        unique_ids = set(Y_hat_df_[id_col])
-        S_df_ = S_df_.filter(nw.col(id_col).is_in(unique_ids))
+        unique_ids = Y_hat_df_nw[id_col].unique().to_numpy()
+        S_df_nw = S_df_nw.filter(nw.col(id_col).is_in(unique_ids))
 
-        return Y_hat_df_, S_df_, Y_df_, model_names
+        return Y_hat_df_nw, S_df_nw, Y_df_nw, model_names
 
     def _prepare_Y(self, 
                           Y_df: FrameT, 
@@ -281,7 +281,7 @@ class HierarchicalReconciliation:
         if Y_df is not None:
             is_pandas_Y_df = nw.dependencies.is_pandas_like_dataframe(Y_df)
 
-        Y_hat_df, S_df, Y_df, self.model_names = \
+        Y_hat_df_nw, S_df_nw, Y_df_nw, self.model_names = \
                     self._prepare_fit(Y_hat_df=Y_hat_df,
                                       S_df=S,
                                       Y_df=Y_df,
@@ -296,8 +296,8 @@ class HierarchicalReconciliation:
 
         # Initialize reconciler arguments
         reconciler_args = dict(
-            idx_bottom=np.arange(len(S_df))[-S_df.shape[1]:],
-            tags={key: S_df.with_columns(nw.col(id_col).is_in(val).alias("in_cols"))["in_cols"].to_numpy().nonzero()[0] for key, val in tags.items()},
+            idx_bottom=np.arange(len(S_df_nw))[-S_df_nw.shape[1]:],
+            tags={key: S_df_nw.with_columns(nw.col(id_col).is_in(val).alias("in_cols"))["in_cols"].to_numpy().nonzero()[0] for key, val in tags.items()},
         )
 
         any_sparse = any([method.is_sparse_method for method in self.reconcilers])
@@ -305,22 +305,22 @@ class HierarchicalReconciliation:
             if not is_pandas_Y_hat_df or not is_pandas_S_df:
                 raise ValueError("You have one or more sparse reconciliation methods. Please convert `S_df` and `Y_hat_df` to a pandas DataFrame.")
             try:
-                S_for_sparse = sparse.csr_matrix(S_df.drop(id_col).to_native().sparse.to_coo())                
+                S_for_sparse = sparse.csr_matrix(S_df_nw.drop(id_col).to_native().sparse.to_coo())                
             except AttributeError:
-                S_for_sparse = sparse.csr_matrix(S_df.drop(id_col).to_numpy().astype(np.float64, copy=False))
+                S_for_sparse = sparse.csr_matrix(S_df_nw.drop(id_col).to_numpy().astype(np.float64, copy=False))
 
-        if Y_df is not None:
+        if Y_df_nw is not None:
             if any_sparse and not is_pandas_Y_df:
                 raise ValueError("You have one or more sparse reconciliation methods. Please convert `Y_df` to a pandas DataFrame.")      
-            y_insample = self._prepare_Y(Y_df=Y_df, 
-                                         S_df=S_df, 
+            y_insample = self._prepare_Y(Y_df=Y_df_nw, 
+                                         S_df=S_df_nw, 
                                          is_balanced=is_balanced, 
                                          id_col=id_col, 
                                          time_col=time_col, 
                                          target_col=target_col)     
             reconciler_args['y_insample'] = y_insample
 
-        Y_tilde_df = Y_hat_df.clone()
+        Y_tilde_df = nw.maybe_reset_index(Y_hat_df_nw.clone())
         self.execution_times = {}
         self.level_names = {}
         self.sample_names = {}
@@ -330,7 +330,7 @@ class HierarchicalReconciliation:
             if reconciler.is_sparse_method:
                 reconciler_args["S"] = S_for_sparse
             else:
-                reconciler_args["S"] = S_df.drop(id_col)\
+                reconciler_args["S"] = S_df_nw.drop(id_col)\
                                            .to_numpy()\
                                            .astype(np.float64, copy=False)
 
@@ -342,8 +342,8 @@ class HierarchicalReconciliation:
                 recmodel_name = f'{model_name}/{reconcile_fn_name}'
 
                 # TODO: the below should be method specific
-                y_hat = self._prepare_Y(Y_df=Y_hat_df[[id_col, time_col, model_name]], 
-                                        S_df=S_df, 
+                y_hat = self._prepare_Y(Y_df=Y_hat_df_nw[[id_col, time_col, model_name]], 
+                                        S_df=S_df_nw, 
                                         is_balanced=True, 
                                         id_col=id_col, 
                                         time_col=time_col, 
@@ -351,8 +351,8 @@ class HierarchicalReconciliation:
                 reconciler_args['y_hat'] = y_hat
 
                 if (self.insample and has_fitted) or intervals_method in ['bootstrap', 'permbu']:
-                    y_hat_insample = self._prepare_Y(Y_df=Y_df[[id_col, time_col, model_name]], 
-                                         S_df=S_df, 
+                    y_hat_insample = self._prepare_Y(Y_df=Y_df_nw[[id_col, time_col, model_name]], 
+                                         S_df=S_df_nw, 
                                          is_balanced=is_balanced, 
                                          id_col=id_col, 
                                          time_col=time_col, 
@@ -361,7 +361,7 @@ class HierarchicalReconciliation:
 
                 if has_level and (level is not None):
                     if intervals_method in ['normality', 'permbu']:
-                        sigmah = _reverse_engineer_sigmah(Y_hat_df=Y_hat_df,
+                        sigmah = _reverse_engineer_sigmah(Y_hat_df=Y_hat_df_nw,
                                     y_hat=y_hat, model_name=model_name)
                         reconciler_args['sigmah'] = sigmah
 
@@ -439,7 +439,7 @@ class HierarchicalReconciliation:
         """
 
         # Check input's validity and sort dataframes
-        Y_hat_df, S_df, Y_df, self.model_names = \
+        Y_hat_df_nw, S_df_nw, Y_df_nw, self.model_names = \
                     self._prepare_fit(Y_hat_df=Y_hat_df,
                                       S_df=S_df,
                                       Y_df=Y_df,
@@ -450,23 +450,23 @@ class HierarchicalReconciliation:
         # Bootstrap reconciled predictions
         Y_tilde_list = []
         for seed in range(num_seeds):
-            Y_tilde_df = self.reconcile(Y_hat_df=Y_hat_df,
-                                        S=S_df,
+            Y_tilde_df = self.reconcile(Y_hat_df=Y_hat_df_nw,
+                                        S=S_df_nw,
                                         tags=tags,
-                                        Y_df=Y_df,
+                                        Y_df=Y_df_nw,
                                         level=level,
                                         intervals_method=intervals_method,
                                         num_samples=num_samples,
                                         seed=seed,
                                         sort_df=False)
-            Y_tilde_df_ = nw.from_native(Y_tilde_df)
-            Y_tilde_df_ = Y_tilde_df_.with_columns(nw.lit(seed).alias('seed'))
+            Y_tilde_df_nw = nw.from_native(Y_tilde_df)
+            Y_tilde_df_nw = Y_tilde_df_nw.with_columns(nw.lit(seed).alias('seed'))
 
             # TODO: fix broken recmodel_names
             if seed==0:
-                first_columns = Y_tilde_df_.columns
-            Y_tilde_df_ = Y_tilde_df_.rename({col: first_columns[i] for i, col in enumerate(first_columns)})
-            Y_tilde_list.append(Y_tilde_df_)
+                first_columns = Y_tilde_df_nw.columns
+            Y_tilde_df_nw = Y_tilde_df_nw.rename({col: first_columns[i] for i, col in enumerate(first_columns)})
+            Y_tilde_list.append(Y_tilde_df_nw)
 
         Y_bootstrap_df = nw.concat(Y_tilde_list, how="vertical")
 

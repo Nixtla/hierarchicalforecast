@@ -365,20 +365,20 @@ class HierarchicalEvaluation:
         **Returns:**<br>
         `evaluation`: DataFrame with accuracy measurements across hierarchical levels.
         """
-        Y_hat_df_ = nw.from_native(Y_hat_df)
-        Y_test_df_ = nw.from_native(Y_test_df)
-        native_namespace = nw.get_native_namespace(Y_hat_df_)
+        Y_hat_df_nw = nw.from_native(Y_hat_df)
+        Y_test_df_nw = nw.from_native(Y_test_df)
+        native_namespace = nw.get_native_namespace(Y_hat_df_nw)
         if Y_df is not None:
-            Y_df_ = nw.from_native(Y_df)
+            Y_df_nw = nw.from_native(Y_df)
 
-        n_series = len(set(Y_hat_df_[id_col]))
-        h = len(set(Y_hat_df_[time_col]))
-        if len(Y_hat_df_) != n_series * h:
+        n_series = len(set(Y_hat_df_nw[id_col]))
+        h = len(set(Y_hat_df_nw[time_col]))
+        if len(Y_hat_df_nw) != n_series * h:
             raise Exception('Y_hat_df should have a forecast for each series and horizon')
 
         fn_names = [fn.__name__ for fn in self.evaluators]
         has_y_insample = any(['y_insample' in signature(fn).parameters for fn in self.evaluators])
-        if has_y_insample and Y_df_ is None:
+        if has_y_insample and Y_df is None:
             raise Exception('At least one evaluator needs y_insample, please pass `Y_df`')
 
         if benchmark is not None:
@@ -387,16 +387,16 @@ class HierarchicalEvaluation:
         tags_ = {'Overall': np.concatenate(list(tags.values()))}
         tags_ = {**tags_, **tags}
 
-        model_names = Y_hat_df_.drop([id_col, time_col, target_col], strict=False).columns
+        model_names = Y_hat_df_nw.drop([id_col, time_col, target_col], strict=False).columns
         evaluation_np = np.empty((len(tags_), len(fn_names), len(model_names)), dtype=np.float64)
         evaluation_index_np = np.empty((len(tags_) * len(fn_names), 2), dtype=object)
-        Y_h = Y_hat_df_.join(Y_test_df_, how="left", on=[id_col, time_col])
+        Y_h = Y_hat_df_nw.join(Y_test_df_nw, how="left", on=[id_col, time_col])
         for i_level, (level, cats) in enumerate(tags_.items()):
             Y_h_cats = Y_h.filter(nw.col(id_col).is_in(cats))
             y_test_cats = Y_h_cats[target_col].to_numpy().reshape(-1, h)
 
             if has_y_insample and Y_df is not None:
-                y_insample = pivot(Y_df_, index = id_col, columns = time_col, values = target_col)
+                y_insample = pivot(Y_df_nw, index = id_col, columns = time_col, values = target_col)
                 y_insample = y_insample.filter(nw.col(id_col).is_in(cats))
                 y_insample = y_insample.drop(id_col).to_numpy()
 
