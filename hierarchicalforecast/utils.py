@@ -300,11 +300,11 @@ class HierarchicalPlot:
         `series`: str, string identifying the `'unique_id'` any-level series to plot.<br>
         `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$). 
                 It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`.<br>
-        `models`: List[str], string identifying filtering model columns.
+        `models`: List[str], string identifying filtering model columns.<br>
         `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.           
+        `target_col` : str='y', column that contains the target.<br>           
 
         **Returns:**<br>
         Single series plot with filtered models and prediction interval level.<br><br>
@@ -364,11 +364,11 @@ class HierarchicalPlot:
         `bottom_series`: str, string identifying the `'unique_id'` bottom-level series to plot.<br>
         `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$). 
                 It contains columns ['unique_id', 'ds', 'y'] and models. <br>
-        `models`: List[str], string identifying filtering model columns.
+        `models`: List[str], string identifying filtering model columns.<br>
         `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.          
+        `target_col` : str='y', column that contains the target.<br>          
 
         **Returns:**<br>
         Collection of hierarchilly linked series plots associated with the `bottom_series`
@@ -436,12 +436,12 @@ class HierarchicalPlot:
         **Parameters:**<br>
         `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$). 
                 It contains columns ['unique_id', 'ds', 'y'] and models. <br>
-        `models`: List[str], string identifying filtering model columns.
-        `xlabel`: str, string for the plot's x axis label.
-        `ylable`: str, string for the plot's y axis label.
+        `models`: List[str], string identifying filtering model columns. <br>
+        `xlabel`: str, string for the plot's x axis label.<br>
+        `ylabel`: str, string for the plot's y axis label.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.              
+        `target_col` : str='y', column that contains the target.<br>              
 
         **Returns:**<br>
         Plots of aggregated predictions at different levels of the hierarchical structure.
@@ -532,7 +532,10 @@ def samples_to_quantiles_df(samples: np.ndarray,
                             dates: List[str], 
                             quantiles: Optional[List[float]] = None,
                             level: Optional[List[int]] = None, 
-                            model_name: Optional[str] = "model"):
+                            model_name: Optional[str] = "model",
+                            id_col: str = 'unique_id',
+                            time_col: str = 'ds',
+                            ):
     """ Transform Random Samples into HierarchicalForecast input.
     Auxiliary function to create compatible HierarchicalForecast input `Y_hat_df` dataframe.
 
@@ -543,6 +546,8 @@ def samples_to_quantiles_df(samples: np.ndarray,
     `quantiles`: float list in [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
     `level`: int list in [0,100]. Probability levels for prediction intervals.<br>
     `model_name`: string. Name of forecasting model.<br>
+    `id_col` : str='unique_id', column that identifies each serie.<br>
+    `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
 
     **Returns:**<br>
     `quantiles`: float list in [0., 1.]. quantiles to estimate from y distribution .<br>
@@ -560,7 +565,7 @@ def samples_to_quantiles_df(samples: np.ndarray,
     forecasts_mean = np.mean(samples, axis=1).flatten()
     unique_ids = np.repeat(unique_ids, horizon)
     ds = np.tile(dates, n_series)
-    data = pd.DataFrame({"unique_id":unique_ids, "ds":ds, model_name:forecasts_mean})
+    data = pd.DataFrame({id_col:unique_ids, time_col:ds, model_name:forecasts_mean})
 
     #create quantiles and quantile names
     if level is not None:
@@ -580,7 +585,7 @@ def samples_to_quantiles_df(samples: np.ndarray,
     df = pd.DataFrame(data=forecasts_quantiles, 
                       columns=col_names)
     
-    return _quantiles, pd.concat([data,df], axis=1).set_index('unique_id')
+    return _quantiles, pd.concat([data,df], axis=1).set_index(id_col)
 
 # %% ../nbs/src/utils.ipynb 59
 # Masked empirical covariance matrix

@@ -354,13 +354,13 @@ class HierarchicalEvaluation:
 
         **Parameters:**<br>
         `Y_hat_df`: DataFrame, Forecasts with columns `'unique_id'`, `'ds'` and models to evaluate.<br>
-        `Y_test_df`:  DataFrame, Observed values with columns `['ds', 'y']`.<br>
+        `Y_test_df`:  DataFrame, Observed values with columns `['unique_id', 'ds', 'y']`.<br>
         `tags`: np.array, each str key is a level and its value contains tags associated to that level.<br>
         `Y_df`: DataFrame, Training set of base time series with columns `['unique_id', 'ds', 'y']`.<br>
         `benchmark`: str, If passed, evaluators are scaled by the error of this benchark.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.
+        `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
         `evaluation`: DataFrame with accuracy measurements across hierarchical levels.

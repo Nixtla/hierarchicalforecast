@@ -269,7 +269,7 @@ class HierarchicalReconciliation:
         `is_balanced`: bool=False, wether `Y_df` is balanced, set it to True to speed things up if `Y_df` is balanced.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.        
+        `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
         `Y_tilde_df`: DataFrame, with reconciled predictions.
