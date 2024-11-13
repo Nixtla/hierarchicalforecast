@@ -27,7 +27,6 @@ def evaluate():
 
     eval_tags = {}
     eval_tags['Total'] = tags['Country']
-    # eval_tags['Purpose'] = tags['Country/Purpose']
     eval_tags['State'] = tags['Country/State']
     eval_tags['Regions'] = tags['Country/State/Region']
     eval_tags['Bottom'] = tags['Country/State/Region/Purpose']
