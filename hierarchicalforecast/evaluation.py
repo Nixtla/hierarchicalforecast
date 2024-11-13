@@ -385,12 +385,12 @@ class HierarchicalEvaluation:
             fn_names = [f'{fn_name}-scaled' for fn_name in fn_names]
 
         tags_ = {'Overall': np.concatenate(list(tags.values()))}
-        tags_ = {**tags_, **tags}
+        tags_ = {**tags, **tags_}
 
         model_names = Y_hat_df_nw.drop([id_col, time_col, target_col], strict=False).columns
         evaluation_np = np.empty((len(tags_), len(fn_names), len(model_names)), dtype=np.float64)
         evaluation_index_np = np.empty((len(tags_) * len(fn_names), 2), dtype=object)
-        Y_h = Y_hat_df_nw.join(Y_test_df_nw, how="left", on=[id_col, time_col])
+        Y_h = Y_hat_df_nw.join(Y_test_df_nw, how="left", on=[id_col, time_col]).sort(by=[id_col, time_col])
         for i_level, (level, cats) in enumerate(tags_.items()):
             Y_h_cats = Y_h.filter(nw.col(id_col).is_in(cats))
             y_test_cats = Y_h_cats[target_col].to_numpy().reshape(-1, h)
