@@ -10,7 +10,7 @@ import copy
 
 from .methods import HReconciler
 from inspect import signature
-from narwhals.typing import FrameT
+from narwhals.typing import Frame
 from scipy.stats import norm
 from scipy import sparse
 from typing import Dict, List, Optional
@@ -39,7 +39,7 @@ def _build_fn_name(fn) -> str:
     return fn_name
 
 # %% ../nbs/src/core.ipynb 10
-def _reverse_engineer_sigmah(Y_hat_df: FrameT, 
+def _reverse_engineer_sigmah(Y_hat_df: Frame, 
                              y_hat: np.ndarray, 
                              model_name: str,
                              id_col: str = "unique_id",
@@ -102,9 +102,9 @@ class HierarchicalReconciliation:
         self.insample = any([method.insample for method in reconcilers])
     
     def _prepare_fit(self,
-                     Y_hat_df: FrameT,
-                     S_df: FrameT,
-                     Y_df: Optional[FrameT],
+                     Y_hat_df: Frame,
+                     S_df: Frame,
+                     Y_df: Optional[Frame],
                      tags: Dict[str, np.ndarray],
                      level: Optional[List[int]] = None,
                      intervals_method: str = 'normality',
@@ -198,8 +198,8 @@ class HierarchicalReconciliation:
         return Y_hat_df_nw, S_df_nw, Y_df_nw, model_names
 
     def _prepare_Y(self, 
-                          Y_df: FrameT, 
-                          S_df: FrameT, 
+                          Y_df: Frame, 
+                          S_df: Frame, 
                           is_balanced: bool = True,
                           id_col: str = "unique_id",
                           time_col: str = "ds", 
@@ -225,10 +225,10 @@ class HierarchicalReconciliation:
 
 
     def reconcile(self, 
-                  Y_hat_df: FrameT,
-                  S: FrameT,
+                  Y_hat_df: Frame,
+                  S: Frame,
                   tags: Dict[str, np.ndarray],
-                  Y_df: Optional[FrameT] = None,
+                  Y_df: Optional[Frame] = None,
                   level: Optional[List[int]] = None,
                   intervals_method: str = 'normality',
                   num_samples: int = -1,
@@ -407,10 +407,10 @@ class HierarchicalReconciliation:
         return Y_tilde_df.to_native()
 
     def bootstrap_reconcile(self,
-                            Y_hat_df: FrameT,
-                            S_df: FrameT,
+                            Y_hat_df: Frame,
+                            S_df: Frame,
                             tags: Dict[str, np.ndarray],
-                            Y_df: Optional[FrameT] = None,
+                            Y_df: Optional[Frame] = None,
                             level: Optional[List[int]] = None,
                             intervals_method: str = 'normality',
                             num_samples: int = -1,

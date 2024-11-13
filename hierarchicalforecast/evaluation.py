@@ -10,8 +10,7 @@ from typing import Callable, Dict, List, Optional, Union
 import narwhals as nw
 import numpy as np
 
-from .core import pivot
-from narwhals.typing import FrameT
+from narwhals.typing import Frame
 from scipy.stats import multivariate_normal
 
 # %% ../nbs/src/evaluation.ipynb 6
@@ -341,10 +340,10 @@ class HierarchicalEvaluation:
         self.evaluators = evaluators
 
     def evaluate(self, 
-                 Y_hat_df: FrameT,
-                 Y_test_df: FrameT,
+                 Y_hat_df: Frame,
+                 Y_test_df: Frame,
                  tags: Dict[str, np.ndarray],
-                 Y_df: Optional[FrameT] = None,
+                 Y_df: Optional[Frame] = None,
                  benchmark: Optional[str] = None,
                  id_col: str = "unique_id",
                  time_col: str = "ds", 
@@ -396,7 +395,7 @@ class HierarchicalEvaluation:
             y_test_cats = Y_h_cats[target_col].to_numpy().reshape(-1, h)
 
             if has_y_insample and Y_df is not None:
-                y_insample = pivot(Y_df_nw, index = id_col, columns = time_col, values = target_col)
+                y_insample = Y_df_nw.pivot(on=time_col, index = id_col, values = target_col, sort_columns=True).sort(by=id_col)
                 y_insample = y_insample.filter(nw.col(id_col).is_in(cats))
                 y_insample = y_insample.drop(id_col).to_numpy()
 

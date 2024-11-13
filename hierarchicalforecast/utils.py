@@ -13,7 +13,7 @@ import narwhals as nw
 import numpy as np
 import pandas as pd
 
-from narwhals.typing import FrameT
+from narwhals.typing import Frame
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
 
@@ -89,7 +89,7 @@ def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
 
 # %% ../nbs/src/utils.ipynb 13
 def aggregate(
-    df: FrameT,
+    df: Frame,
     spec: List[List[str]],
     exog_vars: Optional[Dict[str, Union[str, List[str]]]] = None,
     sparse_s: bool = False,
@@ -237,7 +237,7 @@ class HierarchicalPlot:
         each key is a level and its value contains tags associated to that level.<br><br>
     """
     def __init__(self,
-                 S: FrameT,
+                 S: Frame,
                  tags: Dict[str, np.ndarray],
                  ):
 
@@ -258,7 +258,7 @@ class HierarchicalPlot:
 
     def plot_series(self,
                     series: str,
-                    Y_df: FrameT,
+                    Y_df: Frame,
                     models: Optional[List[str]] = None,
                     level: Optional[List[int]] = None,
                     id_col: str = "unique_id",
@@ -322,7 +322,7 @@ class HierarchicalPlot:
                     
     def plot_hierarchically_linked_series(self,
                                           bottom_series: str,
-                                          Y_df: FrameT,
+                                          Y_df: Frame,
                                           models: Optional[List[str]] = None,
                                           level: Optional[List[int]] = None,
                                           id_col: str = "unique_id",
@@ -394,7 +394,7 @@ class HierarchicalPlot:
         fig.legend(handles, labels, **kwargs)
 
     def plot_hierarchical_predictions_gap(self,
-                                          Y_df: FrameT,
+                                          Y_df: Frame,
                                           models: Optional[List[str]] = None,
                                           xlabel: Optional[str] = None,
                                           ylabel: Optional[str] = None,
