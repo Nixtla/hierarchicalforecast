@@ -42,35 +42,6 @@ class CodeTimer:
                   ' took:\t{0:.5f}'.format(self.took) + ' seconds')
 
 # %% ../nbs/src/utils.ipynb 7
-def pivot(df: FrameT, index: str = "unique_id", columns: str = "ds", values: str = "y", sort: bool = True) -> FrameT:
-    """
-    Pivot a DataFrame. 
-
-    This function breaks Narwhals compliance as Narwhals doesn't support Pivot yet
-    """
-    df = df.to_native()
-
-    if isinstance(df, pd.DataFrame):
-        pivot_args = {'values': values, 
-                      'index': index,
-                      'columns': columns,
-                      'sort':  sort,
-                      'dropna': False}
-        df_pivot = df.pivot_table(**pivot_args)
-        df_pivot = df_pivot.reset_index()
-    else:
-        # Polars
-        pivot_args = {'values': values, 
-                      'index': index,
-                      'on': columns,
-                      'maintain_order': sort}      
-        df_pivot = df.pivot(**pivot_args)
-        if sort:
-            df_pivot = df_pivot.sort(by=index)
-    
-    return nw.from_native(df_pivot)
-
-# %% ../nbs/src/utils.ipynb 8
 def is_strictly_hierarchical(S: np.ndarray, 
                              tags: Dict[str, np.ndarray]):
     # main idea:
@@ -88,7 +59,7 @@ def is_strictly_hierarchical(S: np.ndarray,
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
-# %% ../nbs/src/utils.ipynb 9
+# %% ../nbs/src/utils.ipynb 8
 def cov2corr(cov, return_std=False):
     """ convert covariance matrix to correlation matrix
     **Parameters:**<br>
@@ -105,7 +76,7 @@ def cov2corr(cov, return_std=False):
     else:
         return corr
 
-# %% ../nbs/src/utils.ipynb 11
+# %% ../nbs/src/utils.ipynb 10
 def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
     upper_split = upper_key.split('/')
     upper_idxs = [bottom_split.index(i) for i in upper_split]
@@ -116,7 +87,7 @@ def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
 
     return [join_upper(val) for val in bottom_values]
 
-# %% ../nbs/src/utils.ipynb 14
+# %% ../nbs/src/utils.ipynb 13
 def aggregate(
     df: FrameT,
     spec: List[List[str]],
@@ -253,7 +224,7 @@ def aggregate(
 
     return Y_df, S_df, tags
 
-# %% ../nbs/src/utils.ipynb 30
+# %% ../nbs/src/utils.ipynb 29
 class HierarchicalPlot:
     """ Hierarchical Plot
 
@@ -480,7 +451,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/src/utils.ipynb 51
+# %% ../nbs/src/utils.ipynb 50
 # convert levels to output quantile names
 def level_to_outputs(level:Iterable[int]):
     """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -524,7 +495,7 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../nbs/src/utils.ipynb 52
+# %% ../nbs/src/utils.ipynb 51
 # given input array of sample forecasts and inptut quantiles/levels, 
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(samples: np.ndarray, 
@@ -587,7 +558,7 @@ def samples_to_quantiles_df(samples: np.ndarray,
     
     return _quantiles, pd.concat([data,df], axis=1).set_index(id_col)
 
-# %% ../nbs/src/utils.ipynb 59
+# %% ../nbs/src/utils.ipynb 58
 # Masked empirical covariance matrix
 @njit("Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool, 2, 'C'))", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, parallel=NUMBA_PARALLEL, fastmath=NUMBA_FASTMATH, error_model="numpy")
 # @njit(nogil=NOGIL, cache=CACHE, parallel=True, fastmath=True, error_model="numpy")
@@ -619,7 +590,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 
     return W
 
-# %% ../nbs/src/utils.ipynb 60
+# %% ../nbs/src/utils.ipynb 59
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
 @njit("Array(float64, 2, 'F')(Array(float64, 2, 'C'), float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, parallel=NUMBA_PARALLEL, fastmath=NUMBA_FASTMATH, error_model="numpy")
@@ -743,7 +714,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
 
     return W
 
-# %% ../nbs/src/utils.ipynb 62
+# %% ../nbs/src/utils.ipynb 61
 # Lasso cyclic coordinate descent
 @njit("Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, fastmath=NUMBA_FASTMATH, error_model="numpy")
 def _lasso(X: np.ndarray, y: np.ndarray, 

@@ -9,7 +9,6 @@ import time
 import copy
 
 from .methods import HReconciler
-from .utils import pivot
 from inspect import signature
 from narwhals.typing import FrameT
 from scipy.stats import norm
@@ -212,10 +211,10 @@ class HierarchicalReconciliation:
         if is_balanced:
             Y = Y_df[target_col].to_numpy().reshape(len(S_df), -1)
         else:
-            Y_pivot = pivot(Y_df, index=id_col, columns=time_col, values=target_col, sort=True)
+            Y_pivot = Y_df.pivot(on=time_col, index=id_col, values=target_col, sort_columns=True).sort(by=id_col)
 
             # TODO: check if this is the best way to do it
-            pos_in_Y = np.searchsorted(Y_pivot[id_col], S_df[id_col])
+            pos_in_Y = np.searchsorted(Y_pivot[id_col].to_numpy(), S_df[id_col].to_numpy())
             Y_pivot = Y_pivot.drop(id_col)
             Y_pivot = Y_pivot[pos_in_Y]
             Y = Y_pivot.to_numpy()
