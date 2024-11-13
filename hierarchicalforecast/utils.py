@@ -332,9 +332,9 @@ class HierarchicalPlot:
                         # doesnt have levels
                         continue
                     ax.fill_between(
-                        df_plot.select(nw.col(time_col).drop_nulls())[time_col].to_numpy(), 
-                        df_plot.select(nw.col(f'{col}-lo-{lv}').drop_nulls())[f'{col}-lo-{lv}'].to_numpy(), 
-                        df_plot.select(nw.col(f'{col}-hi-{lv}').drop_nulls())[f'{col}-hi-{lv}'].to_numpy(),
+                        df_plot.select(nw.col(time_col))[time_col].to_numpy(), 
+                        df_plot.select(nw.col(f'{col}-lo-{lv}'))[f'{col}-lo-{lv}'].to_numpy(), 
+                        df_plot.select(nw.col(f'{col}-hi-{lv}'))[f'{col}-hi-{lv}'].to_numpy(),
                         alpha=-lv/100 + 1,
                         color=cmap_dict[col],
                         label=f'{col}_level_{lv}'
@@ -397,9 +397,9 @@ class HierarchicalPlot:
                             # doesnt have levels
                             continue
                         axs[idx].fill_between(
-                            df_plot.select(nw.col(time_col).drop_nulls())[time_col].to_numpy(), 
-                            df_plot.select(nw.col(f'{col}-lo-{lv}').drop_nulls())[f'{col}-lo-{lv}'].to_numpy(), 
-                            df_plot.select(nw.col(f'{col}-hi-{lv}').drop_nulls())[f'{col}-hi-{lv}'].to_numpy(),                          
+                            df_plot.select(nw.col(time_col))[time_col].to_numpy(), 
+                            df_plot.select(nw.col(f'{col}-lo-{lv}'))[f'{col}-lo-{lv}'].to_numpy(), 
+                            df_plot.select(nw.col(f'{col}-hi-{lv}'))[f'{col}-hi-{lv}'].to_numpy(),                          
                             alpha=-lv/100 + 1,
                             color=cmap_dict[col],
                             label=f'{col}_level_{lv}'
