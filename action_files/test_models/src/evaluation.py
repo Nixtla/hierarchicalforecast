@@ -40,7 +40,7 @@ def evaluate():
     evaluation = evaluation.query("level != 'Overall'").set_index(['level', 'metric'])
 
     evaluation.columns = ['Base'] + models
-    evaluation = evaluation.applymap('{:.2f}'.format)
+    evaluation = evaluation.map('{:.2f}'.format)
     return evaluation
 
 

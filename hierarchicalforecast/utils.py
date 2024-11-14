@@ -17,7 +17,7 @@ from narwhals.typing import Frame
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
 
-plt.rcParams['font.family'] = 'serif'
+plt.rcParams["font.family"] = "serif"
 
 # %% ../nbs/src/utils.ipynb 5
 # Global variables
@@ -29,21 +29,24 @@ NUMBA_FASTMATH = True
 # %% ../nbs/src/utils.ipynb 6
 class CodeTimer:
     def __init__(self, name=None, verbose=True):
-        self.name = " '"  + name + "'" if name else ''
+        self.name = " '" + name + "'" if name else ""
         self.verbose = verbose
 
     def __enter__(self):
         self.start = timeit.default_timer()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.took = (timeit.default_timer() - self.start)
+        self.took = timeit.default_timer() - self.start
         if self.verbose:
-            print('Code block' + self.name + \
-                  ' took:\t{0:.5f}'.format(self.took) + ' seconds')
+            print(
+                "Code block"
+                + self.name
+                + " took:\t{0:.5f}".format(self.took)
+                + " seconds"
+            )
 
 # %% ../nbs/src/utils.ipynb 7
-def is_strictly_hierarchical(S: np.ndarray, 
-                             tags: Dict[str, np.ndarray]):
+def is_strictly_hierarchical(S: np.ndarray, tags: Dict[str, np.ndarray]):
     # main idea:
     # if S represents a strictly hierarchical structure
     # the number of paths before the bottom level
@@ -55,13 +58,13 @@ def is_strictly_hierarchical(S: np.ndarray,
     # making S categorical
     hiers = [np.argmax(S[idx], axis=0) + 1 for _, idx in levels_.items()]
     hiers = np.vstack(hiers)
-    paths = np.unique(hiers, axis=1).shape[1] 
+    paths = np.unique(hiers, axis=1).shape[1]
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
 # %% ../nbs/src/utils.ipynb 8
 def cov2corr(cov, return_std=False):
-    """ convert covariance matrix to correlation matrix
+    """convert covariance matrix to correlation matrix
     **Parameters:**<br>
     `cov`: array_like, 2d covariance matrix.<br>
     `return_std`: bool=False, if True returned std.<br>
@@ -78,12 +81,12 @@ def cov2corr(cov, return_std=False):
 
 # %% ../nbs/src/utils.ipynb 10
 def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
-    upper_split = upper_key.split('/')
+    upper_split = upper_key.split("/")
     upper_idxs = [bottom_split.index(i) for i in upper_split]
 
     def join_upper(bottom_value):
-        bottom_parts = bottom_value.split('/')
-        return '/'.join(bottom_parts[i] for i in upper_idxs)
+        bottom_parts = bottom_value.split("/")
+        return "/".join(bottom_parts[i] for i in upper_idxs)
 
     return [join_upper(val) for val in bottom_values]
 
@@ -94,8 +97,8 @@ def aggregate(
     exog_vars: Optional[Dict[str, Union[str, List[str]]]] = None,
     sparse_s: bool = False,
     id_col: str = "unique_id",
-    time_col: str = "ds", 
-    target_col: str = "y",      
+    time_col: str = "ds",
+    target_col: str = "y",
 ):
     """Utils Aggregation Function.
     Aggregates bottom level series contained in the DataFrame `df` according
@@ -116,7 +119,7 @@ def aggregate(
     time_col : str (default='ds')
         Column that identifies each timestep, its values can be timestamps or integers.
     target_col : (default='y')
-        Column that contains the target.        
+        Column that contains the target.
 
     Returns
     -------
@@ -137,64 +140,81 @@ def aggregate(
     native_namespace = nw.get_native_namespace(df_nw)
 
     for col in df_nw.columns:
-        assert not df_nw[col].is_null().any(), f"Column {col} contains null values. Make sure no column in the DataFrame contains null values."
+        assert (
+            not df_nw[col].is_null().any()
+        ), f"Column {col} contains null values. Make sure no column in the DataFrame contains null values."
 
     # Check whether all columns in the spec are in the df
-    aggregation_cols_in_spec = list(dict.fromkeys([col for cols in spec for col in cols]))
+    aggregation_cols_in_spec = list(
+        dict.fromkeys([col for cols in spec for col in cols])
+    )
     for col in aggregation_cols_in_spec:
         assert col in df_nw.columns, f"Column {col} in spec not present in df"
 
     # Prepare the aggregation dictionary
-    agg_dict = {
-        target_col: (target_col, "sum")
-    }    
-   
+    agg_dict = {target_col: (target_col, "sum")}
+
     # Check if exog_vars are present in df & add to the aggregation dictionary if it is not None
     exog_var_names = []
     if exog_vars is not None:
         missing_vars = [var for var in exog_vars.keys() if var not in df.columns]
         if missing_vars:
-            raise ValueError(f"The following exogenous variables are not present in the DataFrame: {', '.join(missing_vars)}")    
+            raise ValueError(
+                f"The following exogenous variables are not present in the DataFrame: {', '.join(missing_vars)}"
+            )
         else:
-          # Update agg_dict to handle multiple aggregations for each exog_vars key
+            # Update agg_dict to handle multiple aggregations for each exog_vars key
             for key, agg_func in exog_vars.items():
                 # Ensure agg_func is a list
-                if isinstance(agg_func, str):  # If it's a single string, convert to list
+                if isinstance(
+                    agg_func, str
+                ):  # If it's a single string, convert to list
                     agg_func = [agg_func]
                 elif not isinstance(agg_func, list):  # Raise an error if it's neither
-                    raise ValueError(f"Aggregation functions for '{key}' must be a string or a list of strings.")
-                
+                    raise ValueError(
+                        f"Aggregation functions for '{key}' must be a string or a list of strings."
+                    )
+
                 for func in agg_func:
-                    agg_dict[f"{key}_{func}"] = (key, func)  # Update the agg_dict with the new naming structure
+                    agg_dict[f"{key}_{func}"] = (
+                        key,
+                        func,
+                    )  # Update the agg_dict with the new naming structure
                     exog_var_names.append(f"{key}_{func}")
 
     # compute aggregations and tags
     spec = sorted(spec, key=len)
 
     tags = {}
-    Y_dfs = []
+    Y_dfs_nw = []
     category_list = []
     level_sep = "/"
     # Perform the aggregation
     for level in spec:
-        level_name = '/'.join(level)
+        level_name = "/".join(level)
 
         # Create Y_df
         Y_level = df_nw.group_by(level + [time_col]).agg(
-            *[getattr(nw.col(col), agg)().alias(col_name) for col_name, (col, agg) in agg_dict.items()]
+            *[
+                getattr(nw.col(col), agg)().alias(col_name)
+                for col_name, (col, agg) in agg_dict.items()
+            ]
         )
-        Y_level = Y_level.select(nw.concat_str( [nw.col(col) for col in level],
-                separator=level_sep).alias(id_col), 
-                            nw.all())
-        Y_level = Y_level.drop(level)
+        Y_level = Y_level.select(
+            nw.concat_str([nw.col(col) for col in level], separator=level_sep).alias(
+                id_col
+            ),
+            nw.all(),
+        )
+        Y_level = Y_level[[id_col, time_col, target_col] + exog_var_names]
         Y_level = Y_level.sort(by=[id_col, time_col])
-        Y_dfs.append(Y_level)
+        Y_dfs_nw.append(Y_level)
 
         tags[level_name] = Y_level[id_col].unique().sort().to_numpy()
         category_list.extend(tags[level_name])
 
-    Y_df = nw.concat(Y_dfs, how="vertical")
-    Y_df = nw.maybe_reset_index(Y_df).to_native()
+    Y_df_nw = nw.concat(Y_dfs_nw, how="vertical")
+    Y_df = nw.maybe_reset_index(Y_df_nw).to_native()
 
     # construct S
     bottom = spec[-1]
@@ -202,80 +222,88 @@ def aggregate(
     S = np.empty((len(bottom_levels), len(spec)), dtype=object)
 
     for j, levels in enumerate(spec[:-1]):
-        S[:, j] = _to_upper_hierarchy(bottom, bottom_levels, '/'.join(levels))
+        S[:, j] = _to_upper_hierarchy(bottom, bottom_levels, "/".join(levels))
     S[:, -1] = tags[level_name]
     categories = list(tags.values())
-    
-    encoder = OneHotEncoder(categories=categories, sparse_output=sparse_s, dtype=np.float64)  
+
+    encoder = OneHotEncoder(
+        categories=categories, sparse_output=sparse_s, dtype=np.float64
+    )
     S_dum = encoder.fit_transform(S)
-    
+
     if not sparse_s:
         S_dict = dict(zip(tags[level_name], S_dum))
-        S_df = nw.from_dict(S_dict, 
-                            native_namespace=native_namespace)
-        S_df = S_df.select(nw.from_dict({id_col: category_list}, 
-                                              native_namespace=native_namespace)[id_col],
-                                              nw.all())
-        S_df = nw.maybe_reset_index(S_df).to_native()
+        S_df_nw = nw.from_dict(S_dict, native_namespace=native_namespace)
+        S_df_nw = S_df_nw.select(
+            nw.from_dict({id_col: category_list}, native_namespace=native_namespace)[
+                id_col
+            ],
+            nw.all(),
+        )
+        S_df = nw.maybe_reset_index(S_df_nw).to_native()
     else:
-        S_df = pd.DataFrame.sparse.from_spmatrix(S_dum.T, columns=list(bottom_levels),
-                                                 index=category_list)
+        S_df = pd.DataFrame.sparse.from_spmatrix(
+            S_dum.T, columns=list(bottom_levels), index=category_list
+        )
         S_df = S_df.reset_index(names=id_col)
 
     return Y_df, S_df, tags
 
 # %% ../nbs/src/utils.ipynb 29
 class HierarchicalPlot:
-    """ Hierarchical Plot
+    """Hierarchical Plot
 
     This class contains a collection of matplotlib visualization methods, suited for small
     to medium sized hierarchical series.
 
     **Parameters:**<br>
     `S`: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
-    `tags`: np.ndarray, with hierarchical aggregation indexes, where 
+    `tags`: np.ndarray, with hierarchical aggregation indexes, where
         each key is a level and its value contains tags associated to that level.<br><br>
     """
-    def __init__(self,
-                 S: Frame,
-                 tags: Dict[str, np.ndarray],
-                 ):
+
+    def __init__(
+        self,
+        S: Frame,
+        tags: Dict[str, np.ndarray],
+    ):
 
         self.S_id_col = "unique_id"
         self.S = nw.from_native(S)
         self.tags = tags
 
     def plot_summing_matrix(self):
-        """ Summation Constraints plot
-        
+        """Summation Constraints plot
+
         This method simply plots the hierarchical aggregation
         constraints matrix $\mathbf{S}$.
         """
-        plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor='w')
+        plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor="w")
         plt.spy(self.S.drop(self.S_id_col).to_numpy())
         plt.show()
         plt.close()
 
-    def plot_series(self,
-                    series: str,
-                    Y_df: Frame,
-                    models: Optional[List[str]] = None,
-                    level: Optional[List[int]] = None,
-                    id_col: str = "unique_id",
-                    time_col: str = "ds",
-                    target_col: str = "y",
-                    ):
-        """ Single Series plot
+    def plot_series(
+        self,
+        series: str,
+        Y_df: Frame,
+        models: Optional[List[str]] = None,
+        level: Optional[List[int]] = None,
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
+    ):
+        """Single Series plot
 
         **Parameters:**<br>
         `series`: str, string identifying the `'unique_id'` any-level series to plot.<br>
-        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$). 
+        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                 It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`.<br>
         `models`: List[str], string identifying filtering model columns.<br>
         `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>           
+        `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
         Single series plot with filtered models and prediction interval level.<br><br>
@@ -283,63 +311,76 @@ class HierarchicalPlot:
         Y_df_nw = nw.from_native(Y_df)
 
         if series not in self.S[id_col]:
-            raise Exception(f'time series {series} not found')
-        fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+            raise Exception(f"time series {series} not found")
+        fig, ax = plt.subplots(1, 1, figsize=(20, 7))
         df_plot = Y_df_nw.filter(nw.col(id_col) == series)
-        cols = models if models is not None else df_plot.drop([id_col, time_col]).columns
-        cols_wo_levels = [col for col in cols if ('-lo-' not in col and '-hi-' not in col)]
+        cols = (
+            models if models is not None else df_plot.drop([id_col, time_col]).columns
+        )
+        cols_wo_levels = [
+            col for col in cols if ("-lo-" not in col and "-hi-" not in col)
+        ]
         try:
             cmap = plt.get_cmap("tab10", 10)
         except AttributeError:
             cmap = plt.cm.get_cmap("tab10", 10)
-        cmap = [cmap(i) for i in range(10)][:len(cols_wo_levels)]
+        cmap = [cmap(i) for i in range(10)][: len(cols_wo_levels)]
         cmap_dict = dict(zip(cols_wo_levels, cmap))
         for col in cols_wo_levels:
-            ax.plot(df_plot[time_col].to_numpy(), df_plot[col].to_numpy(), linewidth=2, label=col, color=cmap_dict[col])
+            ax.plot(
+                df_plot[time_col].to_numpy(),
+                df_plot[col].to_numpy(),
+                linewidth=2,
+                label=col,
+                color=cmap_dict[col],
+            )
             if level is not None and col != target_col:
                 for lv in level:
-                    if f'{col}-lo-{lv}' not in df_plot.columns:
+                    if f"{col}-lo-{lv}" not in df_plot.columns:
                         # if model
                         # doesnt have levels
                         continue
                     ax.fill_between(
-                        df_plot.select(nw.col(time_col))[time_col].to_numpy(), 
-                        df_plot.select(nw.col(f'{col}-lo-{lv}'))[f'{col}-lo-{lv}'].to_numpy(), 
-                        df_plot.select(nw.col(f'{col}-hi-{lv}'))[f'{col}-hi-{lv}'].to_numpy(),
-                        alpha=-lv/100 + 1,
+                        df_plot.select(nw.col(time_col))[time_col].to_numpy(),
+                        df_plot.select(nw.col(f"{col}-lo-{lv}"))[
+                            f"{col}-lo-{lv}"
+                        ].to_numpy(),
+                        df_plot.select(nw.col(f"{col}-hi-{lv}"))[
+                            f"{col}-hi-{lv}"
+                        ].to_numpy(),
+                        alpha=-lv / 100 + 1,
                         color=cmap_dict[col],
-                        label=f'{col}_level_{lv}'
+                        label=f"{col}_level_{lv}",
                     )
-        ax.set_title(f'{series} Forecast', fontsize=22)
-        ax.set_xlabel('Timestamp [t]', fontsize=20)
-        ax.legend(prop={'size': 15})
+        ax.set_title(f"{series} Forecast", fontsize=22)
+        ax.set_xlabel("Timestamp [t]", fontsize=20)
+        ax.legend(prop={"size": 15})
         ax.grid()
-        ax.xaxis.set_major_locator(
-            plt.MaxNLocator(min(max(len(df_plot) // 10, 1), 10))
-        )
-        for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+        ax.xaxis.set_major_locator(plt.MaxNLocator(min(max(len(df_plot) // 10, 1), 10)))
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
             label.set_fontsize(20)
-                    
-    def plot_hierarchically_linked_series(self,
-                                          bottom_series: str,
-                                          Y_df: Frame,
-                                          models: Optional[List[str]] = None,
-                                          level: Optional[List[int]] = None,
-                                          id_col: str = "unique_id",
-                                          time_col: str = "ds",
-                                          target_col: str = "y",                                                              
-                                          ):
-        """ Hierarchically Linked Series plot
+
+    def plot_hierarchically_linked_series(
+        self,
+        bottom_series: str,
+        Y_df: Frame,
+        models: Optional[List[str]] = None,
+        level: Optional[List[int]] = None,
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
+    ):
+        """Hierarchically Linked Series plot
 
         **Parameters:**<br>
         `bottom_series`: str, string identifying the `'unique_id'` bottom-level series to plot.<br>
-        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$). 
+        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                 It contains columns ['unique_id', 'ds', 'y'] and models. <br>
         `models`: List[str], string identifying filtering model columns.<br>
         `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>          
+        `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
         Collection of hierarchilly linked series plots associated with the `bottom_series`
@@ -348,100 +389,131 @@ class HierarchicalPlot:
         Y_df_nw = nw.from_native(Y_df)
 
         if bottom_series not in self.S.columns:
-            raise Exception(f'bottom time series {bottom_series} not found')
+            raise Exception(f"bottom time series {bottom_series} not found")
 
-        linked_series = self.S[[id_col, bottom_series]].filter(nw.col(bottom_series) == 1)[id_col].to_numpy()
-        fig, axs = plt.subplots(len(linked_series), 1, figsize=(20, 2 * len(linked_series)))
-        cols = models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
-        cols_wo_levels = [col for col in cols if ('-lo-' not in col and '-hi-' not in col)]
+        linked_series = (
+            self.S[[id_col, bottom_series]]
+            .filter(nw.col(bottom_series) == 1)[id_col]
+            .to_numpy()
+        )
+        fig, axs = plt.subplots(
+            len(linked_series), 1, figsize=(20, 2 * len(linked_series))
+        )
+        cols = (
+            models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
+        )
+        cols_wo_levels = [
+            col for col in cols if ("-lo-" not in col and "-hi-" not in col)
+        ]
         cmap = plt.cm.get_cmap("tab10", 10)
-        cmap = [cmap(i) for i in range(10)][:len(cols_wo_levels)]
+        cmap = [cmap(i) for i in range(10)][: len(cols_wo_levels)]
         cmap_dict = dict(zip(cols_wo_levels, cmap))
         for idx, series in enumerate(linked_series):
             df_plot = Y_df_nw.filter(nw.col(id_col) == series)
             for col in cols_wo_levels:
-                axs[idx].plot(df_plot[time_col].to_numpy(), df_plot[col].to_numpy(), linewidth=2, label=col, color=cmap_dict[col])
+                axs[idx].plot(
+                    df_plot[time_col].to_numpy(),
+                    df_plot[col].to_numpy(),
+                    linewidth=2,
+                    label=col,
+                    color=cmap_dict[col],
+                )
                 if level is not None and col != target_col:
                     for lv in level:
-                        if f'{col}-lo-{lv}' not in df_plot.columns:
+                        if f"{col}-lo-{lv}" not in df_plot.columns:
                             # if model
                             # doesnt have levels
                             continue
                         axs[idx].fill_between(
-                            df_plot.select(nw.col(time_col))[time_col].to_numpy(), 
-                            df_plot.select(nw.col(f'{col}-lo-{lv}'))[f'{col}-lo-{lv}'].to_numpy(), 
-                            df_plot.select(nw.col(f'{col}-hi-{lv}'))[f'{col}-hi-{lv}'].to_numpy(),                          
-                            alpha=-lv/100 + 1,
+                            df_plot.select(nw.col(time_col))[time_col].to_numpy(),
+                            df_plot.select(nw.col(f"{col}-lo-{lv}"))[
+                                f"{col}-lo-{lv}"
+                            ].to_numpy(),
+                            df_plot.select(nw.col(f"{col}-hi-{lv}"))[
+                                f"{col}-hi-{lv}"
+                            ].to_numpy(),
+                            alpha=-lv / 100 + 1,
                             color=cmap_dict[col],
-                            label=f'{col}_level_{lv}'
+                            label=f"{col}_level_{lv}",
                         )
-            axs[idx].set_title(f'{series}', fontsize=10)
+            axs[idx].set_title(f"{series}", fontsize=10)
             axs[idx].grid()
             axs[idx].get_xaxis().label.set_visible(False)
             axs[idx].legend().set_visible(False)
             axs[idx].xaxis.set_major_locator(
                 plt.MaxNLocator(min(max(len(df_plot) // 10, 1), 10))
             )
-            for label in (axs[idx].get_xticklabels() + axs[idx].get_yticklabels()):
+            for label in axs[idx].get_xticklabels() + axs[idx].get_yticklabels():
                 label.set_fontsize(10)
         plt.subplots_adjust(hspace=0.4)
         handles, labels = axs[0].get_legend_handles_labels()
-        kwargs = dict(loc='lower center', 
-                      prop={'size': 10}, 
-                      bbox_to_anchor=(0, 0.05, 1, 1))
+        kwargs = dict(
+            loc="lower center", prop={"size": 10}, bbox_to_anchor=(0, 0.05, 1, 1)
+        )
         if sys.version_info.minor > 7:
-            kwargs['ncols'] = np.max([2, np.ceil(len(labels) / 2)])
+            kwargs["ncols"] = np.max([2, np.ceil(len(labels) / 2)])
         fig.legend(handles, labels, **kwargs)
 
-    def plot_hierarchical_predictions_gap(self,
-                                          Y_df: Frame,
-                                          models: Optional[List[str]] = None,
-                                          xlabel: Optional[str] = None,
-                                          ylabel: Optional[str] = None,
-                                          id_col: str = "unique_id",
-                                          time_col: str = "ds",
-                                          target_col: str = "y",                                             
-                                          ):
-        """ Hierarchically Predictions Gap plot
+    def plot_hierarchical_predictions_gap(
+        self,
+        Y_df: Frame,
+        models: Optional[List[str]] = None,
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
+    ):
+        """Hierarchically Predictions Gap plot
 
         **Parameters:**<br>
-        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$). 
+        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                 It contains columns ['unique_id', 'ds', 'y'] and models. <br>
         `models`: List[str], string identifying filtering model columns. <br>
         `xlabel`: str, string for the plot's x axis label.<br>
         `ylabel`: str, string for the plot's y axis label.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>              
+        `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
         Plots of aggregated predictions at different levels of the hierarchical structure.
-        The aggregation is performed according to the tag levels see 
+        The aggregation is performed according to the tag levels see
         [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html).<br><br>
         """
         Y_df_nw = nw.from_native(Y_df)
-        
+
         # Parse predictions dataframe
-        horizon_dates = Y_df_nw['ds'].unique().to_numpy()
-        cols = models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
-        
+        horizon_dates = Y_df_nw["ds"].unique().to_numpy()
+        cols = (
+            models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
+        )
+
         # Plot predictions across tag levels
         fig, ax = plt.subplots(figsize=(8, 5))
-        
+
         if target_col in Y_df_nw.columns:
-            idx_top = self.S.with_columns(sum_cols = nw.sum_horizontal(cols)).sort(by="sum_cols", descending=True)[0][id_col].to_numpy()
+            idx_top = (
+                self.S.with_columns(sum_cols=nw.sum_horizontal(cols))
+                .sort(by="sum_cols", descending=True)[0][id_col]
+                .to_numpy()
+            )
             y_plot = Y_df_nw.filter(nw.col(id_col) == idx_top)[target_col].to_numpy()
-            plt.plot(horizon_dates, y_plot, label='True')
+            plt.plot(horizon_dates, y_plot, label="True")
 
         ys = []
         for tag in self.tags:
-            y_plot = sum([Y_df_nw.filter(nw.col(id_col) == idx)[cols].to_numpy() \
-                          for idx in self.tags[tag]])
-            plt.plot(horizon_dates, y_plot, label=f'Level: {tag}')
-            
-            ys.append(y_plot[:,None])
+            y_plot = sum(
+                [
+                    Y_df_nw.filter(nw.col(id_col) == idx)[cols].to_numpy()
+                    for idx in self.tags[tag]
+                ]
+            )
+            plt.plot(horizon_dates, y_plot, label=f"Level: {tag}")
 
-        plt.title('Predictions Accumulated Difference')
+            ys.append(y_plot[:, None])
+
+        plt.title("Predictions Accumulated Difference")
         if ylabel is not None:
             plt.ylabel(ylabel)
         if xlabel is not None:
@@ -453,8 +525,8 @@ class HierarchicalPlot:
 
 # %% ../nbs/src/utils.ipynb 50
 # convert levels to output quantile names
-def level_to_outputs(level:Iterable[int]):
-    """ Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
+def level_to_outputs(level: Iterable[int]):
+    """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
 
     **Parameters:**<br>
     `level`: int list [0,100]. Probability levels for prediction intervals.<br>
@@ -462,8 +534,8 @@ def level_to_outputs(level:Iterable[int]):
     **Returns:**<br>
     `output_names`: str list. String list with output column names.
     """
-    qs = sum([[50-l/2, 50+l/2] for l in level], [])
-    output_names = sum([[f'-lo-{l}', f'-hi-{l}'] for l in level], [])
+    qs = sum([[50 - l / 2, 50 + l / 2] for l in level], [])
+    output_names = sum([[f"-lo-{l}", f"-hi-{l}"] for l in level], [])
 
     sort_idx = np.argsort(qs)
     quantiles = np.array(qs)[sort_idx]
@@ -471,12 +543,13 @@ def level_to_outputs(level:Iterable[int]):
     # Add default median
     quantiles = np.concatenate([np.array([50]), quantiles]) / 100
     output_names = list(np.array(output_names)[sort_idx])
-    output_names.insert(0, '-median')
-    
+    output_names.insert(0, "-median")
+
     return quantiles, output_names
 
+
 # convert quantiles to output quantile names
-def quantiles_to_outputs(quantiles:Iterable[float]):
+def quantiles_to_outputs(quantiles: Iterable[float]):
     """Converts list of quantiles into output names matching StatsForecast and NeuralForecast methods.
 
     **Parameters:**<br>
@@ -487,27 +560,28 @@ def quantiles_to_outputs(quantiles:Iterable[float]):
     """
     output_names = []
     for q in quantiles:
-        if q<.50:
-            output_names.append(f'-lo-{np.round(100-200*q,2)}')
-        elif q>.50:
-            output_names.append(f'-hi-{np.round(100-200*(1-q),2)}')
+        if q < 0.50:
+            output_names.append(f"-lo-{np.round(100-200*q,2)}")
+        elif q > 0.50:
+            output_names.append(f"-hi-{np.round(100-200*(1-q),2)}")
         else:
-            output_names.append('-median')
+            output_names.append("-median")
     return quantiles, output_names
 
 # %% ../nbs/src/utils.ipynb 51
-# given input array of sample forecasts and inptut quantiles/levels, 
+# given input array of sample forecasts and inptut quantiles/levels,
 # output a Pandas Dataframe with columns of quantile predictions
-def samples_to_quantiles_df(samples: np.ndarray, 
-                            unique_ids: Sequence[str], 
-                            dates: List[str], 
-                            quantiles: Optional[List[float]] = None,
-                            level: Optional[List[int]] = None, 
-                            model_name: Optional[str] = "model",
-                            id_col: str = 'unique_id',
-                            time_col: str = 'ds',
-                            ):
-    """ Transform Random Samples into HierarchicalForecast input.
+def samples_to_quantiles_df(
+    samples: np.ndarray,
+    unique_ids: Sequence[str],
+    dates: List[str],
+    quantiles: Optional[List[float]] = None,
+    level: Optional[List[int]] = None,
+    model_name: Optional[str] = "model",
+    id_col: str = "unique_id",
+    time_col: str = "ds",
+):
+    """Transform Random Samples into HierarchicalForecast input.
     Auxiliary function to create compatible HierarchicalForecast input `Y_hat_df` dataframe.
 
     **Parameters:**<br>
@@ -524,43 +598,55 @@ def samples_to_quantiles_df(samples: np.ndarray,
     `quantiles`: float list in [0., 1.]. quantiles to estimate from y distribution .<br>
     `Y_hat_df`: pd.DataFrame. With base quantile forecasts with columns ds and models to reconcile indexed by unique_id.
     """
-    
+
     # Get the shape of the array
     n_series, n_samples, horizon = samples.shape
 
     assert n_series == len(unique_ids)
     assert horizon == len(dates)
-    assert (quantiles is not None) ^ (level is not None)  #check exactly one of quantiles/levels has been input
+    assert (quantiles is not None) ^ (
+        level is not None
+    )  # check exactly one of quantiles/levels has been input
 
-    #create initial dictionary
+    # create initial dictionary
     forecasts_mean = np.mean(samples, axis=1).flatten()
     unique_ids = np.repeat(unique_ids, horizon)
     ds = np.tile(dates, n_series)
-    data = pd.DataFrame({id_col:unique_ids, time_col:ds, model_name:forecasts_mean})
+    data = pd.DataFrame({id_col: unique_ids, time_col: ds, model_name: forecasts_mean})
 
-    #create quantiles and quantile names
+    # create quantiles and quantile names
     if level is not None:
         _quantiles, quantile_names = level_to_outputs(level)
     elif quantiles is not None:
         _quantiles, quantile_names = quantiles_to_outputs(quantiles)
 
     percentiles = [quantile * 100 for quantile in _quantiles]
-    col_names = np.array([model_name + quantile_name for quantile_name in quantile_names])
-    
-    #add quantiles to dataframe
+    col_names = np.array(
+        [model_name + quantile_name for quantile_name in quantile_names]
+    )
+
+    # add quantiles to dataframe
     forecasts_quantiles = np.percentile(samples, percentiles, axis=1)
 
-    forecasts_quantiles = np.transpose(forecasts_quantiles, (1,2,0)) # [Q,H,N] -> [N,H,Q]
-    forecasts_quantiles = forecasts_quantiles.reshape(-1,len(_quantiles))
+    forecasts_quantiles = np.transpose(
+        forecasts_quantiles, (1, 2, 0)
+    )  # [Q,H,N] -> [N,H,Q]
+    forecasts_quantiles = forecasts_quantiles.reshape(-1, len(_quantiles))
 
-    df = pd.DataFrame(data=forecasts_quantiles, 
-                      columns=col_names)
-    
-    return _quantiles, pd.concat([data,df], axis=1).set_index(id_col)
+    df = pd.DataFrame(data=forecasts_quantiles, columns=col_names)
+
+    return _quantiles, pd.concat([data, df], axis=1).set_index(id_col)
 
 # %% ../nbs/src/utils.ipynb 58
 # Masked empirical covariance matrix
-@njit("Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool, 2, 'C'))", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, parallel=NUMBA_PARALLEL, fastmath=NUMBA_FASTMATH, error_model="numpy")
+@njit(
+    "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool, 2, 'C'))",
+    nogil=NUMBA_NOGIL,
+    cache=NUMBA_CACHE,
+    parallel=NUMBA_PARALLEL,
+    fastmath=NUMBA_FASTMATH,
+    error_model="numpy",
+)
 # @njit(nogil=NOGIL, cache=CACHE, parallel=True, fastmath=True, error_model="numpy")
 def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
     """Masked empirical covariance matrix.
@@ -573,7 +659,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
         not_nan_mask_i = not_nan_mask[i]
         for j in range(i + 1):
             not_nan_mask_j = not_nan_mask[j]
-            not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j   
+            not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j
             n_samples = np.sum(not_nan_mask_ij)
             # Only compute if we have enough non-nan samples in the time series pair
             if n_samples > 1:
@@ -582,8 +668,8 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
                 residuals_j = residuals[j][not_nan_mask_ij]
                 residuals_i_mean = np.mean(residuals_i)
                 residuals_j_mean = np.mean(residuals_j)
-                X_i = (residuals_i - residuals_i_mean)
-                X_j = (residuals_j - residuals_j_mean)
+                X_i = residuals_i - residuals_i_mean
+                X_j = residuals_j - residuals_j_mean
                 # Empirical covariance
                 factor_emp_cov = np.float64(1 / (n_samples - 1))
                 W[i, j] = W[j, i] = factor_emp_cov * np.sum(X_i * X_j)
@@ -593,22 +679,32 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 # %% ../nbs/src/utils.ipynb 59
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
-@njit("Array(float64, 2, 'F')(Array(float64, 2, 'C'), float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, parallel=NUMBA_PARALLEL, fastmath=NUMBA_FASTMATH, error_model="numpy")
-def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_ridge: float):
+
+@njit(
+    "Array(float64, 2, 'F')(Array(float64, 2, 'C'), float64)",
+    nogil=NUMBA_NOGIL,
+    cache=NUMBA_CACHE,
+    parallel=NUMBA_PARALLEL,
+    fastmath=NUMBA_FASTMATH,
+    error_model="numpy",
+)
+def _shrunk_covariance_schaferstrimmer_no_nans(
+    residuals: np.ndarray, mint_shr_ridge: float
+):
     """Shrink empirical covariance according to the following method:
-        Schäfer, Juliane, and Korbinian Strimmer. 
-        ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
-        Implications for Functional Genomics’. Statistical Applications in 
-        Genetics and Molecular Biology 4, no. 1 (14 January 2005). 
+        Schäfer, Juliane, and Korbinian Strimmer.
+        ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and
+        Implications for Functional Genomics’. Statistical Applications in
+        Genetics and Molecular Biology 4, no. 1 (14 January 2005).
         https://doi.org/10.2202/1544-6115.1175.
 
     :meta private:
     """
     n_timeseries = residuals.shape[0]
     n_samples = residuals.shape[1]
-    
-    # We need the empirical covariance, the off-diagonal sum of the variance of 
-    # the empirical correlation matrix and the off-diagonal sum of the squared 
+
+    # We need the empirical covariance, the off-diagonal sum of the variance of
+    # the empirical correlation matrix and the off-diagonal sum of the squared
     # empirical correlation matrix.
     W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
     sum_var_emp_corr = np.float64(0.0)
@@ -636,32 +732,45 @@ def _shrunk_covariance_schaferstrimmer_no_nans(residuals: np.ndarray, mint_shr_r
                 # Sum squared empirical correlation
                 sum_sq_emp_corr += w_mean**2
 
-    # Calculate shrinkage intensity 
-    shrinkage = 1.0 - max(min((factor_shrinkage * sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
+    # Calculate shrinkage intensity
+    shrinkage = 1.0 - max(
+        min((factor_shrinkage * sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0),
+        0.0,
+    )
     # Shrink the empirical covariance
     for i in prange(n_timeseries):
         for j in range(i + 1):
-            if i != j:    
+            if i != j:
                 W[i, j] = W[j, i] = shrinkage * W[i, j]
             else:
                 W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
     return W
 
-@njit("Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool, 2, 'C'), float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, parallel=NUMBA_PARALLEL, fastmath=NUMBA_FASTMATH, error_model="numpy")
-def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_mask: np.ndarray, mint_shr_ridge: float):
+
+@njit(
+    "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool, 2, 'C'), float64)",
+    nogil=NUMBA_NOGIL,
+    cache=NUMBA_CACHE,
+    parallel=NUMBA_PARALLEL,
+    fastmath=NUMBA_FASTMATH,
+    error_model="numpy",
+)
+def _shrunk_covariance_schaferstrimmer_with_nans(
+    residuals: np.ndarray, not_nan_mask: np.ndarray, mint_shr_ridge: float
+):
     """Shrink empirical covariance according to the following method:
-        Schäfer, Juliane, and Korbinian Strimmer. 
-        ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and 
-        Implications for Functional Genomics’. Statistical Applications in 
-        Genetics and Molecular Biology 4, no. 1 (14 January 2005). 
+        Schäfer, Juliane, and Korbinian Strimmer.
+        ‘A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and
+        Implications for Functional Genomics’. Statistical Applications in
+        Genetics and Molecular Biology 4, no. 1 (14 January 2005).
         https://doi.org/10.2202/1544-6115.1175.
 
     :meta private:
     """
     n_timeseries = residuals.shape[0]
-    
-    # We need the empirical covariance, the off-diagonal sum of the variance of 
-    # the empirical correlation matrix and the off-diagonal sum of the squared 
+
+    # We need the empirical covariance, the off-diagonal sum of the variance of
+    # the empirical correlation matrix and the off-diagonal sum of the squared
     # empirical correlation matrix.
     W = np.zeros((n_timeseries, n_timeseries), dtype=np.float64).T
     sum_var_emp_corr = np.float64(0.0)
@@ -671,7 +780,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
         not_nan_mask_i = not_nan_mask[i]
         for j in range(i + 1):
             not_nan_mask_j = not_nan_mask[j]
-            not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j   
+            not_nan_mask_ij = not_nan_mask_i & not_nan_mask_j
             n_samples = np.sum(not_nan_mask_ij)
             # Only compute if we have enough non-nan samples in the time series pair
             if n_samples > 1:
@@ -680,14 +789,14 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
                 residuals_j = residuals[j][not_nan_mask_ij]
                 residuals_i_mean = np.mean(residuals_i)
                 residuals_j_mean = np.mean(residuals_j)
-                X_i = (residuals_i - residuals_i_mean)
-                X_j = (residuals_j - residuals_j_mean)
+                X_i = residuals_i - residuals_i_mean
+                X_j = residuals_j - residuals_j_mean
                 # Empirical covariance
                 factor_emp_cov = np.float64(1 / (n_samples - 1))
                 W[i, j] = factor_emp_cov * np.sum(X_i * X_j)
                 # Off-diagonal sums
                 if i != j:
-                    factor_var_emp_cor = np.float64(n_samples / (n_samples - 1)**3)
+                    factor_var_emp_cor = np.float64(n_samples / (n_samples - 1) ** 3)
                     residuals_i_std = np.std(residuals_i) + epsilon
                     residuals_j_std = np.std(residuals_j) + epsilon
                     Xs_i = X_i / (residuals_i_std + epsilon)
@@ -697,17 +806,21 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
                     # Sum off-diagonal variance of empirical correlation
                     w = (Xs_i - Xs_im_mean) * (Xs_j - Xs_jm_mean)
                     w_mean = np.mean(w)
-                    sum_var_emp_corr += factor_var_emp_cor * np.sum(np.square(w - w_mean))
+                    sum_var_emp_corr += factor_var_emp_cor * np.sum(
+                        np.square(w - w_mean)
+                    )
                     # Sum squared empirical correlation
                     sum_sq_emp_corr += np.square(factor_emp_cov * n_samples * w_mean)
 
-    # Calculate shrinkage intensity 
-    shrinkage = 1.0 - max(min((sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0)
+    # Calculate shrinkage intensity
+    shrinkage = 1.0 - max(
+        min((sum_var_emp_corr) / (sum_sq_emp_corr + epsilon), 1.0), 0.0
+    )
 
     # Shrink the empirical covariance
     for i in prange(n_timeseries):
         for j in range(i + 1):
-            if i != j:    
+            if i != j:
                 W[i, j] = W[j, i] = shrinkage * W[i, j]
             else:
                 W[i, j] = W[j, i] = max(W[i, j], mint_shr_ridge)
@@ -716,34 +829,46 @@ def _shrunk_covariance_schaferstrimmer_with_nans(residuals: np.ndarray, not_nan_
 
 # %% ../nbs/src/utils.ipynb 61
 # Lasso cyclic coordinate descent
-@njit("Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)", nogil=NUMBA_NOGIL, cache=NUMBA_CACHE, fastmath=NUMBA_FASTMATH, error_model="numpy")
-def _lasso(X: np.ndarray, y: np.ndarray, 
-          lambda_reg: float, max_iters: int = 1_000,
-          tol: float = 1e-4):
+@njit(
+    "Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)",
+    nogil=NUMBA_NOGIL,
+    cache=NUMBA_CACHE,
+    fastmath=NUMBA_FASTMATH,
+    error_model="numpy",
+)
+def _lasso(
+    X: np.ndarray,
+    y: np.ndarray,
+    lambda_reg: float,
+    max_iters: int = 1_000,
+    tol: float = 1e-4,
+):
     # lasso cyclic coordinate descent
     n, feats = X.shape
-    norms = np.sum(X ** 2, axis=0)
+    norms = np.sum(X**2, axis=0)
     beta = np.zeros(feats, dtype=np.float64)
     beta_changes = np.zeros(feats, dtype=np.float64)
     residuals = y.copy()
 
     for it in range(max_iters):
-        for i in range(feats):            
+        for i in range(feats):
             norms_i = norms[i]
-            # is feature is close to zero, we 
+            # is feature is close to zero, we
             # continue to the next.
             # in this case is optimal betai= 0
             if abs(norms_i) < 1e-8:
                 continue
             beta_i = beta[i]
 
-            #we calculate the normalized derivative
+            # we calculate the normalized derivative
             rho = beta_i
             for j in range(n):
                 rho += X[j, i] * residuals[j] / norms_i
 
-            #soft threshold
-            beta_i_next = np.sign(rho) * max(np.abs(rho) - lambda_reg * n / norms_i, 0.)#(norms[i] + 1e-3), 0.)
+            # soft threshold
+            beta_i_next = np.sign(rho) * max(
+                np.abs(rho) - lambda_reg * n / norms_i, 0.0
+            )  # (norms[i] + 1e-3), 0.)
             beta_delta = beta_i - beta_i_next
             beta_changes[i] = np.abs(beta_delta)
             if beta_delta != 0.0:
@@ -751,7 +876,7 @@ def _lasso(X: np.ndarray, y: np.ndarray,
                     residuals[j] += beta_delta * X[j, i]
 
                 beta[i] = beta_i_next
-        
+
         if max(beta_changes) < tol:
             break
 

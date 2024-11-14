@@ -14,22 +14,28 @@ from narwhals.typing import Frame
 from scipy.stats import multivariate_normal
 
 # %% ../nbs/src/evaluation.ipynb 6
-def _metric_protections(y: np.ndarray, y_hat: np.ndarray, 
-                        weights: Optional[np.ndarray]) -> None:
+def _metric_protections(
+    y: np.ndarray, y_hat: np.ndarray, weights: Optional[np.ndarray]
+) -> None:
     if not ((weights is None) or (np.sum(weights) > 0)):
-        raise Exception('Sum of `weights` cannot be 0')
+        raise Exception("Sum of `weights` cannot be 0")
     if not ((weights is None) or (weights.shape == y.shape)):
         raise Exception(
-        f'Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}')
+            f"Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}"
+        )
 
-def mse(y: np.ndarray, y_hat: np.ndarray, 
-        weights: Optional[np.ndarray] = None,
-        axis: Optional[int] = None) -> Union[float, np.ndarray]:
+
+def mse(
+    y: np.ndarray,
+    y_hat: np.ndarray,
+    weights: Optional[np.ndarray] = None,
+    axis: Optional[int] = None,
+) -> Union[float, np.ndarray]:
     """Mean Squared Error
 
     Calculates Mean Squared Error between
     `y` and `y_hat`. MSE measures the relative prediction
-    accuracy of a forecasting method by calculating the 
+    accuracy of a forecasting method by calculating the
     squared deviation of the prediction and the true
     value at a given time, and averages these devations
     over the length of the series.
@@ -48,32 +54,36 @@ def mse(y: np.ndarray, y_hat: np.ndarray,
 
     delta_y = np.square(y - y_hat)
     if weights is not None:
-        mse = np.average(delta_y[~np.isnan(delta_y)],
-                         weights=weights[~np.isnan(delta_y)],
-                         axis=axis)
+        mse = np.average(
+            delta_y[~np.isnan(delta_y)], weights=weights[~np.isnan(delta_y)], axis=axis
+        )
     else:
         mse = np.nanmean(delta_y, axis=axis)
     return mse
 
-def mqloss(y: np.ndarray, y_hat: np.ndarray, 
-           quantiles: np.ndarray, 
-           weights: Optional[np.ndarray] = None,
-           axis: Optional[int] = None) -> Union[float, np.ndarray]:
+
+def mqloss(
+    y: np.ndarray,
+    y_hat: np.ndarray,
+    quantiles: np.ndarray,
+    weights: Optional[np.ndarray] = None,
+    axis: Optional[int] = None,
+) -> Union[float, np.ndarray]:
     """Multi-Quantile Loss
 
     Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
     MQL calculates the average multi-quantile Loss for
-    a given set of quantiles, based on the absolute 
+    a given set of quantiles, based on the absolute
     difference between predicted quantiles and observed values.
 
     $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
 
-    The limit behavior of MQL allows to measure the accuracy 
-    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with 
-    the continuous ranked probability score (CRPS). This can be achieved 
-    through a numerical integration technique, that discretizes the quantiles 
-    and treats the CRPS integral with a left Riemann approximation, averaging over 
-    uniformly distanced quantiles.    
+    The limit behavior of MQL allows to measure the accuracy
+    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with
+    the continuous ranked probability score (CRPS). This can be achieved
+    through a numerical integration technique, that discretizes the quantiles
+    and treats the CRPS integral with a left Riemann approximation, averaging over
+    uniformly distanced quantiles.
 
     $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
 
@@ -82,7 +92,7 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
     `y_hat`: numpy array, Predicted values.<br>
     `quantiles`: numpy array. Quantiles between 0 and 1, to perform evaluation upon size (n_quantiles).<br>
     `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
- 
+
     **Returns:**<br>
     `mqloss`: numpy array, (single value).
 
@@ -90,22 +100,23 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
     [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
     [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
     """
-    if weights is None: weights = np.ones(y.shape)
-    if (np.sum(quantiles>1)>0 or np.sum(quantiles<0)>0):
-        raise Exception('`quantiles` need to be between 0 and 1')
-        
+    if weights is None:
+        weights = np.ones(y.shape)
+    if np.sum(quantiles > 1) > 0 or np.sum(quantiles < 0) > 0:
+        raise Exception("`quantiles` need to be between 0 and 1")
+
     _metric_protections(y, y_hat, weights)
     n_q = len(quantiles)
-    
-    y_rep  = np.expand_dims(y, axis=-1)
-    error  = y_hat - y_rep
-    sq     = np.maximum(-error, np.zeros_like(error))
-    s1_q   = np.maximum(error, np.zeros_like(error))
-    mqloss = (quantiles * sq + (1 - quantiles) * s1_q)
-    
+
+    y_rep = np.expand_dims(y, axis=-1)
+    error = y_hat - y_rep
+    sq = np.maximum(-error, np.zeros_like(error))
+    s1_q = np.maximum(error, np.zeros_like(error))
+    mqloss = quantiles * sq + (1 - quantiles) * s1_q
+
     # Match y/weights dimensions and compute weighted average
     weights = np.repeat(np.expand_dims(weights, axis=-1), repeats=n_q, axis=-1)
-    mqloss  = np.average(mqloss, weights=weights, axis=axis)
+    mqloss = np.average(mqloss, weights=weights, axis=axis)
 
     return mqloss
 
@@ -127,22 +138,22 @@ def rel_mse(y, y_hat, y_train, mask=None):
     `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
 
     **Returns:**<br>
-    `loss`: float.    
+    `loss`: float.
 
     **References:**<br>
     - [Hyndman, R. J and Koehler, A. B. (2006).
        "Another look at measures of forecast accuracy",
        International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
-    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
-       "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
+       "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures.
        Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    if mask is None: 
-       mask = np.ones_like(y)
+    if mask is None:
+        mask = np.ones_like(y)
     n_series, horizon = y.shape
 
     eps = np.finfo(float).eps
-    y_naive = np.repeat(y_train[:,[-1]], horizon, axis=1)
+    y_naive = np.repeat(y_train[:, [-1]], horizon, axis=1)
     norm = mse(y=y, y_hat=y_naive)
     loss = mse(y=y, y_hat=y_hat, weights=mask)
     loss = loss / (norm + eps)
@@ -169,15 +180,15 @@ def msse(y, y_hat, y_train, mask=None):
     `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
 
     **Returns:**<br>
-    `loss`: float.    
+    `loss`: float.
 
     **References:**<br>
     - [Hyndman, R. J and Koehler, A. B. (2006).
        "Another look at measures of forecast accuracy",
        International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
     """
-    if mask is None: 
-       mask = np.ones_like(y)
+    if mask is None:
+        mask = np.ones_like(y)
     n_series, horizon = y.shape
 
     eps = np.finfo(float).eps
@@ -195,7 +206,7 @@ def scaled_crps(y, y_hat, quantiles):
     Calculates a scaled variation of the CRPS, as proposed by Rangapuram (2021),
     to measure the accuracy of predicted quantiles `y_hat` compared to the observation `y`.
 
-    This metric averages percentual weighted absolute deviations as 
+    This metric averages percentual weighted absolute deviations as
     defined by the quantile losses.
 
     $$
@@ -216,19 +227,19 @@ def scaled_crps(y, y_hat, quantiles):
     `loss`: float.
 
     **References:**<br>
-    - [Gneiting, Tilmann. (2011). \"Quantiles as optimal point forecasts\". 
+    - [Gneiting, Tilmann. (2011). \"Quantiles as optimal point forecasts\".
     International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063)<br>
-    - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). 
-    \"The M5 uncertainty competition: Results, findings and conclusions\". 
+    - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022).
+    \"The M5 uncertainty competition: Results, findings and conclusions\".
     International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722)<br>
-    - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). 
-    \"End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series\". 
+    - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021).
+    \"End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series\".
     Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
     """
     eps = np.finfo(float).eps
-    norm  = np.sum(np.abs(y))
-    loss  = mqloss(y=y, y_hat=y_hat, quantiles=quantiles)
-    loss  = 2 * loss * np.sum(np.ones(y.shape)) / (norm + eps)
+    norm = np.sum(np.abs(y))
+    loss = mqloss(y=y, y_hat=y_hat, quantiles=quantiles)
+    loss = 2 * loss * np.sum(np.ones(y.shape)) / (norm + eps)
     return loss
 
 # %% ../nbs/src/evaluation.ipynb 17
@@ -240,9 +251,9 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
     The Energy Score generalizes the CRPS (`beta`=1) in the multivariate setting.
 
     $$
-    \mathrm{ES}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}') 
+    \mathrm{ES}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}')
     = \\frac{1}{2} \mathbb{E}_{\hat{P}} \\left[ ||\\mathbf{\hat{y}}_{\\tau} - \\mathbf{\hat{y}}_{\\tau}'||^{\\beta} \\right]
-    -  \mathbb{E}_{\hat{P}} \\left[ ||\\mathbf{y}_{\\tau} - \\mathbf{\hat{y}}_{\\tau}||^{\\beta} \\right] 
+    -  \mathbb{E}_{\hat{P}} \\left[ ||\\mathbf{y}_{\\tau} - \\mathbf{\hat{y}}_{\\tau}||^{\\beta} \\right]
     \quad \\beta \in (0,2]
     $$
 
@@ -258,18 +269,18 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
     `score`: float.
 
     **References:**<br>
-    - [Gneiting, Tilmann, and Adrian E. Raftery. (2007). 
-    \"Strictly proper scoring rules, prediction and estimation\". 
+    - [Gneiting, Tilmann, and Adrian E. Raftery. (2007).
+    \"Strictly proper scoring rules, prediction and estimation\".
     Journal of the American Statistical Association.](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf)<br>
-    - [Anastasios Panagiotelis, Puwasala Gamakumara, George Athanasopoulos, Rob J. Hyndman. (2022). 
-    \"Probabilistic forecast reconciliation: Properties, evaluation and score optimisation\". 
-    European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)    
+    - [Anastasios Panagiotelis, Puwasala Gamakumara, George Athanasopoulos, Rob J. Hyndman. (2022).
+    \"Probabilistic forecast reconciliation: Properties, evaluation and score optimisation\".
+    European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
     """
-    if beta>2 or beta<0:
+    if beta > 2 or beta < 0:
         raise Exception("beta needs to be between 0 and 2.")
 
-    dif1 = (y_sample1 - y_sample2)
-    dif2 = (y[:,:,None] - y_sample1)
+    dif1 = y_sample1 - y_sample2
+    dif2 = y[:, :, None] - y_sample1
 
     term1 = np.linalg.norm(dif1, axis=0) ** beta
     term2 = np.linalg.norm(dif2, axis=0) ** beta
@@ -279,7 +290,7 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
 
 # %% ../nbs/src/evaluation.ipynb 19
 def log_score(y, y_hat, cov, allow_singular=True):
-    """ Log Score.
+    """Log Score.
 
     One of the simplest multivariate probability scoring rules,
     it evaluates the negative density at the value of the realisation.
@@ -289,9 +300,9 @@ def log_score(y, y_hat, cov, allow_singular=True):
     = - \\log(f(\\mathbf{y}_{\\tau}, \\theta_{\\tau}))
     $$
 
-    where $f$ is the density, $\\mathbf{P}(\\theta_{\\tau})$ is a 
+    where $f$ is the density, $\\mathbf{P}(\\theta_{\\tau})$ is a
     parametric distribution and $f(\\mathbf{y}_{\\tau}, \\theta_{\\tau})$
-    represents its density. 
+    represents its density.
     For the moment we only support multivariate normal log score.
 
     $$
@@ -313,16 +324,19 @@ def log_score(y, y_hat, cov, allow_singular=True):
     **Returns:**<br>
     `score`: float.
     """
-    scores = [multivariate_normal.pdf(x=y[:,h], 
-                  mean=y_hat[:,h], cov=cov[:,:,h], allow_singular=allow_singular) \
-                  for h in range(y.shape[1])]
+    scores = [
+        multivariate_normal.pdf(
+            x=y[:, h], mean=y_hat[:, h], cov=cov[:, :, h], allow_singular=allow_singular
+        )
+        for h in range(y.shape[1])
+    ]
     score = np.mean(scores)
     return score
 
 # %% ../nbs/src/evaluation.ipynb 23
 class HierarchicalEvaluation:
     """Hierarchical Evaluation Class.
-    
+
     You can use your own metrics to evaluate the performance of each level in the structure.
     The metrics receive `y` and `y_hat` as arguments and they are numpy arrays of size `(series, horizon)`.
     Consider, for example, the function `rmse` that calculates the root mean squared error.
@@ -335,20 +349,21 @@ class HierarchicalEvaluation:
 
     **References:**<br>
     """
-    def __init__(self, 
-                 evaluators: List[Callable]):
+
+    def __init__(self, evaluators: List[Callable]):
         self.evaluators = evaluators
 
-    def evaluate(self, 
-                 Y_hat_df: Frame,
-                 Y_test_df: Frame,
-                 tags: Dict[str, np.ndarray],
-                 Y_df: Optional[Frame] = None,
-                 benchmark: Optional[str] = None,
-                 id_col: str = "unique_id",
-                 time_col: str = "ds", 
-                 target_col: str = "y", 
-                 ):
+    def evaluate(
+        self,
+        Y_hat_df: Frame,
+        Y_test_df: Frame,
+        tags: Dict[str, np.ndarray],
+        Y_df: Optional[Frame] = None,
+        benchmark: Optional[str] = None,
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
+    ):
         """Hierarchical Evaluation Method.
 
         **Parameters:**<br>
@@ -373,46 +388,70 @@ class HierarchicalEvaluation:
         n_series = len(set(Y_hat_df_nw[id_col]))
         h = len(set(Y_hat_df_nw[time_col]))
         if len(Y_hat_df_nw) != n_series * h:
-            raise Exception('Y_hat_df should have a forecast for each series and horizon')
+            raise Exception(
+                "Y_hat_df should have a forecast for each series and horizon"
+            )
 
         fn_names = [fn.__name__ for fn in self.evaluators]
-        has_y_insample = any(['y_insample' in signature(fn).parameters for fn in self.evaluators])
+        has_y_insample = any(
+            ["y_insample" in signature(fn).parameters for fn in self.evaluators]
+        )
         if has_y_insample and Y_df is None:
-            raise Exception('At least one evaluator needs y_insample, please pass `Y_df`')
+            raise Exception(
+                "At least one evaluator needs y_insample, please pass `Y_df`"
+            )
 
         if benchmark is not None:
-            fn_names = [f'{fn_name}-scaled' for fn_name in fn_names]
+            fn_names = [f"{fn_name}-scaled" for fn_name in fn_names]
 
-        tags_ = {'Overall': np.concatenate(list(tags.values()))}
+        tags_ = {"Overall": np.concatenate(list(tags.values()))}
         tags_ = {**tags, **tags_}
 
-        model_names = Y_hat_df_nw.drop([id_col, time_col, target_col], strict=False).columns
-        evaluation_np = np.empty((len(tags_), len(fn_names), len(model_names)), dtype=np.float64)
+        model_names = [
+            c for c in Y_hat_df_nw.columns if c not in [id_col, time_col, target_col]
+        ]
+        evaluation_np = np.empty(
+            (len(tags_), len(fn_names), len(model_names)), dtype=np.float64
+        )
         evaluation_index_np = np.empty((len(tags_) * len(fn_names), 2), dtype=object)
-        Y_h = Y_hat_df_nw.join(Y_test_df_nw, how="left", on=[id_col, time_col]).sort(by=[id_col, time_col])
+        Y_h = Y_hat_df_nw.join(Y_test_df_nw, how="left", on=[id_col, time_col]).sort(
+            by=[id_col, time_col]
+        )
         for i_level, (level, cats) in enumerate(tags_.items()):
             Y_h_cats = Y_h.filter(nw.col(id_col).is_in(cats))
             y_test_cats = Y_h_cats[target_col].to_numpy().reshape(-1, h)
 
             if has_y_insample and Y_df is not None:
-                y_insample = Y_df_nw.pivot(on=time_col, index = id_col, values = target_col, sort_columns=True).sort(by=id_col)
+                y_insample = Y_df_nw.pivot(
+                    on=time_col, index=id_col, values=target_col, sort_columns=True
+                ).sort(by=id_col)
+                y_insample_cols_ex_id_col = y_insample.columns
+                y_insample_cols_ex_id_col.remove(id_col)
                 y_insample = y_insample.filter(nw.col(id_col).is_in(cats))
-                y_insample = y_insample.drop(id_col).to_numpy()
+                y_insample = y_insample.select(
+                    nw.col(y_insample_cols_ex_id_col)
+                ).to_numpy()
 
             for i_fn, fn in enumerate(self.evaluators):
-                if 'y_insample' in signature(fn).parameters:
-                    kwargs = {'y_insample': y_insample}
+                if "y_insample" in signature(fn).parameters:
+                    kwargs = {"y_insample": y_insample}
                 else:
                     kwargs = {}
                 fn_name = fn_names[i_fn]
                 for i_model, model in enumerate(model_names):
-                    loss = fn(y_test_cats, Y_h_cats[model].to_numpy().reshape(-1, h), **kwargs)
+                    loss = fn(
+                        y_test_cats, Y_h_cats[model].to_numpy().reshape(-1, h), **kwargs
+                    )
                     if benchmark is not None:
-                        scale = fn(y_test_cats, Y_h_cats[benchmark].to_numpy().reshape(-1, h), **kwargs)
-                        if np.isclose(scale, 0., atol=np.finfo(float).eps):
+                        scale = fn(
+                            y_test_cats,
+                            Y_h_cats[benchmark].to_numpy().reshape(-1, h),
+                            **kwargs,
+                        )
+                        if np.isclose(scale, 0.0, atol=np.finfo(float).eps):
                             scale += np.finfo(float).eps
                             if np.isclose(scale, loss, atol=1e-8):
-                                scale = 1.
+                                scale = 1.0
                         loss /= scale
 
                     evaluation_np[i_level, i_fn, i_model] = loss
@@ -420,8 +459,13 @@ class HierarchicalEvaluation:
                     evaluation_index_np[i_level * len(fn_names) + i_fn, 1] = fn_name
 
         evaluation_np = evaluation_np.reshape(-1, len(model_names))
-        evaluation_index_dict = {"level": evaluation_index_np[:, 0], "metric": evaluation_index_np[:, 1]}
-        evaluation_index_df = nw.from_dict(evaluation_index_dict, native_namespace=native_namespace)
+        evaluation_index_dict = {
+            "level": evaluation_index_np[:, 0],
+            "metric": evaluation_index_np[:, 1],
+        }
+        evaluation_index_df = nw.from_dict(
+            evaluation_index_dict, native_namespace=native_namespace
+        )
         evaluation_dict = dict(zip(model_names, evaluation_np.T))
         evaluation_df = nw.from_dict(evaluation_dict, native_namespace=native_namespace)
         evaluation = nw.concat([evaluation_index_df, evaluation_df], how="horizontal")

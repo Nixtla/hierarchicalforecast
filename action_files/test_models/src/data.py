@@ -3,6 +3,8 @@ import fire
 import pickle
 import pandas as pd
 
+os.environ['NIXTLA_ID_AS_COL'] = '1'
+
 from statsforecast.models import AutoETS
 from statsforecast.core import StatsForecast
 
@@ -35,9 +37,7 @@ def get_data():
     spec = [
         ['Country'],
         ['Country', 'State'], 
-        # ['Country', 'Purpose'], 
         ['Country', 'State', 'Region'], 
-        # ['Country', 'State', 'Purpose'], 
         ['Country', 'State', 'Region', 'Purpose']
     ]
 
@@ -49,8 +49,8 @@ def get_data():
 
     sf = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')],
                        freq='QS', n_jobs=-1)
-    Y_hat_df = sf.forecast(df=Y_train_df, h=8, fitted=True).reset_index()
-    Y_fitted_df = sf.forecast_fitted_values().reset_index()
+    Y_hat_df = sf.forecast(df=Y_train_df, h=8, fitted=True)
+    Y_fitted_df = sf.forecast_fitted_values()
     
     # Save Data
     if not os.path.exists('./data'):

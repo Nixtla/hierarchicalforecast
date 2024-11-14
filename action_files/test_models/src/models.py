@@ -12,7 +12,7 @@ from hierarchicalforecast.methods import (
     ERM,
 )
 
-from src.data import get_data
+from data import get_data
 
 
 def main():
