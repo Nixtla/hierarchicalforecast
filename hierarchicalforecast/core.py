@@ -198,9 +198,10 @@ class HierarchicalReconciliation:
             if not ("-lo" in name or "-hi" in name or "-median" in name)
         ]
         if intervals_method in ["bootstrap", "permbu"] and Y_nw is not None:
-            if not (set(model_names) <= set(Y_nw.columns)):
+            missing_models = set(model_names) - set(Y_nw.columns)
+            if len(missing_models) > 0:
                 raise ValueError(
-                    f"Check `Y_df` columns, {model_names} must be in `Y_df` columns."
+                    f"Check `Y_df` columns, {reprlib.repr(missing_models)} must be in `Y_df` columns."
                 )
 
         # Assert S is an identity matrix at the bottom
