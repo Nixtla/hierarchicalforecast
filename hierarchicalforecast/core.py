@@ -169,36 +169,25 @@ class HierarchicalReconciliation:
 
         # Protect level list
         if level is not None:
-            level_outside_domain = np.any(
-                (np.array(level) < 0) | (np.array(level) >= 100)
-            )
+            level_outside_domain = not all(0 <= x < 100 for x in level)
             if level_outside_domain and (intervals_method in ["normality", "permbu"]):
                 raise ValueError(
                     "Level must be a list containing floating values in the interval [0, 100)."
                 )
 
         # Declare output names
-        model_names = list(set(Y_hat_nw.columns) - set([id_col, time_col, target_col]))
+        model_names = [
+            col for col in Y_hat_nw.columns if col not in [id_col, time_col, target_col]
+        ]
 
         # Ensure numeric columns
         for model in model_names:
-            if Y_hat_nw.schema[model] not in [
-                nw.Int8,
-                nw.Int16,
-                nw.Int32,
-                nw.Int64,
-                nw.UInt8,
-                nw.UInt16,
-                nw.UInt32,
-                nw.UInt64,
-                nw.Float32,
-                nw.Float64,
-            ]:
-                raise Exception(
+            if not Y_hat_nw.schema[model].is_numeric():
+                raise ValueError(
                     f"Column `{model}` in `Y_hat_df` contains non-numeric values. Make sure no column in `Y_hat_df` contains non-numeric values."
                 )
             if Y_hat_nw[model].is_null().any():
-                raise Exception(
+                raise ValueError(
                     f"Column `{model}` in `Y_hat_df` contains null values. Make sure no column in `Y_hat_df` contains null values."
                 )
 
@@ -210,16 +199,13 @@ class HierarchicalReconciliation:
         ]
         if intervals_method in ["bootstrap", "permbu"] and Y_nw is not None:
             if not (set(model_names) <= set(Y_nw.columns)):
-                raise Exception(
+                raise ValueError(
                     f"Check `Y_df` columns, {model_names} must be in `Y_df` columns."
                 )
 
         # Assert S is an identity matrix at the bottom
         S_nw_cols.remove(id_col)
-        if not np.allclose(
-            S_nw[S_nw_cols][-S_nw[S_nw_cols].shape[1] :],
-            np.eye(S_nw[S_nw_cols].shape[1]),
-        ):
+        if not np.allclose(S_nw[S_nw_cols][-len(S_nw_cols) :], np.eye(len(S_nw_cols))):
             raise ValueError(
                 f"The bottom {S_nw.shape[1]}x{S_nw.shape[1]} part of S must be an identity matrix."
             )
