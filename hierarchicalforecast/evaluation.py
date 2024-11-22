@@ -4,16 +4,19 @@
 __all__ = ['rel_mse', 'msse', 'scaled_crps', 'energy_score', 'log_score', 'HierarchicalEvaluation']
 
 # %% ../nbs/src/evaluation.ipynb 3
-from inspect import signature
-from typing import Callable, Dict, List, Optional, Union
-
 import narwhals as nw
 import numpy as np
 
+from hierarchicalforecast.utils import (
+    _to_narwhals_maybe_warn_and_reset_idx,
+    _to_native_maybe_set_index,
+)
+from inspect import signature
 from narwhals.typing import Frame
 from scipy.stats import multivariate_normal
+from typing import Callable, Dict, List, Optional, Union
 
-# %% ../nbs/src/evaluation.ipynb 6
+# %% ../nbs/src/evaluation.ipynb 7
 def _metric_protections(
     y: np.ndarray, y_hat: np.ndarray, weights: Optional[np.ndarray]
 ) -> None:
@@ -120,7 +123,7 @@ def mqloss(
 
     return mqloss
 
-# %% ../nbs/src/evaluation.ipynb 8
+# %% ../nbs/src/evaluation.ipynb 9
 def rel_mse(y, y_hat, y_train, mask=None):
     """Relative Mean Squared Error
 
@@ -159,7 +162,7 @@ def rel_mse(y, y_hat, y_train, mask=None):
     loss = loss / (norm + eps)
     return loss
 
-# %% ../nbs/src/evaluation.ipynb 11
+# %% ../nbs/src/evaluation.ipynb 12
 def msse(y, y_hat, y_train, mask=None):
     """Mean Squared Scaled Error
 
@@ -199,7 +202,7 @@ def msse(y, y_hat, y_train, mask=None):
     loss = loss / (norm + eps)
     return loss
 
-# %% ../nbs/src/evaluation.ipynb 14
+# %% ../nbs/src/evaluation.ipynb 15
 def scaled_crps(y, y_hat, quantiles):
     """Scaled Continues Ranked Probability Score
 
@@ -242,7 +245,7 @@ def scaled_crps(y, y_hat, quantiles):
     loss = 2 * loss * np.sum(np.ones(y.shape)) / (norm + eps)
     return loss
 
-# %% ../nbs/src/evaluation.ipynb 17
+# %% ../nbs/src/evaluation.ipynb 18
 def energy_score(y, y_sample1, y_sample2, beta=2):
     """Energy Score
 
@@ -288,7 +291,7 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
     score = np.mean(term2 - 0.5 * term1)
     return score
 
-# %% ../nbs/src/evaluation.ipynb 19
+# %% ../nbs/src/evaluation.ipynb 20
 def log_score(y, y_hat, cov, allow_singular=True):
     """Log Score.
 
@@ -333,7 +336,7 @@ def log_score(y, y_hat, cov, allow_singular=True):
     score = np.mean(scores)
     return score
 
-# %% ../nbs/src/evaluation.ipynb 23
+# %% ../nbs/src/evaluation.ipynb 24
 class HierarchicalEvaluation:
     """Hierarchical Evaluation Class.
 
@@ -379,15 +382,15 @@ class HierarchicalEvaluation:
         **Returns:**<br>
         `evaluation`: DataFrame with accuracy measurements across hierarchical levels.
         """
-        Y_hat_df_nw = nw.from_native(Y_hat_df)
-        Y_test_df_nw = nw.from_native(Y_test_df)
-        native_namespace = nw.get_native_namespace(Y_hat_df_nw)
+        Y_hat_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_hat_df, id_col)
+        Y_test_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_test_df, id_col)
+        native_namespace = nw.get_native_namespace(Y_hat_nw)
         if Y_df is not None:
-            Y_df_nw = nw.from_native(Y_df)
+            Y_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_df, id_col)
 
-        n_series = len(set(Y_hat_df_nw[id_col]))
-        h = len(set(Y_hat_df_nw[time_col]))
-        if len(Y_hat_df_nw) != n_series * h:
+        n_series = len(set(Y_hat_nw[id_col]))
+        h = len(set(Y_hat_nw[time_col]))
+        if len(Y_hat_nw) != n_series * h:
             raise Exception(
                 "Y_hat_df should have a forecast for each series and horizon"
             )
@@ -408,13 +411,13 @@ class HierarchicalEvaluation:
         tags_ = {**tags, **tags_}
 
         model_names = [
-            c for c in Y_hat_df_nw.columns if c not in [id_col, time_col, target_col]
+            c for c in Y_hat_nw.columns if c not in [id_col, time_col, target_col]
         ]
         evaluation_np = np.empty(
             (len(tags_), len(fn_names), len(model_names)), dtype=np.float64
         )
         evaluation_index_np = np.empty((len(tags_) * len(fn_names), 2), dtype=object)
-        Y_h = Y_hat_df_nw.join(Y_test_df_nw, how="left", on=[id_col, time_col]).sort(
+        Y_h = Y_hat_nw.join(Y_test_nw, how="left", on=[id_col, time_col]).sort(
             by=[id_col, time_col]
         )
         for i_level, (level, cats) in enumerate(tags_.items()):
@@ -422,7 +425,7 @@ class HierarchicalEvaluation:
             y_test_cats = Y_h_cats[target_col].to_numpy().reshape(-1, h)
 
             if has_y_insample and Y_df is not None:
-                y_insample = Y_df_nw.pivot(
+                y_insample = Y_nw.pivot(
                     on=time_col, index=id_col, values=target_col, sort_columns=True
                 ).sort(by=id_col)
                 y_insample_cols_ex_id_col = y_insample.columns
@@ -463,12 +466,16 @@ class HierarchicalEvaluation:
             "level": evaluation_index_np[:, 0],
             "metric": evaluation_index_np[:, 1],
         }
-        evaluation_index_df = nw.from_dict(
+        evaluation_index_nw = nw.from_dict(
             evaluation_index_dict, native_namespace=native_namespace
         )
         evaluation_dict = dict(zip(model_names, evaluation_np.T))
-        evaluation_df = nw.from_dict(evaluation_dict, native_namespace=native_namespace)
-        evaluation = nw.concat([evaluation_index_df, evaluation_df], how="horizontal")
-        evaluation = evaluation[["level", "metric"] + model_names]
+        evaluation_nw = nw.from_dict(evaluation_dict, native_namespace=native_namespace)
+        evaluation_nw = nw.concat(
+            [evaluation_index_nw, evaluation_nw], how="horizontal"
+        )
+        evaluation_nw = evaluation_nw[["level", "metric"] + model_names]
 
-        return evaluation.to_native()
+        evaluation = _to_native_maybe_set_index(evaluation_nw, ["level", "metric"])
+
+        return evaluation

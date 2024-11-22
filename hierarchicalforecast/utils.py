@@ -4,9 +4,10 @@
 __all__ = ['aggregate', 'HierarchicalPlot']
 
 # %% ../nbs/src/utils.ipynb 3
+import os
 import sys
 import timeit
-from typing import Dict, List, Optional, Iterable, Union, Sequence
+import warnings
 
 import matplotlib.pyplot as plt
 import narwhals as nw
@@ -16,17 +17,18 @@ import pandas as pd
 from narwhals.typing import Frame
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
+from typing import Dict, List, Optional, Iterable, Union, Sequence
 
 plt.rcParams["font.family"] = "serif"
 
-# %% ../nbs/src/utils.ipynb 5
+# %% ../nbs/src/utils.ipynb 6
 # Global variables
 NUMBA_NOGIL = True
 NUMBA_CACHE = True
 NUMBA_PARALLEL = True
 NUMBA_FASTMATH = True
 
-# %% ../nbs/src/utils.ipynb 6
+# %% ../nbs/src/utils.ipynb 7
 class CodeTimer:
     def __init__(self, name=None, verbose=True):
         self.name = " '" + name + "'" if name else ""
@@ -45,7 +47,7 @@ class CodeTimer:
                 + " seconds"
             )
 
-# %% ../nbs/src/utils.ipynb 7
+# %% ../nbs/src/utils.ipynb 8
 def is_strictly_hierarchical(S: np.ndarray, tags: Dict[str, np.ndarray]):
     # main idea:
     # if S represents a strictly hierarchical structure
@@ -62,7 +64,7 @@ def is_strictly_hierarchical(S: np.ndarray, tags: Dict[str, np.ndarray]):
     nodes = levels_.popitem()[1].size
     return paths == nodes
 
-# %% ../nbs/src/utils.ipynb 8
+# %% ../nbs/src/utils.ipynb 9
 def cov2corr(cov, return_std=False):
     """convert covariance matrix to correlation matrix
     **Parameters:**<br>
@@ -80,6 +82,48 @@ def cov2corr(cov, return_std=False):
         return corr
 
 # %% ../nbs/src/utils.ipynb 10
+def _warn_id_as_idx():
+    warnings.warn(
+        "In a future version the predictions will have the id as a column. "
+        "You can set the `NIXTLA_ID_AS_COL` environment variable "
+        "to adopt the new behavior and to suppress this warning.",
+        category=FutureWarning,
+    )
+
+
+def _id_as_idx() -> bool:
+    return not os.getenv("NIXTLA_ID_AS_COL", "0").lower() in ("true", "1", "t")
+
+
+def _to_narwhals_maybe_warn_and_reset_idx(
+    df: Frame, id_col: str, return_is_pandas=False
+) -> Frame:
+    is_pandas = nw.dependencies.is_pandas_dataframe(df)
+    df_nw = nw.from_native(df)
+
+    # A bit complicated but Narwhals' reset_index drops the index, so we need to
+    # save it first and then add it back as a column
+    if is_pandas and _id_as_idx() and not id_col in df_nw.columns:
+        _warn_id_as_idx()
+        idx = nw.maybe_get_index(df_nw).to_series().reset_index(drop=True)
+        df_nw = nw.maybe_reset_index(df_nw)
+        df_nw = df_nw.with_columns(nw.from_native(idx, allow_series=True).alias(id_col))
+    else:
+        df_nw = nw.maybe_reset_index(df_nw)
+
+    if return_is_pandas:
+        return df_nw, is_pandas
+    else:
+        return df_nw
+
+
+def _to_native_maybe_set_index(df: Frame, id_col: Union[str, List[str]]) -> Frame:
+    if _id_as_idx():
+        df = nw.maybe_set_index(df, id_col)
+
+    return df.to_native()
+
+# %% ../nbs/src/utils.ipynb 12
 def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
     upper_split = upper_key.split("/")
     upper_idxs = [bottom_split.index(i) for i in upper_split]
@@ -90,15 +134,16 @@ def _to_upper_hierarchy(bottom_split, bottom_values, upper_key):
 
     return [join_upper(val) for val in bottom_values]
 
-# %% ../nbs/src/utils.ipynb 13
+# %% ../nbs/src/utils.ipynb 15
 def aggregate(
     df: Frame,
     spec: List[List[str]],
     exog_vars: Optional[Dict[str, Union[str, List[str]]]] = None,
+    is_balanced: bool = False,
     sparse_s: bool = False,
     id_col: str = "unique_id",
     time_col: str = "ds",
-    target_col: str = "y",
+    target_cols: List[str] = ["y"],
 ):
     """Utils Aggregation Function.
     Aggregates bottom level series contained in the DataFrame `df` according
@@ -107,19 +152,21 @@ def aggregate(
     Parameters
     ----------
     df : DataFrame
-        Dataframe with columns `['ds', 'y']` and columns to aggregate.
+        Dataframe with columns `[time_col, *target_cols]`, columns to aggregate and optionally exog_vars.
     spec : list of list of str
         List of levels. Each element of the list should contain a list of columns of `df` to aggregate.
     exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
         keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance
+    is_balanced : bool (default=False)
+        Deprecated.
     sparse_s : bool (default=False)
         Return `S_df` as a sparse Pandas dataframe.
     id_col : str (default='unique_id')
-        Column that identifies each serie.
+        Column that will identify each serie after aggregation.
     time_col : str (default='ds')
         Column that identifies each timestep, its values can be timestamps or integers.
-    target_col : (default='y')
-        Column that contains the target.
+    target_cols : (default=['y'])
+        List of columns that contains the targets to aggregate.
 
     Returns
     -------
@@ -130,14 +177,21 @@ def aggregate(
     tags : dict
         Aggregation indices.
     """
+    # To Narwhals
+    df_nw, is_pandas = _to_narwhals_maybe_warn_and_reset_idx(
+        df, id_col, return_is_pandas=True
+    )
+    native_namespace = nw.get_native_namespace(df_nw)
+
     # Checks
-    is_pandas = nw.dependencies.is_pandas_like_dataframe(df)
     if sparse_s and not is_pandas:
         raise ValueError("Sparse output is only supported for Pandas DataFrames.")
-
-    df_nw = nw.from_native(df)
-    df_nw = nw.maybe_reset_index(df_nw)
-    native_namespace = nw.get_native_namespace(df_nw)
+    if is_balanced:
+        warnings.warn(
+            "`is_balanced` is deprecated and will be removed in a future version. "
+            "Don't set this argument to suppress this warning.",
+            category=DeprecationWarning,
+        )
 
     for col in df_nw.columns:
         assert (
@@ -152,7 +206,9 @@ def aggregate(
         assert col in df_nw.columns, f"Column {col} in spec not present in df"
 
     # Prepare the aggregation dictionary
-    agg_dict = {target_col: (target_col, "sum")}
+    agg_dict = dict(
+        zip(target_cols, tuple(zip(target_cols, len(target_cols) * ["sum"])))
+    )
 
     # Check if exog_vars are present in df & add to the aggregation dictionary if it is not None
     exog_var_names = []
@@ -206,15 +262,16 @@ def aggregate(
             ),
             nw.all(),
         )
-        Y_level = Y_level[[id_col, time_col, target_col] + exog_var_names]
+        Y_level = Y_level[[id_col, time_col, *target_cols] + exog_var_names]
         Y_level = Y_level.sort(by=[id_col, time_col])
         Y_dfs_nw.append(Y_level)
 
         tags[level_name] = Y_level[id_col].unique().sort().to_numpy()
         category_list.extend(tags[level_name])
 
-    Y_df_nw = nw.concat(Y_dfs_nw, how="vertical")
-    Y_df = nw.maybe_reset_index(Y_df_nw).to_native()
+    Y_nw = nw.concat(Y_dfs_nw, how="vertical")
+    Y_nw = nw.maybe_reset_index(Y_nw)
+    Y_df = _to_native_maybe_set_index(Y_nw, id_col)
 
     # construct S
     bottom = spec[-1]
@@ -233,23 +290,26 @@ def aggregate(
 
     if not sparse_s:
         S_dict = dict(zip(tags[level_name], S_dum))
-        S_df_nw = nw.from_dict(S_dict, native_namespace=native_namespace)
-        S_df_nw = S_df_nw.select(
+        S_nw = nw.from_dict(S_dict, native_namespace=native_namespace)
+        S_nw = S_nw.select(
             nw.from_dict({id_col: category_list}, native_namespace=native_namespace)[
                 id_col
             ],
             nw.all(),
         )
-        S_df = nw.maybe_reset_index(S_df_nw).to_native()
+        S_nw = nw.maybe_reset_index(S_nw)
+        S_df = _to_native_maybe_set_index(S_nw, id_col)
     else:
         S_df = pd.DataFrame.sparse.from_spmatrix(
             S_dum.T, columns=list(bottom_levels), index=category_list
         )
         S_df = S_df.reset_index(names=id_col)
+        if _id_as_idx():
+            S_df = S_df.set_index(id_col)
 
     return Y_df, S_df, tags
 
-# %% ../nbs/src/utils.ipynb 29
+# %% ../nbs/src/utils.ipynb 31
 class HierarchicalPlot:
     """Hierarchical Plot
 
@@ -259,17 +319,20 @@ class HierarchicalPlot:
     **Parameters:**<br>
     `S`: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
     `tags`: np.ndarray, with hierarchical aggregation indexes, where
-        each key is a level and its value contains tags associated to that level.<br><br>
+        each key is a level and its value contains tags associated to that level.<br>
+    `S_id_col` : str='unique_id', column that identifies each aggregation.<br>
+
     """
 
     def __init__(
         self,
         S: Frame,
         tags: Dict[str, np.ndarray],
+        S_id_col: str = "unique_id",
     ):
 
-        self.S_id_col = "unique_id"
-        self.S = nw.from_native(S)
+        self.S = _to_narwhals_maybe_warn_and_reset_idx(S, S_id_col)
+        self.S_id_col = S_id_col
         self.tags = tags
 
     def plot_summing_matrix(self):
@@ -308,12 +371,12 @@ class HierarchicalPlot:
         **Returns:**<br>
         Single series plot with filtered models and prediction interval level.<br><br>
         """
-        Y_df_nw = nw.from_native(Y_df)
+        Y_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_df, id_col)
 
         if series not in self.S[id_col]:
             raise Exception(f"time series {series} not found")
         fig, ax = plt.subplots(1, 1, figsize=(20, 7))
-        df_plot = Y_df_nw.filter(nw.col(id_col) == series)
+        df_plot = Y_nw.filter(nw.col(id_col) == series)
         cols = (
             models if models is not None else df_plot.drop([id_col, time_col]).columns
         )
@@ -386,7 +449,7 @@ class HierarchicalPlot:
         Collection of hierarchilly linked series plots associated with the `bottom_series`
         and filtered models and prediction interval level.<br><br>
         """
-        Y_df_nw = nw.from_native(Y_df)
+        Y_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_df, id_col)
 
         if bottom_series not in self.S.columns:
             raise Exception(f"bottom time series {bottom_series} not found")
@@ -399,9 +462,7 @@ class HierarchicalPlot:
         fig, axs = plt.subplots(
             len(linked_series), 1, figsize=(20, 2 * len(linked_series))
         )
-        cols = (
-            models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
-        )
+        cols = models if models is not None else Y_nw.drop([id_col, time_col]).columns
         cols_wo_levels = [
             col for col in cols if ("-lo-" not in col and "-hi-" not in col)
         ]
@@ -409,7 +470,7 @@ class HierarchicalPlot:
         cmap = [cmap(i) for i in range(10)][: len(cols_wo_levels)]
         cmap_dict = dict(zip(cols_wo_levels, cmap))
         for idx, series in enumerate(linked_series):
-            df_plot = Y_df_nw.filter(nw.col(id_col) == series)
+            df_plot = Y_nw.filter(nw.col(id_col) == series)
             for col in cols_wo_levels:
                 axs[idx].plot(
                     df_plot[time_col].to_numpy(),
@@ -481,31 +542,29 @@ class HierarchicalPlot:
         The aggregation is performed according to the tag levels see
         [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html).<br><br>
         """
-        Y_df_nw = nw.from_native(Y_df)
+        Y_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_df, id_col)
 
         # Parse predictions dataframe
-        horizon_dates = Y_df_nw["ds"].unique().to_numpy()
-        cols = (
-            models if models is not None else Y_df_nw.drop([id_col, time_col]).columns
-        )
+        horizon_dates = Y_nw["ds"].unique().to_numpy()
+        cols = models if models is not None else Y_nw.drop([id_col, time_col]).columns
 
         # Plot predictions across tag levels
         fig, ax = plt.subplots(figsize=(8, 5))
 
-        if target_col in Y_df_nw.columns:
+        if target_col in Y_nw.columns:
             idx_top = (
                 self.S.with_columns(sum_cols=nw.sum_horizontal(cols))
                 .sort(by="sum_cols", descending=True)[0][id_col]
                 .to_numpy()
             )
-            y_plot = Y_df_nw.filter(nw.col(id_col) == idx_top)[target_col].to_numpy()
+            y_plot = Y_nw.filter(nw.col(id_col) == idx_top)[target_col].to_numpy()
             plt.plot(horizon_dates, y_plot, label="True")
 
         ys = []
         for tag in self.tags:
             y_plot = sum(
                 [
-                    Y_df_nw.filter(nw.col(id_col) == idx)[cols].to_numpy()
+                    Y_nw.filter(nw.col(id_col) == idx)[cols].to_numpy()
                     for idx in self.tags[tag]
                 ]
             )
@@ -523,7 +582,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/src/utils.ipynb 50
+# %% ../nbs/src/utils.ipynb 52
 # convert levels to output quantile names
 def level_to_outputs(level: Iterable[int]):
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -568,7 +627,7 @@ def quantiles_to_outputs(quantiles: Iterable[float]):
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../nbs/src/utils.ipynb 51
+# %% ../nbs/src/utils.ipynb 53
 # given input array of sample forecasts and inptut quantiles/levels,
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(
@@ -637,7 +696,7 @@ def samples_to_quantiles_df(
 
     return _quantiles, pd.concat([data, df], axis=1).set_index(id_col)
 
-# %% ../nbs/src/utils.ipynb 58
+# %% ../nbs/src/utils.ipynb 60
 # Masked empirical covariance matrix
 @njit(
     "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool, 2, 'C'))",
@@ -676,7 +735,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 
     return W
 
-# %% ../nbs/src/utils.ipynb 59
+# %% ../nbs/src/utils.ipynb 61
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
 
@@ -827,7 +886,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(
 
     return W
 
-# %% ../nbs/src/utils.ipynb 61
+# %% ../nbs/src/utils.ipynb 63
 # Lasso cyclic coordinate descent
 @njit(
     "Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)",
