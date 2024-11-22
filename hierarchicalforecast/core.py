@@ -6,6 +6,7 @@ __all__ = ['HierarchicalReconciliation']
 # %% ../nbs/src/core.ipynb 4
 import copy
 import re
+import reprlib
 import time
 import warnings
 
@@ -35,7 +36,7 @@ def _build_fn_name(fn) -> str:
 
     if fn_name == "MinTrace" and func_params["method"] == "mint_shrink":
         if func_params["mint_shr_ridge"] == 2e-8:
-            args_to_remove += ["mint_shr_ridge"]
+            args_to_remove.append("mint_shr_ridge")
 
     func_params = [
         f"{name}-{value}"
@@ -86,7 +87,7 @@ def _reverse_engineer_sigmah(
     n_series = Y_hat_df[id_col].n_unique()
 
     if not pi:
-        raise Exception(
+        raise ValueError(
             f"Please include `{model_name}` prediction intervals in `Y_hat_df`"
         )
 
@@ -142,12 +143,8 @@ class HierarchicalReconciliation:
 
         # -------------------------------- Match Y_hat/Y/S index order --------------------------------#
         # TODO: This is now a bit slow as we always sort.
-        S_nw = S_nw.with_columns(
-            nw.from_dict(
-                {f"{id_col}_id": np.arange(len(S_nw))},
-                native_namespace=self.native_namespace,
-            )[f"{id_col}_id"]
-        )
+        S_nw = S_nw.with_columns(**{f"{id_col}_id": np.arange(len(S_nw))})
+
         Y_hat_nw = Y_hat_nw.join(S_nw[[id_col, f"{id_col}_id"]], on=id_col, how="left")
         Y_hat_nw = Y_hat_nw.sort(by=[f"{id_col}_id", time_col])
         Y_hat_nw = Y_hat_nw[Y_hat_nw_cols]
@@ -233,11 +230,11 @@ class HierarchicalReconciliation:
         Y_hat_diff = set(Y_hat_nw[id_col]) - set(S_nw[id_col])
         if S_diff:
             raise ValueError(
-                f"There are unique_ids in S_df that are not in Y_hat_df: {S_diff}"
+                f"There are unique_ids in S_df that are not in Y_hat_df: {reprlib.repr(S_diff)}"
             )
         if Y_hat_diff:
             raise ValueError(
-                f"There are unique_ids in Y_hat_df that are not in S_df: {Y_hat_diff}"
+                f"There are unique_ids in Y_hat_df that are not in S_df: {reprlib.repr(Y_hat_diff)}"
             )
 
         if Y_nw is not None:
@@ -245,11 +242,11 @@ class HierarchicalReconciliation:
             Y_hat_diff = set(Y_hat_nw[id_col]) - set(Y_nw[id_col])
             if Y_diff:
                 raise ValueError(
-                    f"There are unique_ids in Y_df that are not in Y_hat_df: {Y_diff}"
+                    f"There are unique_ids in Y_df that are not in Y_hat_df: {reprlib.repr(Y_diff)}"
                 )
             if Y_hat_diff:
                 raise ValueError(
-                    f"There are unique_ids in Y_hat_df that are not in Y_df: {Y_hat_diff}"
+                    f"There are unique_ids in Y_hat_df that are not in Y_df: {reprlib.repr(Y_hat_diff)}"
                 )
 
         # Same Y_hat_df/S_df/Y_df's unique_ids. Order is guaranteed by the sort_df flag.
@@ -505,15 +502,8 @@ class HierarchicalReconciliation:
                     fcsts_model = reconciler(**kwargs, level=level)
 
                 # Parse final outputs
-                Y_tilde_nw = nw.concat(
-                    [
-                        Y_tilde_nw,
-                        nw.from_dict(
-                            {recmodel_name: fcsts_model["mean"].flatten()},
-                            native_namespace=self.native_namespace,
-                        ),
-                    ],
-                    how="horizontal",
+                Y_tilde_nw = Y_tilde_nw.with_columns(
+                    **{recmodel_name: fcsts_model["mean"].flatten()}
                 )
 
                 if (
@@ -530,15 +520,7 @@ class HierarchicalReconciliation:
                     y_tilde = dict(
                         zip(self.level_names[recmodel_name], sorted_quantiles.T)
                     )
-                    Y_tilde_nw = nw.concat(
-                        [
-                            Y_tilde_nw,
-                            nw.from_dict(
-                                y_tilde, native_namespace=self.native_namespace
-                            ),
-                        ],
-                        how="horizontal",
-                    )
+                    Y_tilde_nw = Y_tilde_nw.with_columns(**y_tilde)
 
                     if num_samples > 0:
                         samples = reconciler.sample(num_samples=num_samples)
@@ -547,15 +529,7 @@ class HierarchicalReconciliation:
                         ]
                         samples = np.reshape(samples, (len(Y_tilde_nw), -1))
                         y_tilde = dict(zip(self.sample_names[recmodel_name], samples.T))
-                        Y_tilde_nw = nw.concat(
-                            [
-                                Y_tilde_nw,
-                                nw.from_dict(
-                                    y_tilde, native_namespace=self.native_namespace
-                                ),
-                            ],
-                            how="horizontal",
-                        )
+                        Y_tilde_nw = Y_tilde_nw.with_columns(**y_tilde)
 
                 end = time.time()
                 self.execution_times[f"{model_name}/{reconcile_fn_name}"] = end - start

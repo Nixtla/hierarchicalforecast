@@ -1,5 +1,7 @@
 import os
 
+os.environ['NIXTLA_ID_AS_COL'] = '1'
+
 import fire
 import pandas as pd
 

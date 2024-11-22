@@ -470,10 +470,7 @@ class HierarchicalEvaluation:
             evaluation_index_dict, native_namespace=native_namespace
         )
         evaluation_dict = dict(zip(model_names, evaluation_np.T))
-        evaluation_nw = nw.from_dict(evaluation_dict, native_namespace=native_namespace)
-        evaluation_nw = nw.concat(
-            [evaluation_index_nw, evaluation_nw], how="horizontal"
-        )
+        evaluation_nw = evaluation_index_nw.with_columns(**evaluation_dict)
         evaluation_nw = evaluation_nw[["level", "metric"] + model_names]
 
         evaluation = _to_native_maybe_set_index(evaluation_nw, ["level", "metric"])

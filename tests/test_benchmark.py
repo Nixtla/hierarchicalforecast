@@ -1,3 +1,6 @@
+import os
+
+os.environ['NIXTLA_ID_AS_COL'] = '1'
 
 import numpy as np
 import pandas as pd
@@ -82,19 +85,19 @@ def test_erm_reg(benchmark, n_bottom_timeseries, erm_method):
     cls_erm = ERM(method=erm_method)
     result_erm = benchmark(cls_erm, S=S, y_hat=y_hat, y_insample=y_insample, y_hat_insample=y_hat_insample, idx_bottom=idx_bottom) # noqa: F841   
 
-# run with: pytest tests\test_benchmark.py::test_reconciler -v -s --benchmark-min-rounds=20 --disable-warnings
-@pytest.mark.parametrize("reconciler", [MinTrace(method='mint_shrink'), BottomUp()])
-def test_reconciler(benchmark, reconciler):
-
-    def mase(y, y_hat, y_insample, seasonality=4):
-        errors = np.mean(np.abs(y - y_hat), axis=1)
-        scale = np.mean(np.abs(y_insample[:, seasonality:] - y_insample[:, :-seasonality]), axis=1)
-        return np.mean(errors / scale)
-
-    # Load TourismSmall dataset
+@pytest.fixture
+def load_tourism():
     df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
     df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
     df.insert(0, 'Country', 'Australia')
+    return df    
+
+# run with: pytest tests\test_benchmark.py::test_reconciler -v -s --benchmark-min-rounds=20 --disable-warnings
+@pytest.mark.parametrize("reconciler", [MinTrace(method='mint_shrink'), BottomUp()])
+def test_reconciler(benchmark, reconciler, load_tourism):
+
+    # Load TourismSmall dataset
+    df = load_tourism
 
     # Create hierarchical seires based on geographic levels and purpose
     # And Convert quarterly ds string to pd.datetime format
