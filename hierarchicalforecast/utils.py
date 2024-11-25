@@ -96,15 +96,15 @@ def _id_as_idx() -> bool:
 
 
 def _to_narwhals_maybe_warn_and_reset_idx(df: Frame, id_col: str) -> Frame:
-    is_pandas = nw.dependencies.is_pandas_dataframe(df)
     df_nw = nw.from_native(df)
-
-    # We set a custom is_native_pandas attribute to the Nw Frame, so we can check it later
-    setattr(df_nw, "is_native_pandas", is_pandas)
 
     # A bit complicated but Narwhals' reset_index drops the index, so we need to
     # save it first and then add it back as a column
-    if is_pandas and _id_as_idx() and not id_col in df_nw.columns:
+    if (
+        nw.dependencies.is_pandas_dataframe(df)
+        and _id_as_idx()
+        and not id_col in df_nw.columns
+    ):
         _warn_id_as_idx()
         idx = nw.maybe_get_index(df_nw).to_series().reset_index(drop=True)
         df_nw = nw.maybe_reset_index(df_nw)
@@ -180,7 +180,7 @@ def aggregate(
     native_namespace = nw.get_native_namespace(df_nw)
 
     # Checks
-    if sparse_s and not df_nw.is_native_pandas:
+    if sparse_s and not nw.dependencies.is_pandas_dataframe(df):
         raise ValueError("Sparse output is only supported for Pandas DataFrames.")
     if is_balanced:
         warnings.warn(
