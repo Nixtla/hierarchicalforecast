@@ -11,10 +11,6 @@ import time
 import warnings
 
 from .methods import HReconciler
-from hierarchicalforecast.utils import (
-    _to_narwhals_maybe_warn_and_reset_idx,
-    _to_native_maybe_set_index,
-)
 from inspect import signature
 from narwhals.typing import Frame
 from scipy.stats import norm
@@ -330,10 +326,10 @@ class HierarchicalReconciliation:
         _maybe_warn_sort_df(sort_df)
 
         # To Narwhals
-        Y_hat_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_hat_df, id_col)
-        S_nw = _to_narwhals_maybe_warn_and_reset_idx(S, id_col)
+        Y_hat_nw = nw.from_native(Y_hat_df)
+        S_nw = nw.from_native(S)
         if Y_df is not None:
-            Y_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_df, id_col)
+            Y_nw = nw.from_native(Y_df)
         else:
             Y_nw = None
 
@@ -515,7 +511,7 @@ class HierarchicalReconciliation:
                 end = time.time()
                 self.execution_times[f"{model_name}/{reconcile_fn_name}"] = end - start
 
-        Y_tilde_df = _to_native_maybe_set_index(Y_tilde_nw, id_col)
+        Y_tilde_df = Y_tilde_nw.to_native()
 
         return Y_tilde_df
 
@@ -574,7 +570,7 @@ class HierarchicalReconciliation:
                 time_col=time_col,
                 target_col=target_col,
             )
-            Y_tilde_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_tilde_df, id_col)
+            Y_tilde_nw = nw.from_native(Y_tilde_df)
             Y_tilde_nw = Y_tilde_nw.with_columns(nw.lit(seed).alias("seed"))
 
             # TODO: fix broken recmodel_names
@@ -586,6 +582,6 @@ class HierarchicalReconciliation:
             Y_tilde_list.append(Y_tilde_nw)
 
         Y_bootstrap_nw = nw.concat(Y_tilde_list, how="vertical")
-        Y_bootstrap_df = _to_native_maybe_set_index(Y_bootstrap_nw, id_col)
+        Y_bootstrap_df = Y_bootstrap_nw.to_native()
 
         return Y_bootstrap_df

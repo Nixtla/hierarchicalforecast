@@ -7,10 +7,6 @@ __all__ = ['rel_mse', 'msse', 'scaled_crps', 'energy_score', 'log_score', 'Hiera
 import narwhals as nw
 import numpy as np
 
-from hierarchicalforecast.utils import (
-    _to_narwhals_maybe_warn_and_reset_idx,
-    _to_native_maybe_set_index,
-)
 from inspect import signature
 from narwhals.typing import Frame
 from scipy.stats import multivariate_normal
@@ -382,11 +378,11 @@ class HierarchicalEvaluation:
         **Returns:**<br>
         `evaluation`: DataFrame with accuracy measurements across hierarchical levels.
         """
-        Y_hat_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_hat_df, id_col)
-        Y_test_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_test_df, id_col)
+        Y_hat_nw = nw.from_native(Y_hat_df)
+        Y_test_nw = nw.from_native(Y_test_df)
         native_namespace = nw.get_native_namespace(Y_hat_nw)
         if Y_df is not None:
-            Y_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_df, id_col)
+            Y_nw = nw.from_native(Y_df)
 
         n_series = len(set(Y_hat_nw[id_col]))
         h = len(set(Y_hat_nw[time_col]))
@@ -473,6 +469,6 @@ class HierarchicalEvaluation:
         evaluation_nw = evaluation_index_nw.with_columns(**evaluation_dict)
         evaluation_nw = evaluation_nw[["level", "metric"] + model_names]
 
-        evaluation = _to_native_maybe_set_index(evaluation_nw, ["level", "metric"])
+        evaluation = evaluation_nw.to_native()
 
         return evaluation
