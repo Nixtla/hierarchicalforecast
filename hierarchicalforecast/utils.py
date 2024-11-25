@@ -324,7 +324,8 @@ class HierarchicalPlot:
 
         self.S = _to_narwhals_maybe_warn_and_reset_idx(S, S_id_col)
         S_cols_ex_id_col = self.S.columns
-        self.S_cols_ex_id_col = S_cols_ex_id_col.remove(S_id_col)
+        S_cols_ex_id_col.remove(S_id_col)
+        self.S_cols_ex_id_col = S_cols_ex_id_col
         self.tags = tags
 
     def plot_summing_matrix(self):
