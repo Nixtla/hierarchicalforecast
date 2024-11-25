@@ -95,11 +95,12 @@ def _id_as_idx() -> bool:
     return not os.getenv("NIXTLA_ID_AS_COL", "0").lower() in ("true", "1", "t")
 
 
-def _to_narwhals_maybe_warn_and_reset_idx(
-    df: Frame, id_col: str, return_is_pandas=False
-) -> Frame:
+def _to_narwhals_maybe_warn_and_reset_idx(df: Frame, id_col: str) -> Frame:
     is_pandas = nw.dependencies.is_pandas_dataframe(df)
     df_nw = nw.from_native(df)
+
+    # We set a custom is_native_pandas attribute to the Nw Frame, so we can check it later
+    setattr(df_nw, "is_native_pandas", is_pandas)
 
     # A bit complicated but Narwhals' reset_index drops the index, so we need to
     # save it first and then add it back as a column
@@ -111,10 +112,7 @@ def _to_narwhals_maybe_warn_and_reset_idx(
     else:
         df_nw = nw.maybe_reset_index(df_nw)
 
-    if return_is_pandas:
-        return df_nw, is_pandas
-    else:
-        return df_nw
+    return df_nw
 
 
 def _to_native_maybe_set_index(df: Frame, id_col: Union[str, List[str]]) -> Frame:
@@ -178,13 +176,11 @@ def aggregate(
         Aggregation indices.
     """
     # To Narwhals
-    df_nw, is_pandas = _to_narwhals_maybe_warn_and_reset_idx(
-        df, id_col, return_is_pandas=True
-    )
+    df_nw = _to_narwhals_maybe_warn_and_reset_idx(df, id_col)
     native_namespace = nw.get_native_namespace(df_nw)
 
     # Checks
-    if sparse_s and not is_pandas:
+    if sparse_s and not df_nw.is_native_pandas:
         raise ValueError("Sparse output is only supported for Pandas DataFrames.")
     if is_balanced:
         warnings.warn(

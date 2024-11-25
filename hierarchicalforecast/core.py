@@ -324,22 +324,16 @@ class HierarchicalReconciliation:
         `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
-        `Y_tilde_nw`: DataFrame, with reconciled predictions.
+        `Y_tilde_df`: DataFrame, with reconciled predictions.
         """
         # Raise deprecation warning for sort_df
         _maybe_warn_sort_df(sort_df)
 
         # To Narwhals
-        Y_hat_nw, is_pandas_Y_hat_df = _to_narwhals_maybe_warn_and_reset_idx(
-            Y_hat_df, id_col, return_is_pandas=True
-        )
-        S_nw, is_pandas_S_df = _to_narwhals_maybe_warn_and_reset_idx(
-            S, id_col, return_is_pandas=True
-        )
+        Y_hat_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_hat_df, id_col)
+        S_nw = _to_narwhals_maybe_warn_and_reset_idx(S, id_col)
         if Y_df is not None:
-            Y_nw, is_pandas_Y_df = _to_narwhals_maybe_warn_and_reset_idx(
-                Y_df, id_col, return_is_pandas=True
-            )
+            Y_nw = _to_narwhals_maybe_warn_and_reset_idx(Y_df, id_col)
         else:
             Y_nw = None
 
@@ -375,7 +369,7 @@ class HierarchicalReconciliation:
         S_nw_cols_ex_id_col = S_nw.columns
         S_nw_cols_ex_id_col.remove(id_col)
         if any_sparse:
-            if not is_pandas_Y_hat_df or not is_pandas_S_df:
+            if not Y_hat_nw.is_native_pandas or not S_nw.is_native_pandas:
                 raise ValueError(
                     "You have one or more sparse reconciliation methods. Please convert `S_df` and `Y_hat_df` to a pandas DataFrame."
                 )
@@ -391,7 +385,7 @@ class HierarchicalReconciliation:
                 )
 
         if Y_nw is not None:
-            if any_sparse and not is_pandas_Y_df:
+            if any_sparse and not Y_nw.is_native_pandas:
                 raise ValueError(
                     "You have one or more sparse reconciliation methods. Please convert `Y_df` to a pandas DataFrame."
                 )
