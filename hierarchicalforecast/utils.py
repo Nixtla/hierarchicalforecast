@@ -323,7 +323,8 @@ class HierarchicalPlot:
     ):
 
         self.S = _to_narwhals_maybe_warn_and_reset_idx(S, S_id_col)
-        self.S_id_col = S_id_col
+        S_cols_ex_id_col = self.S.columns
+        self.S_cols_ex_id_col = S_cols_ex_id_col.remove(S_id_col)
         self.tags = tags
 
     def plot_summing_matrix(self):
@@ -333,7 +334,7 @@ class HierarchicalPlot:
         constraints matrix $\mathbf{S}$.
         """
         plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor="w")
-        plt.spy(self.S.drop(self.S_id_col).to_numpy())
+        plt.spy(self.S[self.S_cols_ex_id_col].to_numpy())
         plt.show()
         plt.close()
 
@@ -369,7 +370,9 @@ class HierarchicalPlot:
         fig, ax = plt.subplots(1, 1, figsize=(20, 7))
         df_plot = Y_nw.filter(nw.col(id_col) == series)
         cols = (
-            models if models is not None else df_plot.drop([id_col, time_col]).columns
+            models
+            if models is not None
+            else [col for col in df_plot.columns if col not in [id_col, time_col]]
         )
         cols_wo_levels = [
             col for col in cols if ("-lo-" not in col and "-hi-" not in col)
@@ -453,7 +456,11 @@ class HierarchicalPlot:
         fig, axs = plt.subplots(
             len(linked_series), 1, figsize=(20, 2 * len(linked_series))
         )
-        cols = models if models is not None else Y_nw.drop([id_col, time_col]).columns
+        cols = (
+            models
+            if models is not None
+            else [col for col in Y_nw.columns if col not in [id_col, time_col]]
+        )
         cols_wo_levels = [
             col for col in cols if ("-lo-" not in col and "-hi-" not in col)
         ]
@@ -537,7 +544,11 @@ class HierarchicalPlot:
 
         # Parse predictions dataframe
         horizon_dates = Y_nw["ds"].unique().to_numpy()
-        cols = models if models is not None else Y_nw.drop([id_col, time_col]).columns
+        cols = (
+            models
+            if models is not None
+            else [col for col in Y_nw.columns if col not in [id_col, time_col]]
+        )
 
         # Plot predictions across tag levels
         fig, ax = plt.subplots(figsize=(8, 5))
