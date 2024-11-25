@@ -285,14 +285,9 @@ def aggregate(
     S_dum = encoder.fit_transform(S)
 
     if not sparse_s:
+        S_nw = nw.from_dict({id_col: category_list}, native_namespace=native_namespace)
         S_dict = dict(zip(tags[level_name], S_dum))
-        S_nw = nw.from_dict(S_dict, native_namespace=native_namespace)
-        S_nw = S_nw.select(
-            nw.from_dict({id_col: category_list}, native_namespace=native_namespace)[
-                id_col
-            ],
-            nw.all(),
-        )
+        S_nw = S_nw.with_columns(**S_dict)
         S_nw = nw.maybe_reset_index(S_nw)
         S_df = _to_native_maybe_set_index(S_nw, id_col)
     else:

@@ -337,8 +337,6 @@ class HierarchicalReconciliation:
         else:
             Y_nw = None
 
-        self.native_namespace = nw.get_native_namespace(Y_hat_nw)
-
         # Check input's validity and sort dataframes
         Y_hat_nw, S_nw, Y_nw, self.model_names = self._prepare_fit(
             Y_hat_nw=Y_hat_nw,
