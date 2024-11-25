@@ -108,7 +108,9 @@ def _to_narwhals_maybe_warn_and_reset_idx(df: Frame, id_col: str) -> Frame:
         _warn_id_as_idx()
         idx = nw.maybe_get_index(df_nw).to_series().reset_index(drop=True)
         df_nw = nw.maybe_reset_index(df_nw)
-        df_nw = df_nw.with_columns(nw.from_native(idx, allow_series=True).alias(id_col))
+        df_nw = df_nw.with_columns(
+            nw.from_native(idx, allow_series=True).alias(id_col), nw.all()
+        )
     else:
         df_nw = nw.maybe_reset_index(df_nw)
 
