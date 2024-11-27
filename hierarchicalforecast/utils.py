@@ -6,19 +6,16 @@ __all__ = ['aggregate', 'HierarchicalPlot']
 # %% ../nbs/src/utils.ipynb 3
 import sys
 import timeit
-import warnings
 
 import matplotlib.pyplot as plt
 import narwhals as nw
 import numpy as np
 import pandas as pd
 
-from narwhals.typing import Frame
+from narwhals.typing import Frame, FrameT
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
 from typing import Dict, List, Optional, Iterable, Union, Sequence
-
-plt.rcParams["font.family"] = "serif"
 
 # %% ../nbs/src/utils.ipynb 6
 # Global variables
@@ -96,12 +93,11 @@ def aggregate(
     df: Frame,
     spec: List[List[str]],
     exog_vars: Optional[Dict[str, Union[str, List[str]]]] = None,
-    is_balanced: bool = False,
     sparse_s: bool = False,
     id_col: str = "unique_id",
     time_col: str = "ds",
     target_cols: List[str] = ["y"],
-):
+) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function.
     Aggregates bottom level series contained in the DataFrame `df` according
     to levels defined in the `spec` list.
@@ -141,12 +137,6 @@ def aggregate(
     # Checks
     if sparse_s and not nw.dependencies.is_pandas_dataframe(df):
         raise ValueError("Sparse output is only supported for Pandas DataFrames.")
-    if is_balanced:
-        warnings.warn(
-            "`is_balanced` is deprecated and will be removed in a future version. "
-            "Don't set this argument to suppress this warning.",
-            category=DeprecationWarning,
-        )
 
     for col in df_nw.columns:
         assert (
@@ -197,7 +187,7 @@ def aggregate(
     spec = sorted(spec, key=len)
 
     tags = {}
-    Y_dfs_nw = []
+    Y_nws = []
     category_list = []
     level_sep = "/"
     # Perform the aggregation
@@ -219,12 +209,12 @@ def aggregate(
         )
         Y_level = Y_level[[id_col, time_col, *target_cols] + exog_var_names]
         Y_level = Y_level.sort(by=[id_col, time_col])
-        Y_dfs_nw.append(Y_level)
+        Y_nws.append(Y_level)
 
         tags[level_name] = Y_level[id_col].unique().sort().to_numpy()
         category_list.extend(tags[level_name])
 
-    Y_nw = nw.concat(Y_dfs_nw, how="vertical")
+    Y_nw = nw.concat(Y_nws, how="vertical")
     Y_nw = nw.maybe_reset_index(Y_nw)
     Y_df = Y_nw.to_native()
 

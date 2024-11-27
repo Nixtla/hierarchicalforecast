@@ -8,11 +8,10 @@ import copy
 import re
 import reprlib
 import time
-import warnings
 
 from .methods import HReconciler
 from inspect import signature
-from narwhals.typing import Frame
+from narwhals.typing import Frame, FrameT
 from scipy.stats import norm
 from scipy import sparse
 from typing import Dict, List, Optional
@@ -43,16 +42,7 @@ def _build_fn_name(fn) -> str:
         fn_name += "_" + "_".join(func_params)
     return fn_name
 
-# %% ../nbs/src/core.ipynb 8
-def _maybe_warn_sort_df(sort_df):
-    if not sort_df:
-        warnings.warn(
-            "The `sort_df` argument is deprecated and will be removed in a future version. "
-            "You can leave it to its default value (True) to supress this warning",
-            category=FutureWarning,
-        )
-
-# %% ../nbs/src/core.ipynb 12
+# %% ../nbs/src/core.ipynb 11
 def _reverse_engineer_sigmah(
     Y_hat_df: Frame,
     y_hat: np.ndarray,
@@ -97,7 +87,7 @@ def _reverse_engineer_sigmah(
 
     return sigmah
 
-# %% ../nbs/src/core.ipynb 13
+# %% ../nbs/src/core.ipynb 12
 class HierarchicalReconciliation:
     """Hierarchical Reconciliation Class.
 
@@ -130,7 +120,7 @@ class HierarchicalReconciliation:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
-    ):
+    ) -> tuple[FrameT, FrameT, FrameT, List[str]]:
         """
         Performs preliminary wrangling and protections
         """
@@ -159,6 +149,7 @@ class HierarchicalReconciliation:
         if intervals_method not in ["normality", "bootstrap", "permbu"]:
             raise ValueError(f"Unknown interval method: {intervals_method}")
 
+        # TODO: this logic should be method specific
         if self.insample or (intervals_method in ["bootstrap", "permbu"]):
             if Y_nw is None:
                 raise Exception("You need to provide `Y_df`.")
@@ -232,7 +223,7 @@ class HierarchicalReconciliation:
                     f"There are unique_ids in Y_hat_df that are not in Y_df: {reprlib.repr(Y_hat_diff)}"
                 )
 
-        # Same Y_hat_df/S_df/Y_df's unique_ids. Order is guaranteed by the sort_df flag.
+        # Same Y_hat_df/S_df/Y_df's unique_ids. Order is guaranteed by sorting.
         # TODO: this logic should be method specific
         unique_ids = Y_hat_nw[id_col].unique().to_numpy()
         S_nw = S_nw.filter(nw.col(id_col).is_in(unique_ids))
@@ -282,12 +273,11 @@ class HierarchicalReconciliation:
         intervals_method: str = "normality",
         num_samples: int = -1,
         seed: int = 0,
-        sort_df: bool = True,
         is_balanced: bool = False,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
-    ):
+    ) -> FrameT:
         """Hierarchical Reconciliation Method.
 
         The `reconcile` method is analogous to SKLearn `fit_predict` method, it
@@ -313,7 +303,6 @@ class HierarchicalReconciliation:
         `intervals_method`: str, method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
         `num_samples`: int=-1, if positive return that many probabilistic coherent samples.
         `seed`: int=0, random seed for numpy generator's replicability.<br>
-        `sort_df` : deprecated.<br>
         `is_balanced`: bool=False, wether `Y_df` is balanced, set it to True to speed things up if `Y_df` is balanced.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
@@ -322,9 +311,6 @@ class HierarchicalReconciliation:
         **Returns:**<br>
         `Y_tilde_df`: DataFrame, with reconciled predictions.
         """
-        # Raise deprecation warning for sort_df
-        _maybe_warn_sort_df(sort_df)
-
         # To Narwhals
         Y_hat_nw = nw.from_native(Y_hat_df)
         S_nw = nw.from_native(S)
@@ -525,11 +511,10 @@ class HierarchicalReconciliation:
         intervals_method: str = "normality",
         num_samples: int = -1,
         num_seeds: int = 1,
-        sort_df: bool = True,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
-    ):
+    ) -> FrameT:
         """Bootstraped Hierarchical Reconciliation Method.
 
         Applies N times, based on different random seeds, the `reconcile` method
@@ -545,7 +530,6 @@ class HierarchicalReconciliation:
         `intervals_method`: str, method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
         `num_samples`: int=-1, if positive return that many probabilistic coherent samples.
         `num_seeds`: int=1, random seed for numpy generator's replicability.<br>
-        `sort_df` : deprecated.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
         `target_col` : str='y', column that contains the target.<br>
@@ -565,7 +549,6 @@ class HierarchicalReconciliation:
                 intervals_method=intervals_method,
                 num_samples=num_samples,
                 seed=seed,
-                sort_df=sort_df,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,

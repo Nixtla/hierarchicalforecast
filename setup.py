@@ -30,6 +30,7 @@ min_python = cfg['min_python']
 lic = licenses.get(cfg['license'].lower(), (cfg['license'], None))
 dev_requirements = (cfg.get('dev_requirements') or '').split()
 polars_requirements = (cfg.get('polars_requirements') or '').split()
+dev_requirements.extend(polars_requirements)
 
 setuptools.setup(
     name = 'hierarchicalforecast',

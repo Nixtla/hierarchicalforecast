@@ -8,7 +8,7 @@ import narwhals as nw
 import numpy as np
 
 from inspect import signature
-from narwhals.typing import Frame
+from narwhals.typing import Frame, FrameT
 from scipy.stats import multivariate_normal
 from typing import Callable, Dict, List, Optional, Union
 
@@ -362,7 +362,7 @@ class HierarchicalEvaluation:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
-    ):
+    ) -> FrameT:
         """Hierarchical Evaluation Method.
 
         **Parameters:**<br>
