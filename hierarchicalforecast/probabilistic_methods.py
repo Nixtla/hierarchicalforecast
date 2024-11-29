@@ -11,7 +11,7 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.preprocessing import OneHotEncoder
 
-from .utils import is_strictly_hierarchical, cov2corr
+from .utils import is_strictly_hierarchical
 
 # %% ../nbs/src/probabilistic_methods.ipynb 6
 class Normality:
@@ -64,7 +64,8 @@ class Normality:
 
         # Base Normality Errors assume independence/diagonal covariance
         # TODO: replace bilinearity with elementwise row multiplication
-        R1 = cov2corr(self.W)
+        std_ = np.sqrt(np.diag(self.W))
+        R1 = self.W / np.outer(std_, std_)
         Wh = [np.diag(sigma) @ R1 @ np.diag(sigma).T for sigma in self.sigmah.T]
 
         # Reconciled covariances across forecast horizon
