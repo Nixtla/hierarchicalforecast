@@ -5,7 +5,7 @@ __all__ = ['Normality']
 
 # %% ../nbs/src/probabilistic_methods.ipynb 3
 import warnings
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
 from scipy.stats import norm
@@ -263,7 +263,7 @@ class PERMBU:
     def __init__(
         self,
         S: np.ndarray,
-        tags: Dict[str, np.ndarray],
+        tags: dict[str, np.ndarray],
         y_hat: np.ndarray,
         y_insample: np.ndarray,
         y_hat_insample: np.ndarray,

@@ -15,7 +15,7 @@ import pandas as pd
 from narwhals.typing import Frame, FrameT
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
-from typing import Dict, List, Optional, Union, Sequence
+from typing import Optional, Union, Sequence
 
 # %% ../nbs/src/utils.ipynb 6
 # Global variables
@@ -44,7 +44,7 @@ class CodeTimer:
             )
 
 # %% ../nbs/src/utils.ipynb 8
-def is_strictly_hierarchical(S: np.ndarray, tags: Dict[str, np.ndarray]) -> bool:
+def is_strictly_hierarchical(S: np.ndarray, tags: dict[str, np.ndarray]) -> bool:
     # main idea:
     # if S represents a strictly hierarchical structure
     # the number of paths before the bottom level
@@ -62,8 +62,8 @@ def is_strictly_hierarchical(S: np.ndarray, tags: Dict[str, np.ndarray]) -> bool
 
 # %% ../nbs/src/utils.ipynb 10
 def _to_upper_hierarchy(
-    bottom_split: List[str], bottom_values: str, upper_key: str
-) -> List[str]:
+    bottom_split: list[str], bottom_values: str, upper_key: str
+) -> list[str]:
     upper_split = upper_key.split("/")
     upper_idxs = [bottom_split.index(i) for i in upper_split]
 
@@ -76,12 +76,12 @@ def _to_upper_hierarchy(
 # %% ../nbs/src/utils.ipynb 11
 def aggregate(
     df: Frame,
-    spec: List[List[str]],
-    exog_vars: Optional[Dict[str, Union[str, List[str]]]] = None,
+    spec: list[list[str]],
+    exog_vars: Optional[dict[str, Union[str, list[str]]]] = None,
     sparse_s: bool = False,
     id_col: str = "unique_id",
     time_col: str = "ds",
-    target_cols: List[str] = ["y"],
+    target_cols: list[str] = ["y"],
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function.
     Aggregates bottom level series contained in the DataFrame `df` according
@@ -92,7 +92,7 @@ def aggregate(
     df : DataFrame
         Dataframe with columns `[time_col, *target_cols]`, columns to aggregate and optionally exog_vars.
     spec : list of list of str
-        List of levels. Each element of the list should contain a list of columns of `df` to aggregate.
+        list of levels. Each element of the list should contain a list of columns of `df` to aggregate.
     exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
         keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance
     is_balanced : bool (default=False)
@@ -104,7 +104,7 @@ def aggregate(
     time_col : str (default='ds')
         Column that identifies each timestep, its values can be timestamps or integers.
     target_cols : (default=['y'])
-        List of columns that contains the targets to aggregate.
+        list of columns that contains the targets to aggregate.
 
     Returns
     -------
@@ -221,9 +221,13 @@ def aggregate(
     S_dum = encoder.fit_transform(S)
 
     if not sparse_s:
-        S_nw = nw.from_dict({id_col: category_list}, native_namespace=native_namespace)
-        S_dict = dict(zip(tags[level_name], S_dum))
-        S_nw = S_nw.with_columns(**S_dict)
+        S_nw = nw.from_dict(
+            {
+                **{id_col: category_list},
+                **dict(zip(tags[level_name], S_dum)),
+            },
+            native_namespace=native_namespace,
+        )
         S_nw = nw.maybe_reset_index(S_nw)
         S_df = S_nw.to_native()
     else:
@@ -252,7 +256,7 @@ class HierarchicalPlot:
     def __init__(
         self,
         S: Frame,
-        tags: Dict[str, np.ndarray],
+        tags: dict[str, np.ndarray],
         S_id_col: str = "unique_id",
     ):
 
@@ -277,8 +281,8 @@ class HierarchicalPlot:
         self,
         series: str,
         Y_df: Frame,
-        models: Optional[List[str]] = None,
-        level: Optional[List[int]] = None,
+        models: Optional[list[str]] = None,
+        level: Optional[list[int]] = None,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
@@ -289,7 +293,7 @@ class HierarchicalPlot:
         `series`: str, string identifying the `'unique_id'` any-level series to plot.<br>
         `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                 It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`.<br>
-        `models`: List[str], string identifying filtering model columns.<br>
+        `models`: list[str], string identifying filtering model columns.<br>
         `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
@@ -356,8 +360,8 @@ class HierarchicalPlot:
         self,
         bottom_series: str,
         Y_df: Frame,
-        models: Optional[List[str]] = None,
-        level: Optional[List[int]] = None,
+        models: Optional[list[str]] = None,
+        level: Optional[list[int]] = None,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
@@ -368,7 +372,7 @@ class HierarchicalPlot:
         `bottom_series`: str, string identifying the `'unique_id'` bottom-level series to plot.<br>
         `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                 It contains columns ['unique_id', 'ds', 'y'] and models. <br>
-        `models`: List[str], string identifying filtering model columns.<br>
+        `models`: list[str], string identifying filtering model columns.<br>
         `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
         `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
@@ -451,7 +455,7 @@ class HierarchicalPlot:
     def plot_hierarchical_predictions_gap(
         self,
         Y_df: Frame,
-        models: Optional[List[str]] = None,
+        models: Optional[list[str]] = None,
         xlabel: Optional[str] = None,
         ylabel: Optional[str] = None,
         id_col: str = "unique_id",
@@ -463,7 +467,7 @@ class HierarchicalPlot:
         **Parameters:**<br>
         `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                 It contains columns ['unique_id', 'ds', 'y'] and models. <br>
-        `models`: List[str], string identifying filtering model columns. <br>
+        `models`: list[str], string identifying filtering model columns. <br>
         `xlabel`: str, string for the plot's x axis label.<br>
         `ylabel`: str, string for the plot's y axis label.<br>
         `id_col` : str='unique_id', column that identifies each serie.<br>
@@ -521,7 +525,7 @@ class HierarchicalPlot:
 
 # %% ../nbs/src/utils.ipynb 46
 # convert levels to output quantile names
-def level_to_outputs(level: List[int]) -> tuple[List[float], List[str]]:
+def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
 
     **Parameters:**<br>
@@ -545,7 +549,7 @@ def level_to_outputs(level: List[int]) -> tuple[List[float], List[str]]:
 
 
 # convert quantiles to output quantile names
-def quantiles_to_outputs(quantiles: List[float]) -> tuple[List[float], List[str]]:
+def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]]:
     """Converts list of quantiles into output names matching StatsForecast and NeuralForecast methods.
 
     **Parameters:**<br>
@@ -570,21 +574,21 @@ def quantiles_to_outputs(quantiles: List[float]) -> tuple[List[float], List[str]
 def samples_to_quantiles_df(
     samples: np.ndarray,
     unique_ids: Sequence[str],
-    dates: List[str],
-    quantiles: Optional[List[float]] = None,
-    level: Optional[List[int]] = None,
+    dates: list[str],
+    quantiles: Optional[list[float]] = None,
+    level: Optional[list[int]] = None,
     model_name: str = "model",
     id_col: str = "unique_id",
     time_col: str = "ds",
     backend: str = "pandas",
-) -> tuple[List[float], FrameT]:
+) -> tuple[list[float], FrameT]:
     """Transform Random Samples into HierarchicalForecast input.
     Auxiliary function to create compatible HierarchicalForecast input `Y_hat_df` dataframe.
 
     **Parameters:**<br>
     `samples`: numpy array. Samples from forecast distribution of shape [n_series, n_samples, horizon].<br>
     `unique_ids`: string list. Unique identifiers for each time series.<br>
-    `dates`: datetime list. List of forecast dates.<br>
+    `dates`: datetime list. list of forecast dates.<br>
     `quantiles`: float list in [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
     `level`: int list in [0,100]. Probability levels for prediction intervals.<br>
     `model_name`: string. Name of forecasting model.<br>
@@ -640,10 +644,12 @@ def samples_to_quantiles_df(
     forecasts_quantiles = forecasts_quantiles.reshape(-1, len(_quantiles))
 
     df_nw = nw.from_dict(
-        {id_col: unique_ids, time_col: ds, model_name: forecasts_mean},
+        {
+            **{id_col: unique_ids, time_col: ds, model_name: forecasts_mean},
+            **dict(zip(col_names, forecasts_quantiles.T)),
+        },
         native_namespace=namespace,
     )
-    df_nw = df_nw.with_columns(**dict(zip(col_names, forecasts_quantiles.T)))
 
     return _quantiles, df_nw.to_native()
 
