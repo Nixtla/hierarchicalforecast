@@ -505,6 +505,7 @@ def evaluate(
     time_col: str = "ds",
     target_col: str = "y",
     agg_fn: Optional[str] = "mean",
+    benchmark: Optional[str] = None,
 ) -> FrameT:
     """Evaluate hierarchical forecast using different metrics.
 
@@ -532,6 +533,8 @@ def evaluate(
         Column that contains the target.
     agg_fn : str, optional (default="mean")
         Statistic to compute on the scores by id to reduce them to a single number.
+    benchmark : str, optional (default=None)
+        If passed, evaluators are scaled by the error of this benchmark model.
 
     Returns
     -------
@@ -539,13 +542,19 @@ def evaluate(
         Metrics with one row per (id, metric) combination and one column per model.
         If `agg_fn` is not `None`, there is only one row per metric.
     """
+    # Check benchmark in columns
+    if benchmark is not None:
+        if benchmark not in df.columns:
+            raise ValueError(f"Benchmark model '{benchmark}' not found in df")
+        model_cols = None
 
     df_nw = nw.from_native(df)
     if train_df is not None:
         train_nw = nw.from_native(train_df)
     tag_scores = []
-
     tags_ = {**tags, "Overall": np.concatenate(list(tags.values()))}
+
+    eps = np.finfo(np.float32).eps
 
     for tag, tag_ids in tags_.items():
         df_tag = df_nw.filter(nw.col(id_col).is_in(tag_ids)).to_native()
@@ -566,6 +575,17 @@ def evaluate(
             agg_fn=agg_fn,
         )
         df_score_nw = nw.from_native(df_score)
+        if benchmark is not None:
+            if model_cols is None:
+                model_cols = [
+                    c for c in df_score_nw.columns if c not in [id_col, "metric"]
+                ]
+            # NB: the below assumes benchmark loss is always positive, which is a reasonable assumption
+            df_score_nw = df_score_nw.with_columns(
+                nw.col(model_cols) / nw.col(benchmark).clip(eps)
+            )
+            df_score_nw = df_score_nw.with_columns(nw.col("metric") + "-scaled")
+
         df_score_nw = df_score_nw.select(nw.lit(tag).alias("level"), nw.all())
         tag_scores.append(df_score_nw)
 
