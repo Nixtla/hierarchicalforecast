@@ -495,11 +495,11 @@ class HierarchicalEvaluation:
 
 # %% ../nbs/src/evaluation.ipynb 20
 def evaluate(
-    df: Frame,
+    df: FrameT,
     metrics: list[Callable],
     tags: dict[str, np.ndarray],
     models: Optional[list[str]] = None,
-    train_df: Optional[Frame] = None,
+    train_df: Optional[FrameT] = None,
     level: Optional[list[int]] = None,
     id_col: str = "unique_id",
     time_col: str = "ds",
