@@ -22,13 +22,13 @@ method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br/
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L78"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L91"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### init
 
 > ``` text
->  init (reconcilers:List[hierarchicalforecast.methods.HReconciler])
+>  init (reconcilers:list[hierarchicalforecast.methods.HReconciler])
 > ```
 
 \*Hierarchical Reconciliation Class.
@@ -55,14 +55,14 @@ Series”.](https://otexts.com/fpp3/hierarchical.html)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L78"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L91"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HierarchicalReconciliation
 
 > ``` text
 >  HierarchicalReconciliation
->                              (reconcilers:List[hierarchicalforecast.method
+>                              (reconcilers:list[hierarchicalforecast.method
 >                              s.HReconciler])
 > ```
 
@@ -90,18 +90,20 @@ Series”.](https://otexts.com/fpp3/hierarchical.html)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L182"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L266"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### reconcile
 
 > ``` text
->  reconcile (Y_hat_df:pandas.core.frame.DataFrame,
->             S:pandas.core.frame.DataFrame, tags:Dict[str,numpy.ndarray],
->             Y_df:Optional[pandas.core.frame.DataFrame]=None,
->             level:Optional[List[int]]=None,
+>  reconcile (Y_hat_df:Union[ForwardRef('DataFrame[Any]'),ForwardRef('LazyFr
+>             ame[Any]')], S:Union[ForwardRef('DataFrame[Any]'),ForwardRef('
+>             LazyFrame[Any]')], tags:dict[str,numpy.ndarray], Y_df:Union[Fo
+>             rwardRef('DataFrame[Any]'),ForwardRef('LazyFrame[Any]'),NoneTy
+>             pe]=None, level:Optional[list[int]]=None,
 >             intervals_method:str='normality', num_samples:int=-1,
->             seed:int=0, sort_df:bool=True, is_balanced:bool=False)
+>             seed:int=0, is_balanced:bool=False, id_col:str='unique_id',
+>             time_col:str='ds', target_col:str='y')
 > ```
 
 \*Hierarchical Reconciliation Method.
@@ -122,13 +124,12 @@ methods. The reconciled predictions are
 $\tilde{\mathbf{y}}_{[a,b],\tau}$, and the base predictions
 $\hat{\mathbf{y}}_{[a,b],\tau}$.
 
-**Parameters:**<br/> `Y_hat_df`: pd.DataFrame, base forecasts with
-columns `ds` and models to reconcile indexed by `unique_id`.<br/> `Y_df`:
-pd.DataFrame, training set of base time series with columns
-`['ds', 'y']` indexed by `unique_id`.<br/> If a class of
-`self.reconciles` receives `y_hat_insample`, `Y_df` must include them as
-columns.<br/> `S`: pd.DataFrame with summing matrix of size
-`(base, bottom)`, see [aggregate
+**Parameters:**<br/> `Y_hat_df`: DataFrame, base forecasts with columns
+\[‘unique_id’, ‘ds’\] and models to reconcile.<br/> `Y_df`: DataFrame,
+training set of base time series with columns
+`['unique_id', 'ds', 'y']`.<br/> If a class of `self.reconciles` receives
+`y_hat_insample`, `Y_df` must include them as columns.<br/> `S`:
+DataFrame with summing matrix of size `(base, bottom)`, see [aggregate
 method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br/>
 `tags`: Each key is a level and its value contains tags associated to
 that level.<br/> `level`: positive float list \[0,100), confidence levels
@@ -136,31 +137,34 @@ for prediction intervals.<br/> `intervals_method`: str, method used to
 calculate prediction intervals, one of `normality`, `bootstrap`,
 `permbu`.<br/> `num_samples`: int=-1, if positive return that many
 probabilistic coherent samples. `seed`: int=0, random seed for numpy
-generator’s replicability.<br/> `sort_df` : bool (default=True), if True,
-sort `df` by \[`unique_id`,`ds`\].<br/> `is_balanced`: bool=False, wether
-`Y_df` is balanced, set it to True to speed things up if `Y_df` is
-balanced.<br/>
+generator’s replicability.<br/> `is_balanced`: bool=False, wether `Y_df`
+is balanced, set it to True to speed things up if `Y_df` is
+balanced.<br/> `id_col` : str=‘unique_id’, column that identifies each
+serie.<br/> `time_col` : str=‘ds’, column that identifies each timestep,
+its values can be timestamps or integers.<br/> `target_col` : str=‘y’,
+column that contains the target.<br/>
 
-**Returns:**<br/> `Y_tilde_df`: pd.DataFrame, with reconciled
-predictions.\*
+**Returns:**<br/> `Y_tilde_df`: DataFrame, with reconciled predictions.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L338"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L504"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### bootstrap_reconcile
 
 > ``` text
->  bootstrap_reconcile (Y_hat_df:pandas.core.frame.DataFrame,
->                       S_df:pandas.core.frame.DataFrame,
->                       tags:Dict[str,numpy.ndarray],
->                       Y_df:Optional[pandas.core.frame.DataFrame]=None,
->                       level:Optional[List[int]]=None,
+>  bootstrap_reconcile (Y_hat_df:Union[ForwardRef('DataFrame[Any]'),ForwardR
+>                       ef('LazyFrame[Any]')], S_df:Union[ForwardRef('DataFr
+>                       ame[Any]'),ForwardRef('LazyFrame[Any]')],
+>                       tags:dict[str,numpy.ndarray], Y_df:Union[ForwardRef(
+>                       'DataFrame[Any]'),ForwardRef('LazyFrame[Any]'),NoneT
+>                       ype]=None, level:Optional[list[int]]=None,
 >                       intervals_method:str='normality',
 >                       num_samples:int=-1, num_seeds:int=1,
->                       sort_df:bool=True)
+>                       id_col:str='unique_id', time_col:str='ds',
+>                       target_col:str='y')
 > ```
 
 \*Bootstraped Hierarchical Reconciliation Method.
@@ -169,13 +173,12 @@ Applies N times, based on different random seeds, the `reconcile` method
 for the different reconciliation techniques instantiated in the
 `reconcilers` list.
 
-**Parameters:**<br/> `Y_hat_df`: pd.DataFrame, base forecasts with
-columns `ds` and models to reconcile indexed by `unique_id`.<br/> `Y_df`:
-pd.DataFrame, training set of base time series with columns
-`['ds', 'y']` indexed by `unique_id`.<br/> If a class of
-`self.reconciles` receives `y_hat_insample`, `Y_df` must include them as
-columns.<br/> `S`: pd.DataFrame with summing matrix of size
-`(base, bottom)`, see [aggregate
+**Parameters:**<br/> `Y_hat_df`: DataFrame, base forecasts with columns
+\[‘unique_id’, ‘ds’\] and models to reconcile.<br/> `Y_df`: DataFrame,
+training set of base time series with columns
+`['unique_id', 'ds', 'y']`.<br/> If a class of `self.reconciles` receives
+`y_hat_insample`, `Y_df` must include them as columns.<br/> `S`:
+DataFrame with summing matrix of size `(base, bottom)`, see [aggregate
 method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br/>
 `tags`: Each key is a level and its value contains tags associated to
 that level.<br/> `level`: positive float list \[0,100), confidence levels
@@ -183,10 +186,12 @@ for prediction intervals.<br/> `intervals_method`: str, method used to
 calculate prediction intervals, one of `normality`, `bootstrap`,
 `permbu`.<br/> `num_samples`: int=-1, if positive return that many
 probabilistic coherent samples. `num_seeds`: int=1, random seed for
-numpy generator’s replicability.<br/> `sort_df` : bool (default=True), if
-True, sort `df` by \[`unique_id`,`ds`\].<br/>
+numpy generator’s replicability.<br/> `id_col` : str=‘unique_id’, column
+that identifies each serie.<br/> `time_col` : str=‘ds’, column that
+identifies each timestep, its values can be timestamps or integers.<br/>
+`target_col` : str=‘y’, column that contains the target.<br/>
 
-**Returns:**<br/> `Y_bootstrap_df`: pd.DataFrame, with bootstraped
+**Returns:**<br/> `Y_bootstrap_df`: DataFrame, with bootstraped
 reconciled predictions.\*
 
 # Example
@@ -196,11 +201,17 @@ import numpy as np
 import pandas as pd
 
 from statsforecast.core import StatsForecast
-from statsforecast.models import ETS, Naive
+from statsforecast.models import AutoETS
 
 from hierarchicalforecast.utils import aggregate
 from hierarchicalforecast.core import HierarchicalReconciliation
 from hierarchicalforecast.methods import BottomUp, MinTrace
+from hierarchicalforecast.evaluation import HierarchicalEvaluation
+
+def mase(y, y_hat, y_insample, seasonality=4):
+    errors = np.mean(np.abs(y - y_hat), axis=1)
+    scale = np.mean(np.abs(y_insample[:, seasonality:] - y_insample[:, :-seasonality]), axis=1)
+    return np.mean(errors / scale)
 
 # Load TourismSmall dataset
 df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
@@ -219,27 +230,43 @@ hierarchy_levels = [['Country'],
 Y_df, S_df, tags = aggregate(df=df, spec=hierarchy_levels)
 qs = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
 Y_df['ds'] = pd.PeriodIndex(qs, freq='Q').to_timestamp()
-Y_df = Y_df.reset_index()
 
 # Split train/test sets
-Y_test_df  = Y_df.groupby('unique_id').tail(4)
+Y_test_df  = Y_df.groupby('unique_id').tail(8)
 Y_train_df = Y_df.drop(Y_test_df.index)
 
 # Compute base auto-ETS predictions
 # Careful identifying correct data freq, this data quarterly 'Q'
-fcst = StatsForecast(models=[Naive()], freq='Q', n_jobs=-1)
-Y_hat_df = fcst.forecast(df=Y_train_df, h=4, fitted=True)
+fcst = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')], freq='QS', n_jobs=-1)
+Y_hat_df = fcst.forecast(df=Y_train_df, h=8, fitted=True)
 Y_fitted_df = fcst.forecast_fitted_values()
 
 # Reconcile the base predictions
-Y_train_df = Y_train_df.reset_index().set_index('unique_id')
-Y_hat_df = Y_hat_df.reset_index().set_index('unique_id')
-reconcilers = [BottomUp(),
-               MinTrace(method='mint_shrink')]
+reconcilers = [
+                BottomUp(),
+               MinTrace(method='mint_shrink'),
+               ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, 
                           Y_df=Y_fitted_df,
                           S=S_df, tags=tags)
-Y_rec_df.groupby('unique_id', observed=True).head(2)
+
+# Evaluate
+eval_tags = {}
+eval_tags['Total'] = tags['Country']
+eval_tags['Purpose'] = tags['Country/Purpose']
+eval_tags['State'] = tags['Country/State']
+eval_tags['Regions'] = tags['Country/State/Region']
+eval_tags['Bottom'] = tags['Country/State/Region/Purpose']
+
+evaluator = HierarchicalEvaluation(evaluators=[mase])
+evaluation = evaluator.evaluate(
+        Y_hat_df=Y_rec_df, Y_test_df=Y_test_df,
+        tags=eval_tags, Y_df=Y_train_df
+)
+evaluation = evaluation.set_index(['level', 'metric'])
+evaluation = evaluation.map('{:.2f}'.format)
+
+evaluation
 ```
 

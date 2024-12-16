@@ -32,8 +32,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 <a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourism.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ```python
-!pip install hierarchicalforecast
-!pip install -U statsforecast numba
+!pip install hierarchicalforecast statsforecast
 ```
 
 ## 1. Load and Process Data
@@ -46,6 +45,9 @@ The dataset only contains the time series at the lowest level, so we
 need to create the time series for all hierarchies.
 
 ```python
+import os
+os.environ['NIXTLA_ID_AS_COL'] = '1'
+
 import numpy as np
 import pandas as pd
 ```
@@ -57,7 +59,7 @@ Y_df = Y_df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
 Y_df.insert(0, 'Country', 'Australia')
 Y_df = Y_df[['Country', 'Region', 'State', 'Purpose', 'ds', 'y']]
 Y_df['ds'] = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
-Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+Y_df['ds'] = pd.PeriodIndex(Y_df["ds"], freq='Q').to_timestamp()
 Y_df.head()
 ```
 
@@ -84,7 +86,7 @@ spec = [
 ```
 
 Using the
-[`aggregate`](https://Nixtla.github.io/hierarchicalforecast/utils.html#aggregate)
+[`aggregate`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate)
 function from `HierarchicalForecast` we can get the full set of time
 series.
 
@@ -95,7 +97,6 @@ from hierarchicalforecast.utils import aggregate
 
 ```python
 Y_df, S_df, tags = aggregate(Y_df, spec)
-Y_df = Y_df.reset_index()
 ```
 
 
@@ -115,13 +116,13 @@ Y_df.head()
 S_df.iloc[:5, :5]
 ```
 
-|  | Australia/ACT/Canberra/Business | Australia/ACT/Canberra/Holiday | Australia/ACT/Canberra/Other | Australia/ACT/Canberra/Visiting | Australia/New South Wales/Blue Mountains/Business |
+|  | unique_id | Australia/ACT/Canberra/Business | Australia/ACT/Canberra/Holiday | Australia/ACT/Canberra/Other | Australia/ACT/Canberra/Visiting |
 |----|----|----|----|----|----|
-| Australia | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
-| Australia/ACT | 1.0 | 1.0 | 1.0 | 1.0 | 0.0 |
-| Australia/New South Wales | 0.0 | 0.0 | 0.0 | 0.0 | 1.0 |
-| Australia/Northern Territory | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| Australia/Queensland | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| 0 | Australia | 1.0 | 1.0 | 1.0 | 1.0 |
+| 1 | Australia/ACT | 1.0 | 1.0 | 1.0 | 1.0 |
+| 2 | Australia/New South Wales | 0.0 | 0.0 | 0.0 | 0.0 |
+| 3 | Australia/Northern Territory | 0.0 | 0.0 | 0.0 | 0.0 |
+| 4 | Australia/Queensland | 0.0 | 0.0 | 0.0 | 0.0 |
 
 ```python
 tags['Country/Purpose']
@@ -137,14 +138,8 @@ array(['Australia/Business', 'Australia/Holiday', 'Australia/Other',
 We use the final two years (8 quarters) as test set.
 
 ```python
-Y_test_df = Y_df.groupby('unique_id').tail(8)
+Y_test_df = Y_df.groupby('unique_id', as_index=False).tail(8)
 Y_train_df = Y_df.drop(Y_test_df.index)
-```
-
-
-```python
-Y_test_df = Y_test_df.set_index('unique_id')
-Y_train_df = Y_train_df.set_index('unique_id')
 ```
 
 
@@ -175,32 +170,31 @@ in `Y_df` using the `ETS` model. Observe that `Y_hat_df` contains the
 forecasts but they are not coherent.
 
 ```python
-from statsforecast.models import ETS
+from statsforecast.models import AutoETS
 from statsforecast.core import StatsForecast
 ```
 
 
 ```python
-fcst = StatsForecast(df=Y_train_df, 
-                     models=[ETS(season_length=4, model='ZZA')], 
+fcst = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')], 
                      freq='QS', n_jobs=-1)
-Y_hat_df = fcst.forecast(h=8, fitted=True)
+Y_hat_df = fcst.forecast(df=Y_train_df, h=8, fitted=True)
 Y_fitted_df = fcst.forecast_fitted_values()
 ```
 
 ## 3. Reconcile forecasts
 
 The following cell makes the previous forecasts coherent using the
-[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/core.html#hierarchicalreconciliation)
+[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/src/core.html#hierarchicalreconciliation)
 class. Since the hierarchy structure is not strict, we can’t use methods
 such as
-[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/methods.html#topdown)
+[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#topdown)
 or
-[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/methods.html#middleout).
+[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#middleout).
 In this example we use
-[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/methods.html#bottomup)
+[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#bottomup)
 and
-[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/methods.html#mintrace).
+[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#mintrace).
 
 ```python
 from hierarchicalforecast.methods import BottomUp, MinTrace
@@ -224,57 +218,46 @@ The dataframe `Y_rec_df` contains the reconciled forecasts.
 Y_rec_df.head()
 ```
 
-|  | ds | ETS | ETS/BottomUp | ETS/MinTrace_method-mint_shrink | ETS/MinTrace_method-ols |
-|----|----|----|----|----|----|
-| unique_id |  |  |  |  |  |
-| Australia | 2016-01-01 | 25990.068359 | 24379.679688 | 25438.888351 | 25894.418893 |
-| Australia | 2016-04-01 | 24458.490234 | 22902.664062 | 23925.188541 | 24357.230480 |
-| Australia | 2016-07-01 | 23974.056641 | 22412.984375 | 23440.310338 | 23865.929521 |
-| Australia | 2016-10-01 | 24563.455078 | 23127.638672 | 24101.001833 | 24470.783968 |
-| Australia | 2017-01-01 | 25990.068359 | 24516.175781 | 25556.667616 | 25901.382401 |
+|  | unique_id | ds | AutoETS | AutoETS/BottomUp | AutoETS/MinTrace_method-mint_shrink | AutoETS/MinTrace_method-ols |
+|----|----|----|----|----|----|----|
+| 0 | Australia | 2016-01-01 | 25990.068004 | 24381.911737 | 25428.089783 | 25894.399067 |
+| 1 | Australia | 2016-04-01 | 24458.490282 | 22903.895964 | 23914.271400 | 24357.301898 |
+| 2 | Australia | 2016-07-01 | 23974.055984 | 22412.265739 | 23428.462394 | 23865.910647 |
+| 3 | Australia | 2016-10-01 | 24563.454495 | 23127.349578 | 24089.845955 | 24470.782393 |
+| 4 | Australia | 2017-01-01 | 25990.068004 | 24518.118006 | 25545.358678 | 25901.362283 |
 
 ## 4. Evaluation
 
-The `HierarchicalForecast` package includes the
-[`HierarchicalEvaluation`](https://Nixtla.github.io/hierarchicalforecast/evaluation.html#hierarchicalevaluation)
-class to evaluate the different hierarchies and also is capable of
+The `HierarchicalForecast` package includes an
+[`evaluate`](https://Nixtla.github.io/hierarchicalforecast/src/evaluation.html#evaluate)
+function to evaluate the different hierarchies and also is capable of
 compute scaled metrics compared to a benchmark model.
 
 ```python
-from hierarchicalforecast.evaluation import HierarchicalEvaluation
+from hierarchicalforecast.evaluation import evaluate
+from utilsforecast.losses import rmse, mase
+from functools import partial
 ```
 
 
 ```python
-def rmse(y, y_hat):
-    return np.mean(np.sqrt(np.mean((y-y_hat)**2, axis=1)))
-
-def mase(y, y_hat, y_insample, seasonality=4):
-    errors = np.mean(np.abs(y - y_hat), axis=1)
-    scale = np.mean(np.abs(y_insample[:, seasonality:] - y_insample[:, :-seasonality]), axis=1)
-    return np.mean(errors / scale)
-
 eval_tags = {}
 eval_tags['Total'] = tags['Country']
 eval_tags['Purpose'] = tags['Country/Purpose']
 eval_tags['State'] = tags['Country/State']
 eval_tags['Regions'] = tags['Country/State/Region']
 eval_tags['Bottom'] = tags['Country/State/Region/Purpose']
-eval_tags['All'] = np.concatenate(list(tags.values()))
 
-evaluator = HierarchicalEvaluation(evaluators=[rmse, mase])
-evaluation = evaluator.evaluate(
-        Y_hat_df=Y_rec_df, Y_test_df=Y_test_df,
-        tags=eval_tags, Y_df=Y_train_df
-)
-evaluation = evaluation.drop('Overall')
-evaluation.columns = ['Base', 'BottomUp', 'MinTrace(mint_shrink)', 'MinTrace(ols)']
-evaluation = evaluation.applymap('{:.2f}'.format)
-```
+df = Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds'])
+evaluation = evaluate(df = df,
+                      tags = eval_tags,
+                      train_df = Y_train_df,
+                      metrics = [rmse,
+                                 partial(mase, seasonality=4)])
 
-``` text
-/var/folders/rp/97y9_3ns23v01hdn0rp9ndw40000gp/T/ipykernel_46857/2768439279.py:22: PerformanceWarning: dropping on a non-lexsorted multi-index without a level parameter may impact performance.
-  evaluation = evaluation.drop('Overall')
+evaluation.columns = ['level', 'metric', 'Base', 'BottomUp', 'MinTrace(mint_shrink)', 'MinTrace(ols)']
+numeric_cols = evaluation.select_dtypes(include="number").columns
+evaluation[numeric_cols] = evaluation[numeric_cols].map('{:.2f}'.format).astype(np.float64)
 ```
 
 ### RMSE
@@ -286,15 +269,14 @@ levels for each reconciliation method.
 evaluation.query('metric == "rmse"')
 ```
 
-|         |        | Base    | BottomUp | MinTrace(mint_shrink) | MinTrace(ols) |
-|---------|--------|---------|----------|-----------------------|---------------|
-| level   | metric |         |          |                       |               |
-| Total   | rmse   | 1743.29 | 3028.93  | 2102.47               | 1818.94       |
-| Purpose | rmse   | 534.75  | 791.28   | 574.84                | 515.53        |
-| State   | rmse   | 308.15  | 413.43   | 315.89                | 287.34        |
-| Regions | rmse   | 51.65   | 55.14    | 46.48                 | 46.29         |
-| Bottom  | rmse   | 19.37   | 19.37    | 17.78                 | 18.19         |
-| All     | rmse   | 45.19   | 54.95    | 44.59                 | 42.71         |
+|     | level   | metric | Base    | BottomUp | MinTrace(mint_shrink) | MinTrace(ols) |
+|-----|---------|--------|---------|----------|-----------------------|---------------|
+| 0   | Total   | rmse   | 1743.29 | 3028.62  | 2112.73               | 1818.94       |
+| 2   | Purpose | rmse   | 534.75  | 791.19   | 577.14                | 515.53        |
+| 4   | State   | rmse   | 308.15  | 413.39   | 316.82                | 287.32        |
+| 6   | Regions | rmse   | 51.66   | 55.13    | 46.55                 | 46.28         |
+| 8   | Bottom  | rmse   | 19.37   | 19.37    | 17.80                 | 18.19         |
+| 10  | Overall | rmse   | 41.12   | 49.82    | 40.47                 | 38.75         |
 
 ### MASE
 
@@ -305,15 +287,14 @@ levels for each reconciliation method.
 evaluation.query('metric == "mase"')
 ```
 
-|         |        | Base | BottomUp | MinTrace(mint_shrink) | MinTrace(ols) |
-|---------|--------|------|----------|-----------------------|---------------|
-| level   | metric |      |          |                       |               |
-| Total   | mase   | 1.59 | 3.16     | 2.05                  | 1.67          |
-| Purpose | mase   | 1.32 | 2.28     | 1.48                  | 1.25          |
-| State   | mase   | 1.39 | 1.90     | 1.39                  | 1.25          |
-| Regions | mase   | 1.12 | 1.19     | 1.01                  | 0.99          |
-| Bottom  | mase   | 0.98 | 0.98     | 0.94                  | 1.01          |
-| All     | mase   | 1.03 | 1.08     | 0.98                  | 1.02          |
+|     | level   | metric | Base | BottomUp | MinTrace(mint_shrink) | MinTrace(ols) |
+|-----|---------|--------|------|----------|-----------------------|---------------|
+| 1   | Total   | mase   | 1.59 | 3.16     | 2.06                  | 1.67          |
+| 3   | Purpose | mase   | 1.32 | 2.28     | 1.48                  | 1.25          |
+| 5   | State   | mase   | 1.39 | 1.90     | 1.40                  | 1.25          |
+| 7   | Regions | mase   | 1.12 | 1.19     | 1.01                  | 0.99          |
+| 9   | Bottom  | mase   | 0.98 | 0.98     | 0.94                  | 1.01          |
+| 11  | Overall | mase   | 1.02 | 1.06     | 0.97                  | 1.02          |
 
 ### Comparison fable
 

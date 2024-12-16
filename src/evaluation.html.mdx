@@ -5,14 +5,10 @@ title: Hierarchical Evaluation
 
 
 To assist the evaluation of hierarchical forecasting systems, we make
-available accuracy metrics along with the
-[`HierarchicalEvaluation`](https://Nixtla.github.io/hierarchicalforecast/evaluation.html#hierarchicalevaluation)
-module that facilitates the measurement of prediction’s accuracy through
-the hierarchy levels.
-
-The available metrics include point and probabilistic multivariate
-scoring rules that were used in previous hierarchical forecasting
-studies.
+available an
+[`evaluate`](https://Nixtla.github.io/hierarchicalforecast/src/evaluation.html#evaluate)
+function that can be used in combination with loss functions from
+`utilsforecast.losses`.
 
 # Accuracy Measurements
 
@@ -21,7 +17,7 @@ studies.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L111"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L134"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### rel_mse
@@ -64,7 +60,7 @@ paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L150"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L174"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### msse
@@ -107,7 +103,7 @@ Forecasting, Volume 22, Issue
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L190"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L215"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### scaled_crps
@@ -163,7 +159,7 @@ Proceedings of the 38th International Conference on Machine Learning
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L233"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L259"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### energy_score
@@ -212,7 +208,7 @@ Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)\
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L279"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L306"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### log_score
@@ -257,24 +253,18 @@ true allows singular covariance.<br/>
 
 **Returns:**<br/> `score`: float.\*
 
-```python
-x = np.linspace(0, 5, 10, endpoint=False)
-y = multivariate_normal.pdf(x, mean=2.5, cov=0.5)
-y
-```
-
 # Hierarchical Evaluation
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L321"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L352"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HierarchicalEvaluation
 
 > ``` text
->  HierarchicalEvaluation (evaluators:List[Callable])
+>  HierarchicalEvaluation (evaluators:list[typing.Callable])
 > ```
 
 \*Hierarchical Evaluation Class.
@@ -297,32 +287,36 @@ method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L340"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/evaluation.py#L497"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
-### HierarchicalEvaluation.evaluate
+### evaluate
 
 > ``` text
->  HierarchicalEvaluation.evaluate (Y_hat_df:pandas.core.frame.DataFrame,
->                                   Y_test_df:pandas.core.frame.DataFrame,
->                                   tags:Dict[str,numpy.ndarray], Y_df:Optio
->                                   nal[pandas.core.frame.DataFrame]=None,
->                                   benchmark:Optional[str]=None)
+>  evaluate (df:~FrameT, metrics:list[typing.Callable],
+>            tags:dict[str,numpy.ndarray], models:Optional[list[str]]=None,
+>            train_df:Optional[~FrameT]=None,
+>            level:Optional[list[int]]=None, id_col:str='unique_id',
+>            time_col:str='ds', target_col:str='y',
+>            agg_fn:Optional[str]='mean', benchmark:Optional[str]=None)
 > ```
 
-\*Hierarchical Evaluation Method.
+*Evaluate hierarchical forecast using different metrics.*
 
-**Parameters:**<br/> `Y_hat_df`: pd.DataFrame, Forecasts indexed by
-`'unique_id'` with column `'ds'` and models to evaluate.<br/>
-`Y_test_df`: pd.DataFrame, True values with columns `['ds', 'y']`.<br/>
-`tags`: np.array, each str key is a level and its value contains tags
-associated to that level.<br/> `Y_df`: pd.DataFrame, Training set of base
-time series with columns `['ds', 'y']` indexed by `unique_id`.<br/>
-`benchmark`: str, If passed, evaluators are scaled by the error of this
-benchark.<br/>
-
-**Returns:**<br/> `evaluation`: pd.DataFrame with accuracy measurements
-across hierarchical levels.\*
+|  | **Type** | **Default** | **Details** |
+|------|------------------|-------------------------|-------------------------|
+| df | FrameT |  | Forecasts to evaluate.<br/>Must have `id_col`, `time_col`, `target_col` and models’ predictions. |
+| metrics | list |  | Functions with arguments `df`, `models`, `id_col`, `target_col` and optionally `train_df`. |
+| tags | dict |  | Each key is a level in the hierarchy and its value contains tags associated to that level. |
+| models | Optional | None | Names of the models to evaluate.<br/>If `None` will use every column in the dataframe after removing id, time and target. |
+| train_df | Optional | None | Training set. Used to evaluate metrics such as `mase`. |
+| level | Optional | None | Prediction interval levels. Used to compute losses that rely on quantiles. |
+| id_col | str | unique_id | Column that identifies each serie. |
+| time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
+| target_col | str | y | Column that contains the target. |
+| agg_fn | Optional | mean | Statistic to compute on the scores by id to reduce them to a single number. |
+| benchmark | Optional | None | If passed, evaluators are scaled by the error of this benchmark model. |
+| **Returns** | **FrameT** |  | **Metrics with one row per (id, metric) combination and one column per model.<br/>If `agg_fn` is not `None`, there is only one row per metric.** |
 
 # Example
 

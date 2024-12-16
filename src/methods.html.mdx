@@ -31,30 +31,7 @@ $\hat{\mathbf{y}}_{[a,b],\tau}$.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L253"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### BottomUpSparse
-
-> ``` text
->  BottomUpSparse ()
-> ```
-
-\*BottomUpSparse Reconciliation Class.
-
-This is the implementation of a Bottom Up reconciliation using the
-sparse matrix approach. It works much more efficient on datasets with
-many time series. \[makoren: At least I hope so, I only checked up until
-~20k time series, and there’s no real improvement, it would be great to
-check for smth like 1M time series, where the dense S matrix really
-stops fitting in memory\]
-
-See the parent class for more details.\*
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L146"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L160"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp
@@ -78,7 +55,7 @@ $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathr
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L171"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L186"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.fit
@@ -91,7 +68,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                sigmah:Optional[numpy.ndarray]=None,
 >                intervals_method:Optional[str]=None,
 >                num_samples:Optional[int]=None, seed:Optional[int]=None,
->                tags:Optional[Dict[str,numpy.ndarray]]=None)
+>                tags:Optional[dict[str,numpy.ndarray]]=None)
 > ```
 
 \*Bottom Up Fit Method.
@@ -109,14 +86,14 @@ sampler instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.predict
 
 > ``` text
 >  BottomUp.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
->                    level:Optional[List[int]]=None)
+>                    level:Optional[list[int]]=None)
 > ```
 
 \*Predict using reconciler.
@@ -132,7 +109,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L211"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L230"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.fit_predict
@@ -143,11 +120,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        y_insample:Optional[numpy.ndarray]=None,
 >                        y_hat_insample:Optional[numpy.ndarray]=None,
 >                        sigmah:Optional[numpy.ndarray]=None,
->                        level:Optional[List[int]]=None,
+>                        level:Optional[list[int]]=None,
 >                        intervals_method:Optional[str]=None,
 >                        num_samples:Optional[int]=None,
 >                        seed:Optional[int]=None,
->                        tags:Optional[Dict[str,numpy.ndarray]]=None)
+>                        tags:Optional[dict[str,numpy.ndarray]]=None)
 > ```
 
 \*BottomUp Reconciliation Method.
@@ -166,7 +143,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.sample
@@ -188,32 +165,149 @@ coherent distribution.<br/>
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
 `horizon`, `num_samples`).\*
 
-# 2. Top-Down
-
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L477"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L278"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
-### TopDownSparse
+### BottomUpSparse
 
 > ``` text
->  TopDownSparse (method:str)
+>  BottomUpSparse ()
 > ```
 
-\*TopDownSparse Reconciliation Class.
+\*BottomUpSparse Reconciliation Class.
 
-This is an implementation of top-down reconciliation using the sparse
-matrix approach. It works much more efficiently on data sets with many
-time series.
+This is the implementation of a Bottom Up reconciliation using the
+sparse matrix approach. It works much more efficient on datasets with
+many time series. \[makoren: At least I hope so, I only checked up until
+~20k time series, and there’s no real improvement, it would be great to
+check for smth like 1M time series, where the dense S matrix really
+stops fitting in memory\]
 
 See the parent class for more details.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L315"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L186"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### BottomUpSparse.fit
+
+> ``` text
+>  BottomUpSparse.fit (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                      idx_bottom:numpy.ndarray,
+>                      y_insample:Optional[numpy.ndarray]=None,
+>                      y_hat_insample:Optional[numpy.ndarray]=None,
+>                      sigmah:Optional[numpy.ndarray]=None,
+>                      intervals_method:Optional[str]=None,
+>                      num_samples:Optional[int]=None,
+>                      seed:Optional[int]=None,
+>                      tags:Optional[dict[str,numpy.ndarray]]=None)
+> ```
+
+\*Bottom Up Fit Method.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
+Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`level`: float list 0-100, confidence levels for prediction
+intervals.<br/> `intervals_method`: Sampler for prediction intevals, one
+of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
+sampler instantiation arguments.<br/>
+
+**Returns:**<br/> `self`: object, fitted reconciler.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### BottomUpSparse.predict
+
+> ``` text
+>  BottomUpSparse.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                          level:Optional[list[int]]=None)
+> ```
+
+\*Predict using reconciler.
+
+Predict using fitted mean and probabilistic reconcilers.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L230"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### BottomUpSparse.fit_predict
+
+> ``` text
+>  BottomUpSparse.fit_predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                              idx_bottom:numpy.ndarray,
+>                              y_insample:Optional[numpy.ndarray]=None,
+>                              y_hat_insample:Optional[numpy.ndarray]=None,
+>                              sigmah:Optional[numpy.ndarray]=None,
+>                              level:Optional[list[int]]=None,
+>                              intervals_method:Optional[str]=None,
+>                              num_samples:Optional[int]=None,
+>                              seed:Optional[int]=None,
+>                              tags:Optional[dict[str,numpy.ndarray]]=None)
+> ```
+
+\*BottomUp Reconciliation Method.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
+Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`level`: float list 0-100, confidence levels for prediction
+intervals.<br/> `intervals_method`: Sampler for prediction intevals, one
+of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
+sampler instantiation arguments.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Bottom Up
+approach.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### BottomUpSparse.sample
+
+> ``` text
+>  BottomUpSparse.sample (num_samples:int)
+> ```
+
+\*Sample probabilistic coherent distribution.
+
+Generates n samples from a probabilistic coherent distribution. The
+method uses fitted mean and probabilistic reconcilers, defined by the
+`intervals_method` selected during the reconciler’s instantiation.
+Currently available: `normality`, `bootstrap`, `permbu`.
+
+**Parameters:**<br/> `num_samples`: int, number of samples generated from
+coherent distribution.<br/>
+
+**Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
+`horizon`, `num_samples`).\*
+
+# 2. Top-Down
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L344"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown
@@ -244,7 +338,7 @@ doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L377"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L409"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.fit
@@ -255,7 +349,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >               sigmah:Optional[numpy.ndarray]=None,
 >               intervals_method:Optional[str]=None,
 >               num_samples:Optional[int]=None, seed:Optional[int]=None,
->               tags:Optional[Dict[str,numpy.ndarray]]=None,
+>               tags:Optional[dict[str,numpy.ndarray]]=None,
 >               idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -277,14 +371,14 @@ instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.predict
 
 > ``` text
 >  TopDown.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
->                   level:Optional[List[int]]=None)
+>                   level:Optional[list[int]]=None)
 > ```
 
 \*Predict using reconciler.
@@ -300,19 +394,19 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L420"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L457"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.fit_predict
 
 > ``` text
 >  TopDown.fit_predict (S:numpy.ndarray, y_hat:numpy.ndarray,
->                       tags:Dict[str,numpy.ndarray],
+>                       tags:dict[str,numpy.ndarray],
 >                       idx_bottom:numpy.ndarray=None,
 >                       y_insample:Optional[numpy.ndarray]=None,
 >                       y_hat_insample:Optional[numpy.ndarray]=None,
 >                       sigmah:Optional[numpy.ndarray]=None,
->                       level:Optional[List[int]]=None,
+>                       level:Optional[list[int]]=None,
 >                       intervals_method:Optional[str]=None,
 >                       num_samples:Optional[int]=None,
 >                       seed:Optional[int]=None)
@@ -337,7 +431,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.sample
@@ -359,23 +453,21 @@ coherent distribution.<br/>
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
 `horizon`, `num_samples`).\*
 
-# 3. Middle-Out
-
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L655"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L527"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
-### MiddleOutSparse
+### TopDownSparse
 
 > ``` text
->  MiddleOutSparse (middle_level:str, top_down_method:str)
+>  TopDownSparse (method:str)
 > ```
 
-\*MiddleOutSparse Reconciliation Class.
+\*TopDownSparse Reconciliation Class.
 
-This is an implementation of middle-out reconciliation using the sparse
+This is an implementation of top-down reconciliation using the sparse
 matrix approach. It works much more efficiently on data sets with many
 time series.
 
@@ -384,7 +476,128 @@ See the parent class for more details.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L539"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L409"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TopDownSparse.fit
+
+> ``` text
+>  TopDownSparse.fit (S, y_hat, y_insample:numpy.ndarray,
+>                     y_hat_insample:Optional[numpy.ndarray]=None,
+>                     sigmah:Optional[numpy.ndarray]=None,
+>                     intervals_method:Optional[str]=None,
+>                     num_samples:Optional[int]=None,
+>                     seed:Optional[int]=None,
+>                     tags:Optional[dict[str,numpy.ndarray]]=None,
+>                     idx_bottom:Optional[numpy.ndarray]=None)
+> ```
+
+\*TopDown Fit Method.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
+key is a level and each value its `S` indices.<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Optional for
+`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
+to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
+0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intevals, one of `normality`,
+`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
+instantiation arguments.<br/>
+
+**Returns:**<br/> `self`: object, fitted reconciler.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TopDownSparse.predict
+
+> ``` text
+>  TopDownSparse.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                         level:Optional[list[int]]=None)
+> ```
+
+\*Predict using reconciler.
+
+Predict using fitted mean and probabilistic reconcilers.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L457"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TopDownSparse.fit_predict
+
+> ``` text
+>  TopDownSparse.fit_predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                             tags:dict[str,numpy.ndarray],
+>                             idx_bottom:numpy.ndarray=None,
+>                             y_insample:Optional[numpy.ndarray]=None,
+>                             y_hat_insample:Optional[numpy.ndarray]=None,
+>                             sigmah:Optional[numpy.ndarray]=None,
+>                             level:Optional[list[int]]=None,
+>                             intervals_method:Optional[str]=None,
+>                             num_samples:Optional[int]=None,
+>                             seed:Optional[int]=None)
+> ```
+
+\*Top Down Reconciliation Method.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
+key is a level and each value its `S` indices.<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Optional for
+`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
+to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
+0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intevals, one of `normality`,
+`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
+instantiation arguments.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Top Down
+approach.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TopDownSparse.sample
+
+> ``` text
+>  TopDownSparse.sample (num_samples:int)
+> ```
+
+\*Sample probabilistic coherent distribution.
+
+Generates n samples from a probabilistic coherent distribution. The
+method uses fitted mean and probabilistic reconcilers, defined by the
+`intervals_method` selected during the reconciler’s instantiation.
+Currently available: `normality`, `bootstrap`, `permbu`.
+
+**Parameters:**<br/> `num_samples`: int, number of samples generated from
+coherent distribution.<br/>
+
+**Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
+`horizon`, `num_samples`).\*
+
+# 3. Middle-Out
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L589"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut
@@ -413,16 +626,50 @@ Australia. OTexts.com/fpp3 Accessed on July
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L572"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L618"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOut.fit
+
+> ``` text
+>  MiddleOut.fit (**kwargs)
+> ```
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L621"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOut.predict
+
+> ``` text
+>  MiddleOut.predict (**kwargs)
+> ```
+
+\*Predict using reconciler.
+
+Predict using fitted mean and probabilistic reconcilers.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L624"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut.fit_predict
 
 > ``` text
 >  MiddleOut.fit_predict (S:numpy.ndarray, y_hat:numpy.ndarray,
->                         tags:Dict[str,numpy.ndarray],
+>                         tags:dict[str,numpy.ndarray],
 >                         y_insample:Optional[numpy.ndarray]=None,
->                         level:Optional[List[int]]=None,
+>                         level:Optional[list[int]]=None,
 >                         intervals_method:Optional[str]=None)
 > ```
 
@@ -437,41 +684,143 @@ Insample values of size (`base`, `insample_size`). Only used for
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Middle Out
 approach.\*
 
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOut.sample
+
+> ``` text
+>  MiddleOut.sample (num_samples:int)
+> ```
+
+\*Sample probabilistic coherent distribution.
+
+Generates n samples from a probabilistic coherent distribution. The
+method uses fitted mean and probabilistic reconcilers, defined by the
+`intervals_method` selected during the reconciler’s instantiation.
+Currently available: `normality`, `bootstrap`, `permbu`.
+
+**Parameters:**<br/> `num_samples`: int, number of samples generated from
+coherent distribution.<br/>
+
+**Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
+`horizon`, `num_samples`).\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L711"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOutSparse
+
+> ``` text
+>  MiddleOutSparse (middle_level:str, top_down_method:str)
+> ```
+
+\*MiddleOutSparse Reconciliation Class.
+
+This is an implementation of middle-out reconciliation using the sparse
+matrix approach. It works much more efficiently on data sets with many
+time series.
+
+See the parent class for more details.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L618"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOutSparse.fit
+
+> ``` text
+>  MiddleOutSparse.fit (**kwargs)
+> ```
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L621"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOutSparse.predict
+
+> ``` text
+>  MiddleOutSparse.predict (**kwargs)
+> ```
+
+\*Predict using reconciler.
+
+Predict using fitted mean and probabilistic reconcilers.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L726"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOutSparse.fit_predict
+
+> ``` text
+>  MiddleOutSparse.fit_predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                               tags:dict[str,numpy.ndarray],
+>                               y_insample:Optional[numpy.ndarray]=None,
+>                               level:Optional[list[int]]=None,
+>                               intervals_method:Optional[str]=None)
+> ```
+
+\*Middle Out Reconciliation Method.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
+key is a level and each value its `S` indices.<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Only used for
+`forecast_proportions`<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Middle Out
+approach.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MiddleOutSparse.sample
+
+> ``` text
+>  MiddleOutSparse.sample (num_samples:int)
+> ```
+
+\*Sample probabilistic coherent distribution.
+
+Generates n samples from a probabilistic coherent distribution. The
+method uses fitted mean and probabilistic reconcilers, defined by the
+`intervals_method` selected during the reconciler’s instantiation.
+Currently available: `normality`, `bootstrap`, `permbu`.
+
+**Parameters:**<br/> `num_samples`: int, number of samples generated from
+coherent distribution.<br/>
+
+**Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
+`horizon`, `num_samples`).\*
+
 # 4. Min-Trace
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1150"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### MinTraceSparse
-
-> ``` text
->  MinTraceSparse (method:str, nonnegative:bool=False,
->                  mint_shr_ridge:Optional[float]=2e-08, num_threads:int=1)
-> ```
-
-\*MinTraceSparse Reconciliation Class.
-
-This is the implementation of a subset of MinTrace features using the
-sparse matrix approach. It works much more efficient on datasets with
-many time series.
-
-See the parent class for more details.
-
-Currently supported: \* Methods using diagonal W matrix, i.e. “ols”,
-“wls_struct”, “wls_var”, \* The standard MinT version (non-negative is
-not supported).
-
-Note: due to the numerical instability of the matrix inversion when
-creating the P matrix, the method is NOT guaranteed to give identical
-results to the non-sparse version.\*
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L750"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L802"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace
@@ -515,7 +864,7 @@ https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L862"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L947"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.fit
@@ -526,7 +875,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                sigmah:Optional[numpy.ndarray]=None,
 >                intervals_method:Optional[str]=None,
 >                num_samples:Optional[int]=None, seed:Optional[int]=None,
->                tags:Optional[Dict[str,numpy.ndarray]]=None,
+>                tags:Optional[dict[str,numpy.ndarray]]=None,
 >                idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -548,14 +897,14 @@ instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.predict
 
 > ``` text
 >  MinTrace.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
->                    level:Optional[List[int]]=None)
+>                    level:Optional[list[int]]=None)
 > ```
 
 \*Predict using reconciler.
@@ -571,7 +920,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L951"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1051"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.fit_predict
@@ -582,11 +931,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        y_insample:Optional[numpy.ndarray]=None,
 >                        y_hat_insample:Optional[numpy.ndarray]=None,
 >                        sigmah:Optional[numpy.ndarray]=None,
->                        level:Optional[List[int]]=None,
+>                        level:Optional[list[int]]=None,
 >                        intervals_method:Optional[str]=None,
 >                        num_samples:Optional[int]=None,
 >                        seed:Optional[int]=None,
->                        tags:Optional[Dict[str,numpy.ndarray]]=None)
+>                        tags:Optional[dict[str,numpy.ndarray]]=None)
 > ```
 
 \*MinTrace Reconciliation Method.
@@ -607,7 +956,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.sample
@@ -629,12 +978,160 @@ coherent distribution.<br/>
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
 `horizon`, `num_samples`).\*
 
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1108"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MinTraceSparse
+
+> ``` text
+>  MinTraceSparse (method:str, nonnegative:bool=False,
+>                  mint_shr_ridge:Optional[float]=2e-08, num_threads:int=1)
+> ```
+
+\*MinTraceSparse Reconciliation Class.
+
+This is the implementation of a subset of MinTrace features using the
+sparse matrix approach. It works much more efficient on datasets with
+many time series.
+
+See the parent class for more details.
+
+Currently supported: \* Methods using diagonal W matrix, i.e. “ols”,
+“wls_struct”, “wls_var”, \* The standard MinT version (non-negative is
+not supported).
+
+Note: due to the numerical instability of the matrix inversion when
+creating the P matrix, the method is NOT guaranteed to give identical
+results to the non-sparse version.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1217"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MinTraceSparse.fit
+
+> ``` text
+>  MinTraceSparse.fit (S:scipy.sparse._csr.csr_matrix, y_hat:numpy.ndarray,
+>                      y_insample:Optional[numpy.ndarray]=None,
+>                      y_hat_insample:Optional[numpy.ndarray]=None,
+>                      sigmah:Optional[numpy.ndarray]=None,
+>                      intervals_method:Optional[str]=None,
+>                      num_samples:Optional[int]=None,
+>                      seed:Optional[int]=None,
+>                      tags:Optional[dict[str,numpy.ndarray]]=None,
+>                      idx_bottom:Optional[numpy.ndarray]=None)
+> ```
+
+\*MinTrace Fit Method.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
+key is a level and each value its `S` indices.<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Optional for
+`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
+to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
+0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intevals, one of `normality`,
+`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
+instantiation arguments.<br/>
+
+**Returns:**<br/> `self`: object, fitted reconciler.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MinTraceSparse.predict
+
+> ``` text
+>  MinTraceSparse.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                          level:Optional[list[int]]=None)
+> ```
+
+\*Predict using reconciler.
+
+Predict using fitted mean and probabilistic reconcilers.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated predictions.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1051"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MinTraceSparse.fit_predict
+
+> ``` text
+>  MinTraceSparse.fit_predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>                              idx_bottom:numpy.ndarray=None,
+>                              y_insample:Optional[numpy.ndarray]=None,
+>                              y_hat_insample:Optional[numpy.ndarray]=None,
+>                              sigmah:Optional[numpy.ndarray]=None,
+>                              level:Optional[list[int]]=None,
+>                              intervals_method:Optional[str]=None,
+>                              num_samples:Optional[int]=None,
+>                              seed:Optional[int]=None,
+>                              tags:Optional[dict[str,numpy.ndarray]]=None)
+> ```
+
+\*MinTrace Reconciliation Method.
+
+**Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Only used by
+`wls_var`, `mint_cov`, `mint_shrink`<br/> `y_hat_insample`: Insample
+fitted values of size (`base`, `insample_size`). Only used by `wls_var`,
+`mint_cov`, `mint_shrink`<br/> `idx_bottom`: Indices corresponding to the
+bottom level of `S`, size (`bottom`).<br/> `level`: float list 0-100,
+confidence levels for prediction intervals.<br/> `sampler`: Sampler for
+prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
+
+**Returns:**<br/> `y_tilde`: Reconciliated y_hat using the MinTrace
+approach.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MinTraceSparse.sample
+
+> ``` text
+>  MinTraceSparse.sample (num_samples:int)
+> ```
+
+\*Sample probabilistic coherent distribution.
+
+Generates n samples from a probabilistic coherent distribution. The
+method uses fitted mean and probabilistic reconcilers, defined by the
+`intervals_method` selected during the reconciler’s instantiation.
+Currently available: `normality`, `bootstrap`, `permbu`.
+
+**Parameters:**<br/> `num_samples`: int, number of samples generated from
+coherent distribution.<br/>
+
+**Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
+`horizon`, `num_samples`).\*
+
 # 5. Optimal Combination
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1320"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1285"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination
@@ -654,7 +1151,7 @@ this method is defined by:
 $$ \mathbf{P} = \left(\mathbf{S}^{\intercal}\Sigma_{h}^{\dagger}\mathbf{S}\right)^{-1}\mathbf{S}^{\intercal}\Sigma^{\dagger}_{h}$$
 where $\Sigma_{h}^{\dagger}$ denotes the variance pseudo-inverse. The
 method was later proven equivalent to
-[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/methods.html#mintrace)
+[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#mintrace)
 variants.
 
 **Parameters:**<br/> `method`: str, allowed optimal combination methods:
@@ -675,7 +1172,7 @@ https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L862"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L947"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.fit
@@ -688,7 +1185,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                          intervals_method:Optional[str]=None,
 >                          num_samples:Optional[int]=None,
 >                          seed:Optional[int]=None,
->                          tags:Optional[Dict[str,numpy.ndarray]]=None,
+>                          tags:Optional[dict[str,numpy.ndarray]]=None,
 >                          idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -710,14 +1207,14 @@ instantiation arguments.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.predict
 
 > ``` text
 >  OptimalCombination.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
->                              level:Optional[List[int]]=None)
+>                              level:Optional[list[int]]=None)
 > ```
 
 \*Predict using reconciler.
@@ -733,7 +1230,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L951"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1051"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.fit_predict
@@ -744,10 +1241,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                  y_insample:Optional[numpy.ndarray]=None, 
 >                                  y_hat_insample:Optional[numpy.ndarray]=No
 >                                  ne, sigmah:Optional[numpy.ndarray]=None,
->                                  level:Optional[List[int]]=None,
+>                                  level:Optional[list[int]]=None,
 >                                  intervals_method:Optional[str]=None,
 >                                  num_samples:Optional[int]=None,
->                                  seed:Optional[int]=None, tags:Optional[Di
+>                                  seed:Optional[int]=None, tags:Optional[di
 >                                  ct[str,numpy.ndarray]]=None)
 > ```
 
@@ -769,7 +1266,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.sample
@@ -796,7 +1293,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1386"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1321"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM
@@ -835,7 +1332,7 @@ Machinery.](https://doi.org/10.1145/3292500.3330976).<br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1460"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1407"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.fit
@@ -845,7 +1342,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >           sigmah:Optional[numpy.ndarray]=None,
 >           intervals_method:Optional[str]=None,
 >           num_samples:Optional[int]=None, seed:Optional[int]=None,
->           tags:Optional[Dict[str,numpy.ndarray]]=None,
+>           tags:Optional[dict[str,numpy.ndarray]]=None,
 >           idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
@@ -866,14 +1363,14 @@ intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L86"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.predict
 
 > ``` text
 >  ERM.predict (S:numpy.ndarray, y_hat:numpy.ndarray,
->               level:Optional[List[int]]=None)
+>               level:Optional[list[int]]=None)
 > ```
 
 \*Predict using reconciler.
@@ -889,7 +1386,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1505"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1458"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.fit_predict
@@ -900,10 +1397,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   y_insample:Optional[numpy.ndarray]=None,
 >                   y_hat_insample:Optional[numpy.ndarray]=None,
 >                   sigmah:Optional[numpy.ndarray]=None,
->                   level:Optional[List[int]]=None,
+>                   level:Optional[list[int]]=None,
 >                   intervals_method:Optional[str]=None,
 >                   num_samples:Optional[int]=None, seed:Optional[int]=None,
->                   tags:Optional[Dict[str,numpy.ndarray]]=None)
+>                   tags:Optional[dict[str,numpy.ndarray]]=None)
 > ```
 
 \*ERM Reconciliation Method.
@@ -923,7 +1420,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L108"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.sample
@@ -946,18 +1443,7 @@ coherent distribution.<br/>
 `horizon`, `num_samples`).\*
 
 ```python
-reconciler_args = dict(S=S, 
-                       y_hat=y_hat_base,
-                       y_insample=y_base,
-                       y_hat_insample=y_hat_base_insample,
-                       sigmah=sigmah,
-                       level=[80, 90],
-                       intervals_method='normality',
-                       num_samples=200,
-                       seed=0,
-                       tags=tags,
-                       idx_bottom=idx_bottom
-                       )
+S @ y_hat_bottom_insample
 ```
 
 # References

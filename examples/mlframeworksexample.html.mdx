@@ -33,11 +33,14 @@ You can run these experiments using CPU or GPU with Google Colab.
 ## 1. Installing packages
 
 ```python
-# %pip install datasetsforecast hierarchicalforecast mlforecast neuralforecast
+!pip install datasetsforecast hierarchicalforecast mlforecast neuralforecast
 ```
 
 
 ```python
+import os
+os.environ['NIXTLA_ID_AS_COL'] = '1'
+
 import numpy as np
 import pandas as pd
 
@@ -55,7 +58,7 @@ import xgboost as xgb
 from hierarchicalforecast.methods import BottomUp, ERM, MinTrace
 from hierarchicalforecast.utils import HierarchicalPlot
 from hierarchicalforecast.core import HierarchicalReconciliation
-from hierarchicalforecast.evaluation import scaled_crps
+from hierarchicalforecast.evaluation import evaluate
 ```
 
 ## 2. Load hierarchical dataset
@@ -83,6 +86,7 @@ sources are available.
 ```python
 Y_df, S_df, tags = HierarchicalData.load('./data', 'TourismLarge')
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+S_df = S_df.reset_index(names="unique_id")
 ```
 
 
@@ -110,20 +114,8 @@ hplot.plot_summing_matrix()
 Split the dataframe in train/test splits.
 
 ```python
-def sort_hier_df(Y_df, S_df):
-    # sorts unique_id lexicographically
-    Y_df.unique_id = Y_df.unique_id.astype('category')
-    Y_df.unique_id = Y_df.unique_id.cat.set_categories(S_df.index)
-    Y_df = Y_df.sort_values(by=['unique_id', 'ds'])
-    return Y_df
-
-Y_df = sort_hier_df(Y_df, S_df)
-```
-
-
-```python
 horizon = 12
-Y_test_df = Y_df.groupby('unique_id').tail(horizon)
+Y_test_df = Y_df.groupby('unique_id', as_index=False).tail(horizon)
 Y_train_df = Y_df.drop(Y_test_df.index)
 ```
 
@@ -136,7 +128,7 @@ architecture.<br/> 2. XGBRegressor, a tree-based architecture.<br/>
 ```python
 level = np.arange(0, 100, 2)
 qs = [[50-lv/2, 50+lv/2] for lv in level]
-quantiles = np.sort(np.concatenate(qs)/100)
+quantiles = np.sort(np.concatenate(qs)[1:]/100)
 
 #fit/predict NBEATS from NeuralForecast
 nbeats = NBEATS(h=horizon,
@@ -156,48 +148,184 @@ mf = MLForecast(models=[xgb.XGBRegressor()],
                 date_features=['month'],
                 )
 mf.fit(Y_train_df, fitted=True, prediction_intervals=PredictionIntervals(n_windows=10, h=horizon)) 
-Y_hat_mf = mf.predict(horizon, level=level).set_index('unique_id')
+Y_hat_mf = mf.predict(horizon, level=level)
 insample_mf = mf.forecast_fitted_values()
 ```
 
+``` text
+INFO:lightning_fabric.utilities.seed:Seed set to 1
+INFO:pytorch_lightning.utilities.rank_zero:GPU available: False, used: False
+INFO:pytorch_lightning.utilities.rank_zero:TPU available: False, using: 0 TPU cores
+INFO:pytorch_lightning.utilities.rank_zero:HPU available: False, using: 0 HPUs
+INFO:pytorch_lightning.callbacks.model_summary:
+  | Name         | Type          | Params | Mode 
+-------------------------------------------------------
+0 | loss         | GMM           | 99     | train
+1 | padder_train | ConstantPad1d | 0      | train
+2 | scaler       | TemporalNorm  | 0      | train
+3 | blocks       | ModuleList    | 2.8 M  | train
+-------------------------------------------------------
+2.8 M     Trainable params
+999       Non-trainable params
+2.8 M     Total params
+11.232    Total estimated model params size (MB)
+31        Modules in train mode
+0         Modules in eval mode
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Training: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+INFO:pytorch_lightning.utilities.rank_zero:`Trainer.fit` stopped: `max_steps=2000` reached.
+INFO:pytorch_lightning.utilities.rank_zero:GPU available: False, used: False
+INFO:pytorch_lightning.utilities.rank_zero:TPU available: False, using: 0 TPU cores
+INFO:pytorch_lightning.utilities.rank_zero:HPU available: False, using: 0 HPUs
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+INFO:pytorch_lightning.utilities.rank_zero:GPU available: False, used: False
+INFO:pytorch_lightning.utilities.rank_zero:TPU available: False, using: 0 TPU cores
+INFO:pytorch_lightning.utilities.rank_zero:HPU available: False, using: 0 HPUs
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+c:\Users\ospra\miniconda3\envs\hierarchicalforecast-backup\lib\site-packages\utilsforecast\processing.py:130: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[names] = values
+c:\Users\ospra\miniconda3\envs\hierarchicalforecast-backup\lib\site-packages\utilsforecast\processing.py:130: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[names] = values
+c:\Users\ospra\miniconda3\envs\hierarchicalforecast-backup\lib\site-packages\utilsforecast\processing.py:130: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  df[names] = values
+```
 
 ```python
 Y_hat_nf
 ```
 
-|  | ds | NBEATS | NBEATS-lo-98.0 | NBEATS-lo-96.0 | NBEATS-lo-94.0 | NBEATS-lo-92.0 | NBEATS-lo-90.0 | NBEATS-lo-88.0 | NBEATS-lo-86.0 | NBEATS-lo-84.0 | ... | NBEATS-hi-80.0 | NBEATS-hi-82.0 | NBEATS-hi-84.0 | NBEATS-hi-86.0 | NBEATS-hi-88.0 | NBEATS-hi-90.0 | NBEATS-hi-92.0 | NBEATS-hi-94.0 | NBEATS-hi-96.0 | NBEATS-hi-98.0 |
+|  | unique_id | ds | NBEATS | NBEATS-lo-98.0 | NBEATS-lo-96.0 | NBEATS-lo-94.0 | NBEATS-lo-92.0 | NBEATS-lo-90.0 | NBEATS-lo-88.0 | NBEATS-lo-86.0 | ... | NBEATS-hi-80.0 | NBEATS-hi-82.0 | NBEATS-hi-84.0 | NBEATS-hi-86.0 | NBEATS-hi-88.0 | NBEATS-hi-90.0 | NBEATS-hi-92.0 | NBEATS-hi-94.0 | NBEATS-hi-96.0 | NBEATS-hi-98.0 |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| unique_id |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| TotalAll | 2016-01-01 | 44525.652344 | 21232.554688 | 26024.839844 | 27435.285156 | 28136.705078 | 28766.150391 | 29569.240234 | 30344.240234 | 31163.099609 | ... | 51812.953125 | 52171.792969 | 52628.562500 | 52890.750000 | 53160.312500 | 54025.210938 | 54451.109375 | 55651.007812 | 57686.027344 | 61461.066406 |
-| TotalAll | 2016-02-01 | 20819.431641 | 18020.289062 | 18314.943359 | 18480.269531 | 18612.464844 | 18695.382812 | 18807.242188 | 18912.910156 | 19027.187500 | ... | 22719.998047 | 22802.921875 | 22887.734375 | 23031.005859 | 23133.865234 | 23230.322266 | 23406.496094 | 23622.166016 | 23887.796875 | 24165.496094 |
-| TotalAll | 2016-03-01 | 23676.291016 | 19303.222656 | 19684.693359 | 19928.400391 | 20150.691406 | 20319.113281 | 20499.980469 | 20632.185547 | 20748.207031 | ... | 26215.312500 | 26291.195312 | 26402.853516 | 26578.257812 | 26848.179688 | 27054.107422 | 27310.746094 | 27723.867188 | 28211.294922 | 29011.082031 |
-| TotalAll | 2016-04-01 | 27978.587891 | 23936.988281 | 24329.892578 | 24532.740234 | 24735.703125 | 24902.812500 | 25165.074219 | 25256.669922 | 25489.455078 | ... | 30192.365234 | 30278.451172 | 30339.017578 | 30381.443359 | 30465.722656 | 30574.056641 | 30682.609375 | 30860.427734 | 31032.648438 | 31199.992188 |
-| TotalAll | 2016-05-01 | 22810.310547 | 20037.218750 | 20194.531250 | 20387.541016 | 20510.244141 | 20594.226562 | 20675.720703 | 20767.025391 | 20876.550781 | ... | 24975.916016 | 25149.097656 | 25240.177734 | 25401.996094 | 25577.400391 | 25800.574219 | 26132.904297 | 26559.906250 | 27273.566406 | 28567.857422 |
+| 0 | AAAAll | 2016-01-01 | 2843.298584 | 1764.249023 | 1806.885132 | 1864.019043 | 1906.171021 | 1945.994629 | 1965.081421 | 1998.606812 | ... | 3497.682373 | 3520.107666 | 3561.643799 | 3600.121094 | 3646.954346 | 3703.382324 | 3774.084473 | 3813.719238 | 3902.713867 | 3991.594238 |
+| 1 | AAAAll | 2016-02-01 | 1753.340698 | 1394.245850 | 1414.474976 | 1439.167480 | 1458.228394 | 1474.655640 | 1480.433472 | 1489.651245 | ... | 2024.560791 | 2049.965576 | 2066.480957 | 2090.285156 | 2120.172852 | 2145.964844 | 2201.716064 | 2253.415039 | 2364.905029 | 2441.167480 |
+| 2 | AAAAll | 2016-03-01 | 1878.675171 | 1446.630371 | 1491.637817 | 1513.890137 | 1524.787842 | 1532.539917 | 1547.460205 | 1559.098389 | ... | 2172.270996 | 2189.489990 | 2216.255859 | 2236.661377 | 2286.617676 | 2370.431152 | 2411.910156 | 2477.557373 | 2579.611084 | 2722.415283 |
+| 3 | AAAAll | 2016-04-01 | 2140.948486 | 1661.737793 | 1706.259399 | 1724.914551 | 1736.446045 | 1754.887695 | 1765.482056 | 1772.123901 | ... | 2470.206543 | 2483.571045 | 2493.527588 | 2517.062744 | 2547.355713 | 2577.867676 | 2610.180908 | 2637.010498 | 2700.801758 | 2864.596924 |
+| 4 | AAAAll | 2016-05-01 | 1834.694946 | 1466.314209 | 1485.427002 | 1500.715210 | 1518.462036 | 1535.386475 | 1543.525635 | 1554.429810 | ... | 2093.700684 | 2120.782471 | 2137.882812 | 2154.052002 | 2164.069824 | 2189.309326 | 2234.271973 | 2311.157715 | 2436.267090 | 2659.653809 |
 | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
-| GBDOth | 2016-08-01 | 3.384338 | -31.891897 | -15.230768 | -1.954657 | -1.143704 | -0.994592 | -0.947800 | -0.884839 | -0.824748 | ... | 9.635074 | 10.517044 | 11.374988 | 12.784556 | 14.568413 | 22.581669 | 37.880905 | 51.512486 | 62.645977 | 81.495415 |
-| GBDOth | 2016-09-01 | 4.842800 | -41.682514 | -23.578377 | -6.487054 | -1.238661 | -1.024779 | -0.927368 | -0.856639 | -0.758568 | ... | 11.743630 | 12.755230 | 14.384780 | 16.579344 | 19.425726 | 36.155537 | 44.394543 | 60.144749 | 78.533859 | 101.363129 |
-| GBDOth | 2016-10-01 | 4.466261 | -21.124041 | -1.662255 | -1.157058 | -0.949211 | -0.857361 | -0.755605 | -0.699540 | -0.659419 | ... | 10.405193 | 11.605769 | 12.686687 | 14.218900 | 19.963741 | 26.705273 | 34.361160 | 51.898552 | 68.361931 | 89.458908 |
-| GBDOth | 2016-11-01 | 3.689114 | -22.615982 | -11.813770 | -1.530864 | -1.049960 | -0.922807 | -0.868391 | -0.802971 | -0.723462 | ... | 8.213260 | 8.837670 | 10.219457 | 12.300932 | 13.135829 | 23.325760 | 37.628525 | 43.993382 | 63.594315 | 84.825226 |
-| GBDOth | 2016-12-01 | 3.994789 | -38.856083 | -24.361221 | -7.503808 | -1.199999 | -1.003695 | -0.880594 | -0.788414 | -0.737489 | ... | 9.881157 | 11.406334 | 12.636977 | 15.831536 | 26.059269 | 32.270000 | 37.316460 | 51.765774 | 68.933304 | 91.916100 |
+| 6655 | TotalVis | 2016-08-01 | 7362.455078 | 5799.121582 | 5960.676270 | 6073.553223 | 6230.090820 | 6294.191406 | 6365.950684 | 6400.492676 | ... | 8120.279785 | 8144.139648 | 8185.699219 | 8212.809570 | 8255.871094 | 8291.191406 | 8374.907227 | 8435.806641 | 8568.060547 | 8770.566406 |
+| 6656 | TotalVis | 2016-09-01 | 7803.098145 | 6455.050293 | 6612.847168 | 6690.960938 | 6804.897461 | 6848.432617 | 6873.607422 | 6904.770020 | ... | 8562.215820 | 8594.000000 | 8642.083984 | 8715.201172 | 8795.628906 | 8924.573242 | 9053.747070 | 9250.514648 | 9410.338867 | 9818.623047 |
+| 6657 | TotalVis | 2016-10-01 | 8478.570312 | 6592.350098 | 6818.883789 | 7075.323730 | 7223.682129 | 7300.230957 | 7336.740723 | 7391.779785 | ... | 9558.611328 | 9586.333984 | 9658.816406 | 9761.448242 | 9802.087891 | 9870.294922 | 9956.144531 | 10070.672852 | 10195.408203 | 10342.619141 |
+| 6658 | TotalVis | 2016-11-01 | 8251.816406 | 6471.753906 | 6551.861328 | 6621.647461 | 6694.992188 | 6740.827148 | 6798.824707 | 6825.794434 | ... | 9519.825195 | 9557.507812 | 9624.822266 | 9720.269531 | 9811.011719 | 9907.259766 | 10132.628906 | 10362.583984 | 10896.478516 | 11394.652344 |
+| 6659 | TotalVis | 2016-12-01 | 9023.334961 | 6798.515625 | 6978.411621 | 7165.805176 | 7250.106934 | 7333.168457 | 7395.183594 | 7457.470215 | ... | 10221.937500 | 10290.527344 | 10334.883789 | 10399.726562 | 10553.360352 | 10645.852539 | 10806.295898 | 10992.416016 | 11328.151367 | 11933.357422 |
 
 ```python
 Y_hat_mf
 ```
 
-|  | ds | XGBRegressor | XGBRegressor-lo-98 | XGBRegressor-lo-96 | XGBRegressor-lo-94 | XGBRegressor-lo-92 | XGBRegressor-lo-90 | XGBRegressor-lo-88 | XGBRegressor-lo-86 | XGBRegressor-lo-84 | ... | XGBRegressor-hi-80 | XGBRegressor-hi-82 | XGBRegressor-hi-84 | XGBRegressor-hi-86 | XGBRegressor-hi-88 | XGBRegressor-hi-90 | XGBRegressor-hi-92 | XGBRegressor-hi-94 | XGBRegressor-hi-96 | XGBRegressor-hi-98 |
+|  | unique_id | ds | XGBRegressor | XGBRegressor-lo-98 | XGBRegressor-lo-96 | XGBRegressor-lo-94 | XGBRegressor-lo-92 | XGBRegressor-lo-90 | XGBRegressor-lo-88 | XGBRegressor-lo-86 | ... | XGBRegressor-hi-80 | XGBRegressor-hi-82 | XGBRegressor-hi-84 | XGBRegressor-hi-86 | XGBRegressor-hi-88 | XGBRegressor-hi-90 | XGBRegressor-hi-92 | XGBRegressor-hi-94 | XGBRegressor-hi-96 | XGBRegressor-hi-98 |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| unique_id |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| TotalAll | 2016-01-01 | 43060.226562 | 38276.974483 | 38677.670530 | 39078.366577 | 39479.062624 | 39879.758671 | 40009.218877 | 40041.809140 | 40074.399403 | ... | 45980.873195 | 46013.463459 | 46046.053722 | 46078.643985 | 46111.234248 | 46240.694454 | 46641.390501 | 47042.086548 | 47442.782595 | 47843.478642 |
-| TotalAll | 2016-02-01 | 18008.296875 | 14687.962868 | 14813.816467 | 14939.670066 | 15065.523666 | 15191.377265 | 15247.400539 | 15278.484410 | 15309.568281 | ... | 20644.857726 | 20675.941597 | 20707.025469 | 20738.109340 | 20769.193211 | 20825.216485 | 20951.070084 | 21076.923684 | 21202.777283 | 21328.630882 |
-| TotalAll | 2016-03-01 | 20694.080078 | 16407.351099 | 16594.149043 | 16780.946987 | 16967.744931 | 17154.542875 | 17209.434677 | 17217.217141 | 17224.999606 | ... | 24147.595620 | 24155.378085 | 24163.160550 | 24170.943015 | 24178.725480 | 24233.617281 | 24420.415225 | 24607.213169 | 24794.011113 | 24980.809057 |
-| TotalAll | 2016-04-01 | 24474.349609 | 20859.120558 | 20978.737726 | 21098.354893 | 21217.972060 | 21337.589227 | 21380.287167 | 21395.513953 | 21410.740739 | ... | 27507.504906 | 27522.731693 | 27537.958479 | 27553.185266 | 27568.412052 | 27611.109991 | 27730.727159 | 27850.344326 | 27969.961493 | 28089.578660 |
-| TotalAll | 2016-05-01 | 19281.087891 | 15045.235849 | 15460.108990 | 15874.982131 | 16289.855271 | 16704.728412 | 16861.927796 | 16927.100837 | 16992.273878 | ... | 21439.555822 | 21504.728863 | 21569.901904 | 21635.074945 | 21700.247986 | 21857.447369 | 22272.320510 | 22687.193651 | 23102.066792 | 23516.939933 |
+| 0 | AAAAll | 2016-01-01 | 3240.743164 | 2566.404620 | 2638.984995 | 2711.565370 | 2784.145745 | 2856.726120 | 2876.514198 | 2877.447884 | ... | 3601.237386 | 3602.171072 | 3603.104758 | 3604.038444 | 3604.972130 | 3624.760208 | 3697.340583 | 3769.920958 | 3842.501333 | 3915.081708 |
+| 1 | AAAAll | 2016-02-01 | 1583.065063 | 1247.414469 | 1248.895343 | 1250.376217 | 1251.857091 | 1253.337965 | 1263.627340 | 1277.062610 | ... | 1848.761709 | 1862.196978 | 1875.632248 | 1889.067517 | 1902.502787 | 1912.792162 | 1914.273036 | 1915.753910 | 1917.234784 | 1918.715658 |
+| 2 | AAAAll | 2016-03-01 | 2030.168213 | 1345.896497 | 1386.655046 | 1427.413595 | 1468.172144 | 1508.930693 | 1546.207337 | 1582.240444 | ... | 2369.996660 | 2406.029767 | 2442.062874 | 2478.095981 | 2514.129089 | 2551.405733 | 2592.164282 | 2632.922831 | 2673.681380 | 2714.439928 |
+| 3 | AAAAll | 2016-04-01 | 2152.282227 | 1767.276611 | 1772.956049 | 1778.635487 | 1784.314926 | 1789.994364 | 1798.503584 | 1808.023439 | ... | 2467.981448 | 2477.501303 | 2487.021159 | 2496.541014 | 2506.060870 | 2514.570089 | 2520.249527 | 2525.928966 | 2531.608404 | 2537.287842 |
+| 4 | AAAAll | 2016-05-01 | 1970.894775 | 1476.761973 | 1510.667430 | 1544.572887 | 1578.478344 | 1612.383801 | 1625.448072 | 1631.069062 | ... | 2293.857519 | 2299.478509 | 2305.099499 | 2310.720489 | 2316.341479 | 2329.405750 | 2363.311207 | 2397.216664 | 2431.122121 | 2465.027578 |
 | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
-| GBDOth | 2016-08-01 | 11.040442 | -0.720264 | 0.934877 | 2.590017 | 4.245157 | 5.900298 | 6.396993 | 6.479957 | 6.562921 | ... | 15.352035 | 15.435000 | 15.517964 | 15.600928 | 15.683892 | 16.180587 | 17.835727 | 19.490868 | 21.146008 | 22.801149 |
-| GBDOth | 2016-09-01 | 6.440751 | -0.275863 | -0.182214 | -0.088566 | 0.005083 | 0.098732 | 0.123376 | 0.123376 | 0.123376 | ... | 12.758126 | 12.758126 | 12.758126 | 12.758126 | 12.758126 | 12.782771 | 12.876419 | 12.970068 | 13.063716 | 13.157365 |
-| GBDOth | 2016-10-01 | 9.995112 | 2.407870 | 2.407870 | 2.407870 | 2.407870 | 2.407870 | 2.407870 | 2.407870 | 2.407870 | ... | 17.582355 | 17.582355 | 17.582355 | 17.582355 | 17.582355 | 17.582355 | 17.582355 | 17.582355 | 17.582355 | 17.582355 |
-| GBDOth | 2016-11-01 | 6.747566 | 2.791389 | 2.791389 | 2.791389 | 2.791389 | 2.791389 | 2.791389 | 2.791389 | 2.791389 | ... | 10.703742 | 10.703742 | 10.703742 | 10.703742 | 10.703742 | 10.703742 | 10.703742 | 10.703742 | 10.703742 | 10.703742 |
-| GBDOth | 2016-12-01 | 7.367904 | 2.349200 | 2.349200 | 2.349200 | 2.349200 | 2.349200 | 2.349200 | 2.349200 | 2.349200 | ... | 12.386609 | 12.386609 | 12.386609 | 12.386609 | 12.386609 | 12.386609 | 12.386609 | 12.386609 | 12.386609 | 12.386609 |
+| 6655 | TotalVis | 2016-08-01 | 7810.465820 | 6251.079674 | 6268.924727 | 6286.769780 | 6304.614833 | 6322.459886 | 6375.977772 | 6442.235956 | ... | 8979.921135 | 9046.179318 | 9112.437501 | 9178.695685 | 9244.953868 | 9298.471754 | 9316.316807 | 9334.161860 | 9352.006913 | 9369.851967 |
+| 6656 | TotalVis | 2016-09-01 | 6887.893555 | 5346.477959 | 5397.795065 | 5449.112170 | 5500.429275 | 5551.746380 | 5604.124112 | 5656.880638 | ... | 7960.636893 | 8013.393419 | 8066.149945 | 8118.906472 | 8171.662998 | 8224.040729 | 8275.357834 | 8326.674940 | 8377.992045 | 8429.309150 |
+| 6657 | TotalVis | 2016-10-01 | 7763.275879 | 6138.534738 | 6267.740281 | 6396.945824 | 6526.151367 | 6655.356910 | 6706.009194 | 6728.606744 | ... | 8730.152366 | 8752.749916 | 8775.347465 | 8797.945014 | 8820.542563 | 8871.194848 | 9000.400391 | 9129.605934 | 9258.811477 | 9388.017020 |
+| 6658 | TotalVis | 2016-11-01 | 7432.722168 | 5703.395148 | 5726.926242 | 5750.457336 | 5773.988430 | 5797.519524 | 5929.164698 | 6099.422043 | ... | 8255.250258 | 8425.507603 | 8595.764948 | 8766.022293 | 8936.279638 | 9067.924811 | 9091.455905 | 9114.986999 | 9138.518093 | 9162.049187 |
+| 6659 | TotalVis | 2016-12-01 | 9624.172852 | 8115.705498 | 8217.381077 | 8319.056655 | 8420.732234 | 8522.407812 | 8566.581883 | 8590.219701 | ... | 10587.212548 | 10610.850366 | 10634.488184 | 10658.126002 | 10681.763820 | 10725.937891 | 10827.613470 | 10929.289048 | 11030.964626 | 11132.640205 |
 
 ## 4. Reconcile Predictions
 
@@ -208,7 +336,7 @@ different HierarchicalForecast reconciliation methods.
 reconcilers = [
     ERM(method='closed'),
     BottomUp(),
-    MinTrace('ols'),
+    MinTrace('mint_shrink'),
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 
@@ -230,53 +358,64 @@ $$
 
 $$
 
+We find that XGB with MinTrace(mint_shrink) reconciliation result in the
+lowest CRPS score on the test set, thus giving us the best probabilistic
+forecasts.
+
 ```python
-rec_model_names_nf = ['NBEATS/BottomUp', 'NBEATS/MinTrace_method-ols', 'NBEATS/ERM_method-closed_lambda_reg-0.01']
-rec_model_names_mf = ['XGBRegressor/BottomUp', 'XGBRegressor/MinTrace_method-ols', 'XGBRegressor/ERM_method-closed_lambda_reg-0.01']
-
-n_quantiles = len(quantiles)
-n_series = len(S_df)
-
-for name in rec_model_names_nf:
-    quantile_columns = [col for col in Y_rec_nf.columns if (name+'-lo') in col or (name+'-hi') in col]
-    y_rec  = Y_rec_nf[quantile_columns].values 
-    y_test = Y_test_df['y'].values
-
-    y_rec  = y_rec.reshape(n_series, horizon, n_quantiles)
-    y_test = y_test.reshape(n_series, horizon)
-    scrps  = scaled_crps(y=y_test, y_hat=y_rec, quantiles=quantiles)
-    print("{:<50} {:.3f}".format(name+":", scrps))
-
-for name in rec_model_names_mf:
-    quantile_columns = [col for col in Y_rec_mf.columns if (name+'-lo') in col or (name+'-hi') in col]
-    y_rec  = Y_rec_mf[quantile_columns].values 
-    y_test = Y_test_df['y'].values
-
-    y_rec  = y_rec.reshape(n_series, horizon, n_quantiles)
-    y_test = y_test.reshape(n_series, horizon)
-    scrps  = scaled_crps(y=y_test, y_hat=y_rec, quantiles=quantiles)
-    print("{:<50} {:.3f}".format(name+":", scrps))
+from utilsforecast.losses import scaled_crps
 ```
 
-``` text
-NBEATS/BottomUp:                                   0.129
-NBEATS/MinTrace_method-ols:                        0.129
-NBEATS/ERM_method-closed_lambda_reg-0.01:          0.179
-XGBRegressor/BottomUp:                             0.134
-XGBRegressor/MinTrace_method-ols:                  0.178
-XGBRegressor/ERM_method-closed_lambda_reg-0.01:    0.177
+
+```python
+rec_model_names_nf = ['NBEATS/BottomUp', 'NBEATS/MinTrace_method-mint_shrink', 'NBEATS/ERM_method-closed_lambda_reg-0.01']
+
+evaluation_nf = evaluate(df = Y_rec_nf.merge(Y_test_df, on=['unique_id', 'ds']),
+                      tags = tags,
+                      metrics = [scaled_crps],
+                      models= rec_model_names_nf,
+                      level = list(range(0, 100, 2)),
+                      )
+
+rec_model_names_mf = ['XGBRegressor/BottomUp', 'XGBRegressor/MinTrace_method-mint_shrink', 'XGBRegressor/ERM_method-closed_lambda_reg-0.01']
+
+evaluation_mf = evaluate(df = Y_rec_mf.merge(Y_test_df, on=['unique_id', 'ds']),
+                      tags = tags,
+                      metrics = [scaled_crps],
+                      models= rec_model_names_mf,
+                      level = list(range(0, 100, 2)),
+                      )
 ```
+
+
+```python
+name = 'NBEATS/BottomUp'
+quantile_columns = [col for col in Y_rec_mf.columns if (name+'-lo') in col or (name+'-hi') in col]
+```
+
+
+```python
+evaluation_nf.query("level == 'Overall'")
+```
+
+|  | level | metric | NBEATS/BottomUp | NBEATS/MinTrace_method-mint_shrink | NBEATS/ERM_method-closed_lambda_reg-0.01 |
+|----|----|----|----|----|----|
+| 8 | Overall | scaled_crps | 2.523212 | 2.43205 | 2.645045 |
+
+```python
+evaluation_mf.query("level == 'Overall'")
+```
+
+|  | level | metric | XGBRegressor/BottomUp | XGBRegressor/MinTrace_method-mint_shrink | XGBRegressor/ERM_method-closed_lambda_reg-0.01 |
+|----|----|----|----|----|----|
+| 8 | Overall | scaled_crps | 1.98255 | 1.44981 | 1.910014 |
 
 ## 6. Visualizations
 
 ```python
-plot_nf = pd.concat([Y_df.set_index(['unique_id', 'ds']), 
-                     Y_rec_nf.set_index('ds', append=True)], axis=1)
-plot_nf = plot_nf.reset_index('ds')
+plot_nf = Y_df.merge(Y_rec_nf, on=['unique_id', 'ds'], how="outer")
 
-plot_mf = pd.concat([Y_df.set_index(['unique_id', 'ds']), 
-                     Y_rec_mf.set_index('ds', append=True)], axis=1)
-plot_mf = plot_mf.reset_index('ds')
+plot_mf = Y_df.merge(Y_rec_mf, on=['unique_id', 'ds'], how="outer")
 ```
 
 
@@ -284,21 +423,21 @@ plot_mf = plot_mf.reset_index('ds')
 hplot.plot_series(
     series='TotalVis',
     Y_df=plot_nf, 
-    models=['y', 'NBEATS', 'NBEATS/BottomUp', 'NBEATS/MinTrace_method-ols', 'NBEATS/ERM_method-closed_lambda_reg-0.01'],
+    models=['y', 'NBEATS', 'NBEATS/BottomUp', 'NBEATS/MinTrace_method-mint_shrink', 'NBEATS/ERM_method-closed_lambda_reg-0.01'],
     level=[80]
 )
 ```
 
-![](/hierarchicalforecast/examples/MLFrameworksExample_files/figure-markdown_strict/cell-15-output-1.png)
+![](/hierarchicalforecast/examples/MLFrameworksExample_files/figure-markdown_strict/cell-18-output-1.png)
 
 ```python
 hplot.plot_series(
     series='TotalVis',
     Y_df=plot_mf, 
-    models=['y', 'XGBRegressor', 'XGBRegressor/BottomUp', 'XGBRegressor/MinTrace_method-ols', 'XGBRegressor/ERM_method-closed_lambda_reg-0.01'],
+    models=['y', 'XGBRegressor', 'XGBRegressor/BottomUp', 'XGBRegressor/MinTrace_method-mint_shrink', 'XGBRegressor/ERM_method-closed_lambda_reg-0.01'],
     level=[80]
 )
 ```
 
-![](/hierarchicalforecast/examples/MLFrameworksExample_files/figure-markdown_strict/cell-16-output-1.png)
+![](/hierarchicalforecast/examples/MLFrameworksExample_files/figure-markdown_strict/cell-19-output-1.png)
 

@@ -1,7 +1,7 @@
 ---
-description: Minimal Example of Hierarchical Reconciliation
-output-file: tourismsmall.html
-title: Quick Start
+description: Minimal Example of Hierarchical Reconciliation using Polars
+output-file: tourismsmallpolars.html
+title: Quick Start (Polars)
 ---
 
 
@@ -40,7 +40,7 @@ import os
 os.environ['NIXTLA_ID_AS_COL'] = '1'
 
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from datasetsforecast.hierarchical import HierarchicalData, HierarchicalInfo
 ```
@@ -50,23 +50,26 @@ from datasetsforecast.hierarchical import HierarchicalData, HierarchicalInfo
 group_name = 'TourismSmall'
 group = HierarchicalInfo.get_group(group_name)
 Y_df, S_df, tags = HierarchicalData.load('./data', group_name)
-S_df = S_df.reset_index(names="unique_id")
-Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+
+Y_df = pl.from_pandas(Y_df)
+S_df = pl.from_pandas(S_df.reset_index(names="unique_id"))
+Y_df = Y_df.with_columns(pl.col('ds').cast(pl.Date))
 ```
 
 
 ```python
-S_df.iloc[:6, :6]
+S_df[:6, :6]
 ```
 
-|  | unique_id | nsw-hol-city | nsw-hol-noncity | vic-hol-city | vic-hol-noncity | qld-hol-city |
-|----|----|----|----|----|----|----|
-| 0 | total | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
-| 1 | hol | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
-| 2 | vfr | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| 3 | bus | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| 4 | oth | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| 5 | nsw-hol | 1.0 | 1.0 | 0.0 | 0.0 | 0.0 |
+| unique_id | nsw-hol-city | nsw-hol-noncity | vic-hol-city | vic-hol-noncity | qld-hol-city |
+|----|----|----|----|----|----|
+| str | f64 | f64 | f64 | f64 | f64 |
+| "total" | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
+| "hol" | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
+| "vfr" | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| "bus" | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| "oth" | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| "nsw-hol" | 1.0 | 1.0 | 0.0 | 0.0 | 0.0 |
 
 ```python
 tags
@@ -102,8 +105,8 @@ tags
 We split the dataframe in train/test splits.
 
 ```python
-Y_test_df = Y_df.groupby('unique_id').tail(group.horizon)
-Y_train_df = Y_df.drop(Y_test_df.index)
+Y_test_df = Y_df.group_by('unique_id').tail(group.horizon)
+Y_train_df = Y_df.filter(pl.col('ds') < Y_test_df['ds'].min())
 ```
 
 ## 3. Base forecasts
@@ -121,7 +124,7 @@ from statsforecast.models import AutoARIMA, Naive
 ```python
 fcst = StatsForecast(
     models=[AutoARIMA(season_length=group.seasonality), Naive()], 
-    freq=group.freq, 
+    freq="1q", 
     n_jobs=-1
 )
 Y_hat_df = fcst.forecast(df=Y_train_df, h=group.horizon)
@@ -175,7 +178,7 @@ from utilsforecast.losses import mse
 
 
 ```python
-df = Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds'])
+df = Y_rec_df.join(Y_test_df, on=['unique_id', 'ds'])
 evaluation = evaluate(df = df,
                       tags = tags,
                       train_df = Y_train_df,
@@ -185,13 +188,14 @@ evaluation = evaluate(df = df,
 evaluation[["level", "metric", "AutoARIMA", "AutoARIMA/BottomUp", "AutoARIMA/TopDown_method-forecast_proportions"]]
 ```
 
-|  | level | metric | AutoARIMA | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-forecast_proportions |
-|----|----|----|----|----|----|
-| 0 | Country | mse-scaled | 0.317897 | 0.226999 | 0.317897 |
-| 1 | Country/Purpose | mse-scaled | 0.323207 | 0.199359 | 0.251368 |
-| 2 | Country/Purpose/State | mse-scaled | 0.266118 | 0.305711 | 0.308241 |
-| 3 | Country/Purpose/State/CityNonCity | mse-scaled | 0.305173 | 0.305173 | 0.305913 |
-| 4 | Overall | mse-scaled | 0.311707 | 0.234934 | 0.289406 |
+| level | metric | AutoARIMA | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-forecast_proportions |
+|----|----|----|----|----|
+| str | str | f64 | f64 | f64 |
+| "Country" | "mse-scaled" | 0.317897 | 0.226999 | 0.317897 |
+| "Country/Purpose" | "mse-scaled" | 0.323207 | 0.199359 | 0.251368 |
+| "Country/Purpose/State" | "mse-scaled" | 0.266118 | 0.305711 | 0.308241 |
+| "Country/Purpose/State/CityNonC… | "mse-scaled" | 0.305173 | 0.305173 | 0.305913 |
+| "Overall" | "mse-scaled" | 0.311707 | 0.234934 | 0.289406 |
 
 ### References
 

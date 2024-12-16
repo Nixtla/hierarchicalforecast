@@ -69,26 +69,28 @@ following transformations:
 The HierarchicalForecast library offers a Python collection of
 reconciliation methods, datasets, evaluation and visualization tools for
 the task. Among its available reconciliation methods we have
-[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/methods.html#bottomup),
-[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/methods.html#topdown),
-[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/methods.html#middleout),
-[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/methods.html#mintrace),
-[`ERM`](https://Nixtla.github.io/hierarchicalforecast/methods.html#erm).
+[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#bottomup),
+[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#topdown),
+[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#middleout),
+[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#mintrace),
+[`ERM`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#erm).
 Among its probabilistic coherent methods we have
-[`Normality`](https://Nixtla.github.io/hierarchicalforecast/probabilistic_methods.html#normality),
-[`Bootstrap`](https://Nixtla.github.io/hierarchicalforecast/probabilistic_methods.html#bootstrap),
-[`PERMBU`](https://Nixtla.github.io/hierarchicalforecast/probabilistic_methods.html#permbu).
+[`Normality`](https://Nixtla.github.io/hierarchicalforecast/src/probabilistic_methods.html#normality),
+[`Bootstrap`](https://Nixtla.github.io/hierarchicalforecast/src/probabilistic_methods.html#bootstrap),
+[`PERMBU`](https://Nixtla.github.io/hierarchicalforecast/src/probabilistic_methods.html#permbu).
 
 ## 3. Minimal Example
 
 ```python
-!pip install hierarchicalforecast
-!pip install -U numba statsforecast datasetsforecast
+!pip install hierarchicalforecast statsforecast datasetsforecast
 ```
 
 ### Wrangling Data
 
 ```python
+import os
+os.environ['NIXTLA_ID_AS_COL'] = '1'
+
 import numpy as np
 import pandas as pd
 ```
@@ -156,57 +158,51 @@ hierarchy_levels = [['top_level'],
                     ['top_level', 'middle_level'],
                     ['top_level', 'middle_level', 'bottom_level']]
 Y_hier_df, S_df, tags = aggregate(df=bottom_df, spec=hierarchy_levels)
-Y_hier_df = Y_hier_df.reset_index()
 print('S_df.shape', S_df.shape)
 print('Y_hier_df.shape', Y_hier_df.shape)
 print("tags['top_level']", tags['top_level'])
 ```
 
 ``` text
-S_df.shape (7, 4)
+S_df.shape (7, 5)
 Y_hier_df.shape (56, 3)
 tags['top_level'] ['Australia']
-```
-
-``` text
-/Users/cchallu/opt/anaconda3/envs/hierarchicalforecast/lib/python3.10/site-packages/sklearn/preprocessing/_encoders.py:828: FutureWarning: `sparse` was renamed to `sparse_output` in version 1.2 and will be removed in 1.4. `sparse_output` is ignored unless you leave `sparse` to its default value.
-  warnings.warn(
 ```
 
 ```python
 Y_hier_df.groupby('unique_id').head(2)
 ```
 
-|     | unique_id           | ds         | y     |
-|-----|---------------------|------------|-------|
-| 0   | Australia           | 2000-01-01 | 220.0 |
-| 1   | Australia           | 2000-02-01 | 440.0 |
-| 8   | Australia/State1    | 2000-01-01 | 20.0  |
-| 9   | Australia/State1    | 2000-02-01 | 40.0  |
-| 16  | Australia/State2    | 2000-01-01 | 200.0 |
-| 17  | Australia/State2    | 2000-02-01 | 400.0 |
-| 24  | Australia/State1/r1 | 2000-01-01 | 10.0  |
-| 25  | Australia/State1/r1 | 2000-02-01 | 20.0  |
-| 32  | Australia/State1/r2 | 2000-01-01 | 10.0  |
-| 33  | Australia/State1/r2 | 2000-02-01 | 20.0  |
-| 40  | Australia/State2/r3 | 2000-01-01 | 100.0 |
-| 41  | Australia/State2/r3 | 2000-02-01 | 200.0 |
-| 48  | Australia/State2/r4 | 2000-01-01 | 100.0 |
-| 49  | Australia/State2/r4 | 2000-02-01 | 200.0 |
+|     | unique_id           | ds         | y   |
+|-----|---------------------|------------|-----|
+| 0   | Australia           | 2000-01-01 | 220 |
+| 1   | Australia           | 2000-02-01 | 440 |
+| 8   | Australia/State1    | 2000-01-01 | 20  |
+| 9   | Australia/State1    | 2000-02-01 | 40  |
+| 16  | Australia/State2    | 2000-01-01 | 200 |
+| 17  | Australia/State2    | 2000-02-01 | 400 |
+| 24  | Australia/State1/r1 | 2000-01-01 | 10  |
+| 25  | Australia/State1/r1 | 2000-02-01 | 20  |
+| 32  | Australia/State1/r2 | 2000-01-01 | 10  |
+| 33  | Australia/State1/r2 | 2000-02-01 | 20  |
+| 40  | Australia/State2/r3 | 2000-01-01 | 100 |
+| 41  | Australia/State2/r3 | 2000-02-01 | 200 |
+| 48  | Australia/State2/r4 | 2000-01-01 | 100 |
+| 49  | Australia/State2/r4 | 2000-02-01 | 200 |
 
 ```python
 S_df
 ```
 
-|  | Australia/State1/r1 | Australia/State1/r2 | Australia/State2/r3 | Australia/State2/r4 |
-|----|----|----|----|----|
-| Australia | 1.0 | 1.0 | 1.0 | 1.0 |
-| Australia/State1 | 1.0 | 1.0 | 0.0 | 0.0 |
-| Australia/State2 | 0.0 | 0.0 | 1.0 | 1.0 |
-| Australia/State1/r1 | 1.0 | 0.0 | 0.0 | 0.0 |
-| Australia/State1/r2 | 0.0 | 1.0 | 0.0 | 0.0 |
-| Australia/State2/r3 | 0.0 | 0.0 | 1.0 | 0.0 |
-| Australia/State2/r4 | 0.0 | 0.0 | 0.0 | 1.0 |
+|  | unique_id | Australia/State1/r1 | Australia/State1/r2 | Australia/State2/r3 | Australia/State2/r4 |
+|----|----|----|----|----|----|
+| 0 | Australia | 1.0 | 1.0 | 1.0 | 1.0 |
+| 1 | Australia/State1 | 1.0 | 1.0 | 0.0 | 0.0 |
+| 2 | Australia/State2 | 0.0 | 0.0 | 1.0 | 1.0 |
+| 3 | Australia/State1/r1 | 1.0 | 0.0 | 0.0 | 0.0 |
+| 4 | Australia/State1/r2 | 0.0 | 1.0 | 0.0 | 0.0 |
+| 5 | Australia/State2/r3 | 0.0 | 0.0 | 1.0 | 0.0 |
+| 6 | Australia/State2/r4 | 0.0 | 0.0 | 0.0 | 1.0 |
 
 ### Base Predictions
 
@@ -222,15 +218,14 @@ from statsforecast.core import StatsForecast
 
 ```python
 # Split train/test sets
-Y_test_df  = Y_hier_df.groupby('unique_id').tail(4)
+Y_test_df  = Y_hier_df.groupby('unique_id', as_index=False).tail(4)
 Y_train_df = Y_hier_df.drop(Y_test_df.index)
 
 # Compute base Naive predictions
-# Careful identifying correct data freq, this data quarterly 'Q'
-fcst = StatsForecast(df=Y_train_df,
-                     models=[Naive()],
-                     freq='Q', n_jobs=-1)
-Y_hat_df = fcst.forecast(h=4, fitted=True)
+# Careful identifying correct data freq, this data monthly 'M'
+fcst = StatsForecast(models=[Naive()],
+                     freq='MS', n_jobs=-1)
+Y_hat_df = fcst.forecast(df=Y_train_df, h=4, fitted=True)
 Y_fitted_df = fcst.forecast_fitted_values()
 ```
 
@@ -253,23 +248,22 @@ Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df,
 Y_rec_df.groupby('unique_id').head(2)
 ```
 
-|                     | ds         | Naive | Naive/BottomUp |
-|---------------------|------------|-------|----------------|
-| unique_id           |            |       |                |
-| Australia           | 2000-06-30 | 880.0 | 880.0          |
-| Australia           | 2000-09-30 | 880.0 | 880.0          |
-| Australia/State1    | 2000-06-30 | 80.0  | 80.0           |
-| Australia/State1    | 2000-09-30 | 80.0  | 80.0           |
-| Australia/State2    | 2000-06-30 | 800.0 | 800.0          |
-| Australia/State2    | 2000-09-30 | 800.0 | 800.0          |
-| Australia/State1/r1 | 2000-06-30 | 40.0  | 40.0           |
-| Australia/State1/r1 | 2000-09-30 | 40.0  | 40.0           |
-| Australia/State1/r2 | 2000-06-30 | 40.0  | 40.0           |
-| Australia/State1/r2 | 2000-09-30 | 40.0  | 40.0           |
-| Australia/State2/r3 | 2000-06-30 | 400.0 | 400.0          |
-| Australia/State2/r3 | 2000-09-30 | 400.0 | 400.0          |
-| Australia/State2/r4 | 2000-06-30 | 400.0 | 400.0          |
-| Australia/State2/r4 | 2000-09-30 | 400.0 | 400.0          |
+|     | unique_id           | ds         | Naive | Naive/BottomUp |
+|-----|---------------------|------------|-------|----------------|
+| 0   | Australia           | 2000-05-01 | 880.0 | 880.0          |
+| 1   | Australia           | 2000-06-01 | 880.0 | 880.0          |
+| 4   | Australia/State1    | 2000-05-01 | 80.0  | 80.0           |
+| 5   | Australia/State1    | 2000-06-01 | 80.0  | 80.0           |
+| 8   | Australia/State2    | 2000-05-01 | 800.0 | 800.0          |
+| 9   | Australia/State2    | 2000-06-01 | 800.0 | 800.0          |
+| 12  | Australia/State1/r1 | 2000-05-01 | 40.0  | 40.0           |
+| 13  | Australia/State1/r1 | 2000-06-01 | 40.0  | 40.0           |
+| 16  | Australia/State1/r2 | 2000-05-01 | 40.0  | 40.0           |
+| 17  | Australia/State1/r2 | 2000-06-01 | 40.0  | 40.0           |
+| 20  | Australia/State2/r3 | 2000-05-01 | 400.0 | 400.0          |
+| 21  | Australia/State2/r3 | 2000-06-01 | 400.0 | 400.0          |
+| 24  | Australia/State2/r4 | 2000-05-01 | 400.0 | 400.0          |
+| 25  | Australia/State2/r4 | 2000-06-01 | 400.0 | 400.0          |
 
 ## References
 

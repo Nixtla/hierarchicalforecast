@@ -33,6 +33,9 @@ dataframe `S_df` which recovers the full dataset from the bottom level
 hierarchy and the indices of each hierarchy denoted by `tags`.
 
 ```python
+import os
+os.environ['NIXTLA_ID_AS_COL'] = '1'
+
 import numpy as np
 import pandas as pd
 
@@ -43,6 +46,7 @@ from datasetsforecast.hierarchical import HierarchicalData
 ```python
 Y_df, S_df, tags = HierarchicalData.load('./data', 'Wiki2')
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+S_df = S_df.reset_index(names="unique_id")
 ```
 
 
@@ -62,13 +66,13 @@ Y_df.head()
 S_df.iloc[:5, :5]
 ```
 
-|  | de_AAC_AAG_001 | de_AAC_AAG_010 | de_AAC_AAG_014 | de_AAC_AAG_045 | de_AAC_AAG_063 |
-|----|----|----|----|----|----|
-| Total | 1 | 1 | 1 | 1 | 1 |
-| de | 1 | 1 | 1 | 1 | 1 |
-| en | 0 | 0 | 0 | 0 | 0 |
-| fr | 0 | 0 | 0 | 0 | 0 |
-| ja | 0 | 0 | 0 | 0 | 0 |
+|     | unique_id | de_AAC_AAG_001 | de_AAC_AAG_010 | de_AAC_AAG_014 | de_AAC_AAG_045 |
+|-----|-----------|----------------|----------------|----------------|----------------|
+| 0   | Total     | 1              | 1              | 1              | 1              |
+| 1   | de        | 1              | 1              | 1              | 1              |
+| 2   | en        | 0              | 0              | 0              | 0              |
+| 3   | fr        | 0              | 0              | 0              | 0              |
+| 4   | ja        | 0              | 0              | 0              | 0              |
 
 ```python
 tags
@@ -143,64 +147,57 @@ tags
 We split the dataframe in train/test splits.
 
 ```python
-Y_test_df = Y_df.groupby('unique_id').tail(7)
+Y_test_df = Y_df.groupby('unique_id', as_index=False).tail(7)
 Y_train_df = Y_df.drop(Y_test_df.index)
-```
-
-
-```python
-Y_test_df = Y_test_df.set_index('unique_id')
-Y_train_df = Y_train_df.set_index('unique_id')
 ```
 
 ## 2. Base Forecasts
 
 The following cell computes the *base forecast* for each time series
-using the `ETS` and `naive` models. Observe that `Y_hat_df` contains the
+using the `AutoETS` model. Observe that `Y_hat_df` contains the
 forecasts but they are not coherent.
 
 ```python
-from statsforecast.models import ETS, Naive
+from statsforecast.models import AutoETS, Naive
 from statsforecast.core import StatsForecast
 ```
 
 
 ```python
 fcst = StatsForecast(
-    df=Y_train_df, 
-    models=[ETS(season_length=7, model='ZAA'), Naive()], 
+    models=[AutoETS(season_length=7, model='ZAA'), Naive()], 
     freq='D', 
     n_jobs=-1
 )
-Y_hat_df = fcst.forecast(h=7)
+Y_hat_df = fcst.forecast(df=Y_train_df, h=7)
 ```
 
-Observe that the ETS model computes negative forecasts for some series.
+Observe that the `AutoETS` model computes negative forecasts for some
+series.
 
 ```python
-Y_hat_df.query('ETS < 0')
+Y_hat_df.query('AutoETS < 0')
 ```
 
-|                | ds         | ETS         | Naive  |
-|----------------|------------|-------------|--------|
-| unique_id      |            |             |        |
-| de_AAC_AAG_001 | 2016-12-25 | -487.601532 | 340.0  |
-| de_AAC_AAG_001 | 2016-12-26 | -215.634201 | 340.0  |
-| de_AAC_AAG_001 | 2016-12-27 | -173.175613 | 340.0  |
-| de_AAC_AAG_001 | 2016-12-30 | -290.836060 | 340.0  |
-| de_AAC_AAG_001 | 2016-12-31 | -784.441040 | 340.0  |
-| ...            | ...        | ...         | ...    |
-| zh_AAC_AAG_033 | 2016-12-31 | -86.526421  | 37.0   |
-| zh_MOB         | 2016-12-26 | -199.534882 | 1036.0 |
-| zh_MOB         | 2016-12-27 | -69.527260  | 1036.0 |
-| zh_MOB_AAG     | 2016-12-26 | -199.534882 | 1036.0 |
-| zh_MOB_AAG     | 2016-12-27 | -69.527260  | 1036.0 |
+|      | unique_id      | ds         | AutoETS     | Naive  |
+|------|----------------|------------|-------------|--------|
+| 28   | de_AAC_AAG_001 | 2016-12-25 | -523.766907 | 340.0  |
+| 29   | de_AAC_AAG_001 | 2016-12-26 | -245.337433 | 340.0  |
+| 30   | de_AAC_AAG_001 | 2016-12-27 | -194.253815 | 340.0  |
+| 33   | de_AAC_AAG_001 | 2016-12-30 | -315.425659 | 340.0  |
+| 34   | de_AAC_AAG_001 | 2016-12-31 | -806.920105 | 340.0  |
+| ...  | ...            | ...        | ...         | ...    |
+| 1217 | zh_AAC_AAG_033 | 2016-12-31 | -86.466789  | 37.0   |
+| 1345 | zh_MOB         | 2016-12-26 | -199.534882 | 1036.0 |
+| 1346 | zh_MOB         | 2016-12-27 | -69.527260  | 1036.0 |
+| 1352 | zh_MOB_AAG     | 2016-12-26 | -199.534882 | 1036.0 |
+| 1353 | zh_MOB_AAG     | 2016-12-27 | -69.527260  | 1036.0 |
 
 ## 3. Non-Negative Reconciliation
 
 The following cell makes the previous forecasts coherent and nonnegative
 using the
-[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/core.html#hierarchicalreconciliation)
+[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/src/core.html#hierarchicalreconciliation)
 class.
 
 ```python
@@ -223,67 +220,85 @@ Observe that the nonnegative reconciliation method obtains nonnegative
 forecasts.
 
 ```python
-Y_rec_df.query('`ETS/MinTrace_method-ols_nonnegative-True` < 0')
+Y_rec_df
 ```
 
-|  | ds | ETS | Naive | ETS/MinTrace_method-ols | Naive/MinTrace_method-ols | ETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
-|----|----|----|----|----|----|----|----|
-| unique_id |  |  |  |  |  |  |  |
+|  | unique_id | ds | AutoETS | Naive | AutoETS/MinTrace_method-ols | Naive/MinTrace_method-ols | AutoETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
+|----|----|----|----|----|----|----|----|----|
+| 0 | Total | 2016-12-25 | 94523.164062 | 95743.0 | 95852.000421 | 95743.0 | 9.664245e+04 | 95743.0 |
+| 1 | Total | 2016-12-26 | 87734.367188 | 95743.0 | 89525.238276 | 95743.0 | 9.028857e+04 | 95743.0 |
+| 2 | Total | 2016-12-27 | 87751.125000 | 95743.0 | 89638.119184 | 95743.0 | 9.056593e+04 | 95743.0 |
+| 3 | Total | 2016-12-28 | 133237.968750 | 95743.0 | 131051.839057 | 95743.0 | 1.314028e+05 | 95743.0 |
+| 4 | Total | 2016-12-29 | 126501.796875 | 95743.0 | 121214.048604 | 95743.0 | 1.218000e+05 | 95743.0 |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |
+| 1388 | zh_MOB_AAG_138 | 2016-12-27 | 62.049744 | 65.0 | -147.399760 | 65.0 | 0.000000e+00 | 65.0 |
+| 1389 | zh_MOB_AAG_138 | 2016-12-28 | 54.934032 | 65.0 | 7.561682 | 65.0 | 4.397229e-15 | 65.0 |
+| 1390 | zh_MOB_AAG_138 | 2016-12-29 | 60.452618 | 65.0 | 114.253489 | 65.0 | 9.321380e+01 | 65.0 |
+| 1391 | zh_MOB_AAG_138 | 2016-12-30 | 50.356693 | 65.0 | 96.446754 | 65.0 | 7.565171e+01 | 65.0 |
+| 1392 | zh_MOB_AAG_138 | 2016-12-31 | 66.735626 | 65.0 | 208.184648 | 65.0 | 1.851130e+02 | 65.0 |
+
+```python
+Y_rec_df.query('`AutoETS/MinTrace_method-ols_nonnegative-True` < 0')
+```
+
+|  | unique_id | ds | AutoETS | Naive | AutoETS/MinTrace_method-ols | Naive/MinTrace_method-ols | AutoETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
+|----|----|----|----|----|----|----|----|----|
 
 The free reconciliation method gets negative forecasts.
 
 ```python
-Y_rec_df.query('`ETS/MinTrace_method-ols` < 0')
+Y_rec_df.query('`AutoETS/MinTrace_method-ols` < 0')
 ```
 
-|  | ds | ETS | Naive | ETS/MinTrace_method-ols | Naive/MinTrace_method-ols | ETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
-|----|----|----|----|----|----|----|----|
-| unique_id |  |  |  |  |  |  |  |
-| de_DES | 2016-12-25 | -2553.932861 | 495.0 | -3468.745214 | 495.0 | 2.262540e-15 | 495.0 |
-| de_DES | 2016-12-26 | -2155.228271 | 495.0 | -2985.587125 | 495.0 | 1.356705e-30 | 495.0 |
-| de_DES | 2016-12-27 | -2720.993896 | 495.0 | -3698.680055 | 495.0 | 6.857413e-30 | 495.0 |
-| de_DES | 2016-12-29 | -3429.432617 | 495.0 | -2965.207609 | 495.0 | 2.456449e+02 | 495.0 |
-| de_DES | 2016-12-30 | -3963.202637 | 495.0 | -3217.360371 | 495.0 | 3.646790e+02 | 495.0 |
-| ... | ... | ... | ... | ... | ... | ... | ... |
-| zh_MOB_AAG_036 | 2016-12-26 | 75.298317 | 115.0 | -165.799776 | 115.0 | 3.207772e-14 | 115.0 |
-| zh_MOB_AAG_036 | 2016-12-27 | 72.895554 | 115.0 | -134.340626 | 115.0 | 2.308198e-14 | 115.0 |
-| zh_MOB_AAG_138 | 2016-12-25 | 94.796623 | 65.0 | -47.009813 | 65.0 | 3.116938e-14 | 65.0 |
-| zh_MOB_AAG_138 | 2016-12-26 | 71.293983 | 65.0 | -169.804110 | 65.0 | 0.000000e+00 | 65.0 |
-| zh_MOB_AAG_138 | 2016-12-27 | 62.049744 | 65.0 | -145.186436 | 65.0 | 0.000000e+00 | 65.0 |
+|  | unique_id | ds | AutoETS | Naive | AutoETS/MinTrace_method-ols | Naive/MinTrace_method-ols | AutoETS/MinTrace_method-ols_nonnegative-True | Naive/MinTrace_method-ols_nonnegative-True |
+|----|----|----|----|----|----|----|----|----|
+| 56 | de_DES | 2016-12-25 | -2553.932861 | 495.0 | -3818.990043 | 495.0 | 0.000000e+00 | 495.0 |
+| 57 | de_DES | 2016-12-26 | -2155.228271 | 495.0 | -3309.806933 | 495.0 | 1.909922e-30 | 495.0 |
+| 58 | de_DES | 2016-12-27 | -2720.993896 | 495.0 | -3965.351121 | 495.0 | 1.140223e-13 | 495.0 |
+| 60 | de_DES | 2016-12-29 | -3429.432617 | 495.0 | -3042.502484 | 495.0 | 3.049601e+02 | 495.0 |
+| 61 | de_DES | 2016-12-30 | -3963.202637 | 495.0 | -3476.273292 | 495.0 | 2.877829e+02 | 495.0 |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |
+| 1380 | zh_MOB_AAG_036 | 2016-12-26 | 75.298317 | 115.0 | -166.245228 | 115.0 | 0.000000e+00 | 115.0 |
+| 1381 | zh_MOB_AAG_036 | 2016-12-27 | 72.895554 | 115.0 | -136.553950 | 115.0 | 1.699002e-14 | 115.0 |
+| 1386 | zh_MOB_AAG_138 | 2016-12-25 | 94.796623 | 65.0 | -49.410174 | 65.0 | 0.000000e+00 | 65.0 |
+| 1387 | zh_MOB_AAG_138 | 2016-12-26 | 71.293983 | 65.0 | -170.249562 | 65.0 | 0.000000e+00 | 65.0 |
+| 1388 | zh_MOB_AAG_138 | 2016-12-27 | 62.049744 | 65.0 | -147.399760 | 65.0 | 0.000000e+00 | 65.0 |
 
 ## 4. Evaluation
 
 The `HierarchicalForecast` package includes the
-[`HierarchicalEvaluation`](https://Nixtla.github.io/hierarchicalforecast/evaluation.html#hierarchicalevaluation)
-class to evaluate the different hierarchies and also is capable of
-compute scaled metrics compared to a benchmark model.
+[`evaluate`](https://Nixtla.github.io/hierarchicalforecast/src/evaluation.html#evaluate)
+function to evaluate the different hierarchies. We use `utilsforecast`
+to compute the mean absolute error.
 
 ```python
-from hierarchicalforecast.evaluation import HierarchicalEvaluation
+from hierarchicalforecast.evaluation import evaluate
+from utilsforecast.losses import mse
 ```
 
 
 ```python
-def mse(y, y_hat):
-    return np.mean((y-y_hat)**2)
+evaluation = evaluate(df = Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds']),
+                      tags = tags,
+                      train_df = Y_train_df,
+                      metrics = [mse],
+                      benchmark="Naive")
 
-evaluator = HierarchicalEvaluation(evaluators=[mse])
-evaluation = evaluator.evaluate(
-        Y_hat_df=Y_rec_df, Y_test_df=Y_test_df, 
-        tags=tags, benchmark='Naive'
-)
-evaluation.filter(like='ETS', axis=1).T
+evaluation.set_index(["level", "metric"]).filter(like='ETS')
 ```
 
-| level | Overall | Views | Views/Country | Views/Country/Access | Views/Country/Access/Agent | Views/Country/Access/Agent/Topic |
-|----|----|----|----|----|----|----|
-| metric | mse-scaled | mse-scaled | mse-scaled | mse-scaled | mse-scaled | mse-scaled |
-| ETS | 1.011585 | 0.7358 | 1.190354 | 1.103657 | 1.089515 | 1.397139 |
-| ETS/MinTrace_method-ols | 0.979163 | 0.698355 | 1.062521 | 1.143277 | 1.113349 | 1.354041 |
-| ETS/MinTrace_method-ols_nonnegative-True | 0.945075 | 0.677892 | 1.004639 | 1.184719 | 1.141442 | 1.158672 |
+|  |  | AutoETS | AutoETS/MinTrace_method-ols | AutoETS/MinTrace_method-ols_nonnegative-True |
+|----|----|----|----|----|
+| level | metric |  |  |  |
+| Views | mse-scaled | 0.735800 | 0.697371 | 0.675672 |
+| Views/Country | mse-scaled | 1.190354 | 1.053631 | 0.994758 |
+| Views/Country/Access | mse-scaled | 1.086102 | 1.133507 | 1.172270 |
+| Views/Country/Access/Agent | mse-scaled | 1.067394 | 1.100215 | 1.127960 |
+| Views/Country/Access/Agent/Topic | mse-scaled | 1.435105 | 1.381990 | 1.163428 |
+| Overall | mse-scaled | 1.010801 | 0.977667 | 0.939286 |
 
-Observe that the nonnegative reconciliation method performs better that
-its unconstrained counterpart.
+Observe that the nonnegative reconciliation method performs better
+(lower error) than its unconstrained counterpart.
 
 ### References
 

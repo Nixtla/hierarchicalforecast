@@ -18,9 +18,10 @@ we will see how to do it.
 
 
 ```python
-import numpy as np
+import os
+os.environ['NIXTLA_ID_AS_COL'] = '1'
+
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # compute base forecast no coherent
 from statsforecast.models import AutoARIMA
@@ -30,12 +31,6 @@ from statsforecast.core import StatsForecast
 from hierarchicalforecast.methods import BottomUp, MinTrace
 from hierarchicalforecast.utils import aggregate, HierarchicalPlot
 from hierarchicalforecast.core import HierarchicalReconciliation
-from hierarchicalforecast.evaluation import HierarchicalEvaluation
-```
-
-``` text
-/Users/fedex/miniconda3/envs/hierarchicalforecast/lib/python3.10/site-packages/statsforecast/core.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
-  from tqdm.autonotebook import tqdm
 ```
 
 ## Aggregate bottom time series
@@ -52,7 +47,7 @@ Y_df = Y_df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
 Y_df.insert(0, 'Country', 'Australia')
 Y_df = Y_df[['Country', 'Region', 'State', 'Purpose', 'ds', 'y']]
 Y_df['ds'] = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
-Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+Y_df['ds'] = pd.PeriodIndex(Y_df["ds"], freq='Q').to_timestamp()
 Y_df.head()
 ```
 
@@ -79,7 +74,7 @@ spec = [
 ```
 
 Using the
-[`aggregate`](https://Nixtla.github.io/hierarchicalforecast/utils.html#aggregate)
+[`aggregate`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate)
 function from `HierarchicalForecast` we can generate: 1. `Y_df`: the
 hierarchical structured series $\mathbf{y}_{[a,b]\tau}$ 2. `S_df`: the
 aggregation constraings dataframe with $S_{[a,b]}$ 3. `tags`: a list
@@ -87,13 +82,8 @@ with the ‘unique_ids’ conforming each aggregation level.
 
 ```python
 Y_df, S_df, tags = aggregate(df=Y_df, spec=spec)
-Y_df = Y_df.reset_index()
 ```
 
-``` text
-/Users/fedex/miniconda3/envs/hierarchicalforecast/lib/python3.10/site-packages/sklearn/preprocessing/_encoders.py:828: FutureWarning: `sparse` was renamed to `sparse_output` in version 1.2 and will be removed in 1.4. `sparse_output` is ignored unless you leave `sparse` to its default value.
-  warnings.warn(
-```
 
 ```python
 Y_df.head()
@@ -111,13 +101,13 @@ Y_df.head()
 S_df.iloc[:5, :5]
 ```
 
-|  | Australia/ACT/Canberra/Business | Australia/ACT/Canberra/Holiday | Australia/ACT/Canberra/Other | Australia/ACT/Canberra/Visiting | Australia/New South Wales/Blue Mountains/Business |
+|  | unique_id | Australia/ACT/Canberra/Business | Australia/ACT/Canberra/Holiday | Australia/ACT/Canberra/Other | Australia/ACT/Canberra/Visiting |
 |----|----|----|----|----|----|
-| Australia | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
-| Australia/ACT | 1.0 | 1.0 | 1.0 | 1.0 | 0.0 |
-| Australia/New South Wales | 0.0 | 0.0 | 0.0 | 0.0 | 1.0 |
-| Australia/Northern Territory | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| Australia/Queensland | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| 0 | Australia | 1.0 | 1.0 | 1.0 | 1.0 |
+| 1 | Australia/ACT | 1.0 | 1.0 | 1.0 | 1.0 |
+| 2 | Australia/New South Wales | 0.0 | 0.0 | 0.0 | 0.0 |
+| 3 | Australia/Northern Territory | 0.0 | 0.0 | 0.0 | 0.0 |
+| 4 | Australia/Queensland | 0.0 | 0.0 | 0.0 | 0.0 |
 
 ```python
 tags['Country/Purpose']
@@ -129,7 +119,7 @@ array(['Australia/Business', 'Australia/Holiday', 'Australia/Other',
 ```
 
 We can visualize the `S` matrix and the data using the
-[`HierarchicalPlot`](https://Nixtla.github.io/hierarchicalforecast/utils.html#hierarchicalplot)
+[`HierarchicalPlot`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#hierarchicalplot)
 class as follows.
 
 ```python
@@ -146,7 +136,7 @@ hplot.plot_summing_matrix()
 ```python
 hplot.plot_hierarchically_linked_series(
     bottom_series='Australia/ACT/Canberra/Holiday',
-    Y_df=Y_df.set_index('unique_id')
+    Y_df=Y_df
 )
 ```
 
@@ -157,14 +147,8 @@ hplot.plot_hierarchically_linked_series(
 We use the final two years (8 quarters) as test set.
 
 ```python
-Y_test_df = Y_df.groupby('unique_id').tail(8)
+Y_test_df = Y_df.groupby('unique_id', as_index=False).tail(8)
 Y_train_df = Y_df.drop(Y_test_df.index)
-```
-
-
-```python
-Y_test_df = Y_test_df.set_index('unique_id')
-Y_train_df = Y_train_df.set_index('unique_id')
 ```
 
 
@@ -197,26 +181,25 @@ prediction intervals we need to calculate the uncoherent intervals using
 the `level` argument of `StatsForecast`.
 
 ```python
-fcst = StatsForecast(df=Y_train_df,
-                     models=[AutoARIMA(season_length=4)], 
+fcst = StatsForecast(models=[AutoARIMA(season_length=4)], 
                      freq='QS', n_jobs=-1)
-Y_hat_df = fcst.forecast(h=8, fitted=True, level=[80, 90])
+Y_hat_df = fcst.forecast(df=Y_train_df, h=8, fitted=True, level=[80, 90])
 Y_fitted_df = fcst.forecast_fitted_values()
 ```
 
 ## Reconcile forecasts
 
 The following cell makes the previous forecasts coherent using the
-[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/core.html#hierarchicalreconciliation)
+[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/src/core.html#hierarchicalreconciliation)
 class. Since the hierarchy structure is not strict, we can’t use methods
 such as
-[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/methods.html#topdown)
+[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#topdown)
 or
-[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/methods.html#middleout).
+[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#middleout).
 In this example we use
-[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/methods.html#bottomup)
+[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#bottomup)
 and
-[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/methods.html#mintrace).
+[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#mintrace).
 If you want to calculate prediction intervals, you have to use the
 `level` argument as follows.
 
@@ -237,14 +220,13 @@ The dataframe `Y_rec_df` contains the reconciled forecasts.
 Y_rec_df.head()
 ```
 
-|  | ds | AutoARIMA | AutoARIMA-lo-90 | AutoARIMA-lo-80 | AutoARIMA-hi-80 | AutoARIMA-hi-90 | AutoARIMA/BottomUp | AutoARIMA/BottomUp-lo-90 | AutoARIMA/BottomUp-lo-80 | AutoARIMA/BottomUp-hi-80 | ... | AutoARIMA/MinTrace_method-mint_shrink | AutoARIMA/MinTrace_method-mint_shrink-lo-90 | AutoARIMA/MinTrace_method-mint_shrink-lo-80 | AutoARIMA/MinTrace_method-mint_shrink-hi-80 | AutoARIMA/MinTrace_method-mint_shrink-hi-90 | AutoARIMA/MinTrace_method-ols | AutoARIMA/MinTrace_method-ols-lo-90 | AutoARIMA/MinTrace_method-ols-lo-80 | AutoARIMA/MinTrace_method-ols-hi-80 | AutoARIMA/MinTrace_method-ols-hi-90 |
+|  | unique_id | ds | AutoARIMA | AutoARIMA-lo-90 | AutoARIMA-lo-80 | AutoARIMA-hi-80 | AutoARIMA-hi-90 | AutoARIMA/BottomUp | AutoARIMA/BottomUp-lo-90 | AutoARIMA/BottomUp-lo-80 | ... | AutoARIMA/MinTrace_method-mint_shrink | AutoARIMA/MinTrace_method-mint_shrink-lo-90 | AutoARIMA/MinTrace_method-mint_shrink-lo-80 | AutoARIMA/MinTrace_method-mint_shrink-hi-80 | AutoARIMA/MinTrace_method-mint_shrink-hi-90 | AutoARIMA/MinTrace_method-ols | AutoARIMA/MinTrace_method-ols-lo-90 | AutoARIMA/MinTrace_method-ols-lo-80 | AutoARIMA/MinTrace_method-ols-hi-80 | AutoARIMA/MinTrace_method-ols-hi-90 |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| unique_id |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| Australia | 2016-01-01 | 26212.554688 | 24694.224609 | 25029.580078 | 27395.527344 | 27730.884766 | 24368.099609 | 23674.076441 | 23827.366706 | 24908.832513 | ... | 25205.749397 | 24453.417115 | 24619.586229 | 25791.912565 | 25958.081679 | 26059.047512 | 24978.608364 | 25217.247087 | 26900.847937 | 27139.486661 |
-| Australia | 2016-04-01 | 25033.667969 | 23324.066406 | 23701.669922 | 26365.666016 | 26743.269531 | 22395.921875 | 21629.482078 | 21798.767146 | 22993.076604 | ... | 23720.833190 | 22915.772233 | 23093.587632 | 24348.078748 | 24525.894148 | 24769.464257 | 23554.946551 | 23823.199470 | 25715.729045 | 25983.981963 |
-| Australia | 2016-07-01 | 24507.027344 | 22625.500000 | 23041.076172 | 25972.978516 | 26388.554688 | 22004.169922 | 21182.945074 | 21364.330624 | 22644.009219 | ... | 23167.123691 | 22316.298074 | 22504.221604 | 23830.025777 | 24017.949308 | 24205.855344 | 22870.661086 | 23165.568073 | 25246.142616 | 25541.049603 |
-| Australia | 2016-10-01 | 25598.929688 | 23559.919922 | 24010.281250 | 27187.578125 | 27637.937500 | 22325.056641 | 21456.892977 | 21648.645996 | 23001.467285 | ... | 23982.251913 | 23087.313715 | 23284.980478 | 24679.523348 | 24877.190111 | 25271.861336 | 23825.782311 | 24145.180634 | 26398.542038 | 26717.940362 |
-| Australia | 2017-01-01 | 26982.578125 | 24651.535156 | 25166.396484 | 28798.757812 | 29313.619141 | 23258.001953 | 22296.178714 | 22508.618508 | 24007.385398 | ... | 25002.243615 | 24016.747195 | 24234.415731 | 25770.071498 | 25987.740034 | 26611.143736 | 24959.636647 | 25324.408272 | 27897.879201 | 28262.650825 |
+| 0 | Australia | 2016-01-01 | 26212.553553 | 24705.948180 | 25038.715077 | 27386.392029 | 27719.158927 | 24646.517084 | 23983.656843 | 24130.064091 | ... | 25267.797338 | 24491.630618 | 24663.064091 | 25872.530586 | 26043.964058 | 26082.753488 | 25010.876141 | 25247.623803 | 26917.883174 | 27154.630835 |
+| 1 | Australia | 2016-04-01 | 25033.667125 | 23337.267588 | 23711.954696 | 26355.379554 | 26730.066662 | 22942.957703 | 22229.916838 | 22387.407579 | ... | 23836.804444 | 23002.620214 | 23186.868128 | 24486.740760 | 24670.988674 | 24822.102094 | 23616.734393 | 23882.966332 | 25761.237857 | 26027.469796 |
+| 2 | Australia | 2016-07-01 | 24507.027198 | 22640.028798 | 23052.396413 | 25961.657983 | 26374.025599 | 22568.286488 | 21805.892199 | 21974.283728 | ... | 23294.240908 | 22410.719833 | 22605.864873 | 23982.616942 | 24177.761983 | 24269.578724 | 22944.380043 | 23237.079287 | 25302.078162 | 25594.777406 |
+| 3 | Australia | 2016-10-01 | 25598.928613 | 23575.665243 | 24022.547410 | 27175.309816 | 27622.191983 | 23113.075726 | 22308.671860 | 22486.342127 | ... | 24154.484487 | 23221.706185 | 23427.730766 | 24881.238208 | 25087.262790 | 25340.549923 | 23905.434070 | 24222.410936 | 26458.688911 | 26775.665777 |
+| 4 | Australia | 2017-01-01 | 26982.576796 | 24669.535238 | 25180.421285 | 28784.732308 | 29295.618354 | 23779.264921 | 22874.194227 | 23074.098975 | ... | 25155.001372 | 24125.268915 | 24352.707952 | 25957.294793 | 26184.733830 | 26690.200927 | 25051.352698 | 25413.328335 | 27967.073518 | 28329.049155 |
 
 ## Plot forecasts
 
@@ -252,9 +234,7 @@ Then we can plot the probabilistic forecasts using the following
 function.
 
 ```python
-plot_df = pd.concat([Y_df.set_index(['unique_id', 'ds']), 
-                     Y_rec_df.set_index('ds', append=True)], axis=1)
-plot_df = plot_df.reset_index('ds')
+plot_df = Y_df.merge(Y_rec_df, on=['unique_id', 'ds'], how="outer")
 ```
 
 ### Plot single time series
@@ -268,7 +248,7 @@ hplot.plot_series(
 )
 ```
 
-![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-20-output-1.png)
+![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-19-output-1.png)
 
 ```python
 # Since we are plotting a bottom time series
@@ -282,7 +262,7 @@ hplot.plot_series(
 )
 ```
 
-![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-21-output-1.png)
+![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-20-output-1.png)
 
 ### Plot hierarchichally linked time series
 
@@ -295,7 +275,7 @@ hplot.plot_hierarchically_linked_series(
 )
 ```
 
-![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-22-output-1.png)
+![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-21-output-1.png)
 
 ```python
 # ACT only has Canberra
@@ -307,7 +287,7 @@ hplot.plot_hierarchically_linked_series(
 )
 ```
 
-![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-23-output-1.png)
+![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-22-output-1.png)
 
 ### References
 
