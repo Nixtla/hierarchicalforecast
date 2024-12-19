@@ -17,40 +17,7 @@ more information on the creation of aggregation constraints matrix see
 the utils [aggregation
 method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br/><br/>
 
-# core.HierarchicalReconciliation
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L91"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### init
-
-> ``` text
->  init (reconcilers:list[hierarchicalforecast.methods.HReconciler])
-> ```
-
-\*Hierarchical Reconciliation Class.
-
-The `core.HierarchicalReconciliation` class allows you to efficiently
-fit multiple HierarchicaForecast methods for a collection of time series
-and base predictions stored in pandas DataFrames. The `Y_df` dataframe
-identifies series and datestamps with the unique_id and ds columns while
-the y column denotes the target time series variable. The `Y_h`
-dataframe stores the base predictions, example
-([AutoARIMA](https://nixtla.github.io/statsforecast/models.html#autoarima),
-[ETS](https://nixtla.github.io/statsforecast/models.html#autoets),
-etc.).
-
-**Parameters:**<br/> `reconcilers`: A list of instantiated classes of the
-[reconciliation
-methods](https://nixtla.github.io/hierarchicalforecast/methods.html)
-module .<br/>
-
-**References:**<br/> [Rob J. Hyndman and George Athanasopoulos (2018).
-“Forecasting principles and practice, Hierarchical and Grouped
-Series”.](https://otexts.com/fpp3/hierarchical.html)\*
+# HierarchicalReconciliation
 
 ------------------------------------------------------------------------
 
@@ -197,26 +164,23 @@ reconciled predictions.\*
 # Example
 
 ```python
-import numpy as np
 import pandas as pd
 
-from statsforecast.core import StatsForecast
-from statsforecast.models import AutoETS
-
-from hierarchicalforecast.utils import aggregate
 from hierarchicalforecast.core import HierarchicalReconciliation
 from hierarchicalforecast.methods import BottomUp, MinTrace
-from hierarchicalforecast.evaluation import HierarchicalEvaluation
-
-def mase(y, y_hat, y_insample, seasonality=4):
-    errors = np.mean(np.abs(y - y_hat), axis=1)
-    scale = np.mean(np.abs(y_insample[:, seasonality:] - y_insample[:, :-seasonality]), axis=1)
-    return np.mean(errors / scale)
+from hierarchicalforecast.utils import aggregate
+from hierarchicalforecast.evaluation import evaluate
+from statsforecast.core import StatsForecast
+from statsforecast.models import AutoETS
+from utilsforecast.losses import mase, rmse
+from functools import partial
 
 # Load TourismSmall dataset
 df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
 df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
 df.insert(0, 'Country', 'Australia')
+qs = df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
+df['ds'] = pd.PeriodIndex(qs, freq='Q').to_timestamp()
 
 # Create hierarchical seires based on geographic levels and purpose
 # And Convert quarterly ds string to pd.datetime format
@@ -228,8 +192,6 @@ hierarchy_levels = [['Country'],
                     ['Country', 'State', 'Region', 'Purpose']]
 
 Y_df, S_df, tags = aggregate(df=df, spec=hierarchy_levels)
-qs = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
-Y_df['ds'] = pd.PeriodIndex(qs, freq='Q').to_timestamp()
 
 # Split train/test sets
 Y_test_df  = Y_df.groupby('unique_id').tail(8)
@@ -241,10 +203,10 @@ fcst = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')], freq='QS', 
 Y_hat_df = fcst.forecast(df=Y_train_df, h=8, fitted=True)
 Y_fitted_df = fcst.forecast_fitted_values()
 
-# Reconcile the base predictions
 reconcilers = [
                 BottomUp(),
-               MinTrace(method='mint_shrink'),
+                MinTrace(method='ols'),
+                MinTrace(method='mint_shrink'),
                ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, 
@@ -259,14 +221,15 @@ eval_tags['State'] = tags['Country/State']
 eval_tags['Regions'] = tags['Country/State/Region']
 eval_tags['Bottom'] = tags['Country/State/Region/Purpose']
 
-evaluator = HierarchicalEvaluation(evaluators=[mase])
-evaluation = evaluator.evaluate(
-        Y_hat_df=Y_rec_df, Y_test_df=Y_test_df,
-        tags=eval_tags, Y_df=Y_train_df
-)
-evaluation = evaluation.set_index(['level', 'metric'])
-evaluation = evaluation.map('{:.2f}'.format)
+Y_rec_df_with_y = Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds'], how='left')
+mase_p = partial(mase, seasonality=4)
 
-evaluation
+evaluation = evaluate(Y_rec_df_with_y, 
+         metrics=[mase_p, rmse], 
+         tags=eval_tags, 
+         train_df=Y_train_df)
+
+numeric_cols = evaluation.select_dtypes(include="number").columns
+evaluation[numeric_cols] = evaluation[numeric_cols].map('{:.2f}'.format)
 ```
 
