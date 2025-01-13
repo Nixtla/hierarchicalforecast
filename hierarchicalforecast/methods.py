@@ -13,19 +13,18 @@ from typing import Optional, Union
 
 import clarabel
 import numpy as np
-import osqp
 from quadprog import solve_qp
 from scipy import sparse
 
 # %% ../nbs/src/methods.ipynb 4
+from .probabilistic_methods import PERMBU, Bootstrap, Normality
 from hierarchicalforecast.utils import (
-    is_strictly_hierarchical,
+    _lasso,
     _ma_cov,
     _shrunk_covariance_schaferstrimmer_no_nans,
     _shrunk_covariance_schaferstrimmer_with_nans,
-    _lasso,
+    is_strictly_hierarchical,
 )
-from .probabilistic_methods import Normality, Bootstrap, PERMBU
 
 # %% ../nbs/src/methods.ipynb 6
 class HReconciler:
@@ -1121,8 +1120,6 @@ class MinTraceSparse(MinTrace):
     `nonnegative`: bool, return non-negative reconciled forecasts.<br>
     `num_threads`: int, number of threads to execute non-negative quadratic programming calls.<br>
     `qp`: bool, implement non-negativity constraint with a quadratic programming approach.<br>
-    `fallback`: bool, enable fallback to secondary quadratic programming approach.<br>
-    `eps`: float, absolute and relative tolerance for quadratic programming solvers.<br>
     """
 
     is_sparse_method = True
@@ -1133,8 +1130,6 @@ class MinTraceSparse(MinTrace):
         nonnegative: bool = False,
         num_threads: int = 1,
         qp: bool = True,
-        fallback: bool = True,
-        eps: float = 1e-5,
     ) -> None:
         if method not in ["ols", "wls_struct", "wls_var"]:
             raise NotImplementedError(
@@ -1144,12 +1139,6 @@ class MinTraceSparse(MinTrace):
         super().__init__(method, nonnegative, num_threads=num_threads)
         # Assign the attributes specific to the sparse class.
         self.qp = qp
-        self.fallback = fallback
-        self.eps = eps
-        # Set the testing flags to False.
-        self._debug_osqp = False
-        self._debug_clarabel = False
-        self._debug_partial_solve = False
 
     def _get_PW_matrices(
         self,
@@ -1205,7 +1194,7 @@ class MinTraceSparse(MinTrace):
             # masked_res = np.ma.array(residuals, mask=np.isnan(residuals))
             # covm = np.ma.cov(masked_res, rowvar=False, allow_masked=True).data
 
-            W_diag = np.var(residuals, axis=0, ddof=1)
+            W_diag = np.nanvar(residuals, axis=0, ddof=1)
         else:
             raise ValueError(f"Unknown reconciliation method {self.method}")
 
@@ -1275,6 +1264,11 @@ class MinTraceSparse(MinTrace):
                         )
                     )
                 elif self.method == "wls_var":
+                    # Check that we have the in-sample values.
+                    if y_insample is None or y_hat_insample is None:
+                        raise ValueError(
+                            "`y_insample` and `y_hat_insample` are required to calculate residuals."
+                        )
                     # Add a small jitter to the variance to improve the condition
                     # of the variance matrix.
                     W = sparse.csc_matrix(
@@ -1291,289 +1285,75 @@ class MinTraceSparse(MinTrace):
                 # (n_a x n) constraint matrix in the zero-constrained
                 # represenation, which has the set of all reconciled forecasts
                 # in its null space, and a horizontally stacked (n_b x n_a)
-                # zero matrix and (n_b x n_b) identity matrix.
-                G = sparse.vstack(
+                # zero matrix and a negated (n_b x n_b) identity matrix.
+                A = sparse.vstack(
                     (
                         sparse.hstack(
                             (sparse.eye(n_a, format="csc"), -S[:n_a, :].tocsc())
                         ),
-                        sparse.eye(n_b, n, n_a, format="csc"),
+                        -sparse.eye(n_b, n, n_a, format="csc"),
                     )
                 )
-                # Get the linear constraints vectors. The first n_a constraints
-                # implement coherence and the remaining constrain the decision
-                # vector to the convex, non-negative feasible region of the
-                # solution space.
-                l = np.zeros(n)
-                u = np.hstack((np.zeros(n_a), np.full(n_b, np.inf)))
-                # We can warm start the OSQP solvers with the primal solutions
-                # from the non-negative heuristic. First, we propagate the
-                # weights through the data structure.
-                Q = S.T @ W
-
-                def project_onto_nn_orthant(y: np.ndarray) -> np.ndarray:
-                    # Scale the base forecasts by the propagated weights.
-                    b = Q @ y
-                    # Project the weights down to the bottom level to get the
-                    # quadratic coefficients, but as a linear operator.
-                    A = sparse.linalg.LinearOperator((n_b, n_b), lambda x: Q @ (S @ x))
-                    # We could use a Jacobi preconditioner as the diagonal of A
-                    # is given by the row-wise sums of Q, but it is probably
-                    # not well-suited for diagonal preconditioning for most
-                    # aggregation structures, so just solve the linear system.
-                    x, _ = sparse.linalg.gcrotmk(A, b)
-                    return np.clip(x, 0, None)
-
-                # Get the non-negative P matrix as a linear operator.
-                self.P = sparse.linalg.LinearOperator((n_b, n), project_onto_nn_orthant)
-                # Reconcile the base forecasts to get the primal solutions to
-                # warm start the OSQP solvers with.
-                y_x0 = S @ (self.P @ self.y_hat)
-
-                def calc_obj(
-                    x: np.ndarray,
-                    y: np.ndarray = self.y_hat,
-                    W: sparse.csc_matrix = W,
-                ) -> np.ndarray:
-                    # Calculate the objective value.
-                    return np.sum(0.5 * x * (W @ x) - (W @ y) * x, 0)
-
-                def solve_osqp(
-                    y: np.ndarray,
-                    i: int,
-                    P: sparse.csc_matrix,
-                    A: sparse.csc_matrix,
-                    l: np.ndarray,
-                    u: np.ndarray,
-                    x0: np.ndarray,
-                    n_b: int,
-                ) -> tuple[bool, int, np.ndarray]:
-                    if self._debug_osqp:
-                        warnings.warn(
-                            "Testing flag enabled, primary approach is infeasible."
-                        )
-                        return False, i, np.full(n_b, np.nan)
-                    # Get the linear coefficients, i.e., the cost vector.
-                    q = P @ -y
-                    # Set up the OSQP solver.
-                    solver = osqp.OSQP()
-                    solver.setup(
-                        P,
-                        q,
-                        A,
-                        l,
-                        u,
-                        verbose=False,
-                        eps_abs=self.eps,
-                        eps_rel=self.eps,
-                    )
-                    solver.warm_start(x0)
-                    # Solve the problem.
-                    solution = solver.solve()
-                    # Resolve the solver exit status.
-                    if status := solution.info.status_val in [1, 2]:
-                        # Return the slice of the primal solution that
-                        # represents the (sub)optimal non-negative reconciled
-                        # bottom level forecasts.
-                        return status, i, solution.x[-n_b:]
-                    else:
-                        # As the solver failed, return an array of NaN values.
-                        return status, i, np.full(n_b, np.nan)
+                # Get the linear constraints vector.
+                b = np.zeros(n)
+                # Get the composition of convex cones to solve the problem.
+                cones = [clarabel.ZeroConeT(n_a), clarabel.NonnegativeConeT(n_b)]
+                # Set up the settings for the solver.
+                settings = clarabel.DefaultSettings()
+                settings.verbose = False
 
                 def solve_clarabel(
                     y: np.ndarray,
-                    i: int,
                     P: sparse.csc_matrix,
-                    q: np.ndarray,
                     A: sparse.csc_matrix,
                     b: np.ndarray,
-                    n: int,
+                    cones: list,
+                    settings: clarabel.DefaultSettings,
                     n_b: int,
-                ) -> tuple[bool, int, np.ndarray]:
-                    if self._debug_clarabel:
-                        if self._debug_partial_solve and i == 0:
-                            warnings.warn(
-                                "Testing flag enabled, secondary approach is partially solvable."
-                            )
-                        else:
-                            if not self._debug_partial_solve:
-                                warnings.warn(
-                                    "Testing flag enabled, secondary approach is infeasible."
-                                )
-                            return False, i, np.full(n_b, np.nan)
-                    # Get the linear equality vector.
-                    b = np.hstack((y, b))
-                    # Get the composition of convex cones to solve the fallback
-                    # problem.
-                    cones = [clarabel.ZeroConeT(n), clarabel.NonnegativeConeT(n_b)]
+                ) -> tuple[bool, Optional[np.ndarray]]:
+                    # Get the linear coefficients, i.e., the cost vector.
+                    q = P @ -y
                     # Set up the Clarabel solver.
-                    settings = clarabel.DefaultSettings()
-                    settings.verbose = False
-                    settings.tol_feas = self.eps
-                    settings.tol_gap_abs = self.eps
-                    settings.tol_gap_rel = self.eps
                     solver = clarabel.DefaultSolver(P, q, A, b, cones, settings)
                     # Solve the problem.
                     solution = solver.solve()
                     # Resolve the solver exit status.
-                    if status := solution.status in [
-                        clarabel.SolverStatus.Solved,
-                        clarabel.SolverStatus.AlmostSolved,
-                    ]:
+                    if status := solution.status == clarabel.SolverStatus.Solved:
                         # Return the slice of the primal solution that
-                        # represents the (sub)optimal non-negative reconciled
+                        # represents the optimal non-negative reconciled
                         # bottom level forecasts.
-                        return status, i, solution.x[:n_b]
+                        return status, solution.x[-n_b:]
                     else:
-                        # As the solver failed, return an array of NaN values.
-                        return status, i, np.full(n_b, np.nan)
+                        # As the solver failed, discard the empty primal
+                        # solution.
+                        return status, None
 
-                # The problem above is the primary approach as it is the most
-                # efficient, and will be solved by OSQP with high accuracy.
-                # As a fallback approach, we can formulate the optimisation
-                # problem in an alternative way that still maintains the
-                # sparsity. This can be achieved by creating a new decision
-                # variable, z, to extend the formulation in the Wickramasuriya,
-                # Turlach, and Hyndman paper, that is equal to S @ x - y. The
-                # minimisation is therefore subject to a further constraint,
-                # S @ x - z = y, along with the original non-negativity of the
-                # bottom level forecasts. This increases the number of decision
-                # variables from n to n + n_b and the "nnz" of A by 2 * n_b
-                # relative to the approach above. A new solver, Clarabel, is
-                # used to solve this problem to improve our chance of finding
-                # the optimal non-negative reconciled forecasts.
                 with ThreadPoolExecutor(self.num_threads) as executor:
-                    # Set up the fallback trigger.
-                    trigger = False
                     # Dispatch the jobs.
                     futures = [
-                        executor.submit(solve_osqp, y, i, W, G, l, u, x0, n_b)
-                        for i, (y, x0) in enumerate(
-                            zip(self.y_hat.transpose(), y_x0.transpose())
+                        executor.submit(
+                            solve_clarabel, y, W, A, b, cones, settings, n_b
                         )
+                        for y in self.y_hat.transpose()
                     ]
-                    # Yield the futures as they complete and check the status
-                    # of the solver. This allows us to efficiently start the
-                    # fallback approach with Clarabel if OSQP finds a primal
-                    # problem for a particular horizon step to be infeasible.
+                    # Yield the futures as they complete.
                     for future in as_completed(futures):
-                        # Return the status of the solver and the index.
-                        status, i, _ = future.result()
-                        if not status:
-                            if self.fallback:
-                                # The first infeasible problem detected will
-                                # trigger the fallback to the alternative
-                                # formulation using Clarabel.
-                                if not trigger:
-                                    warnings.warn(
-                                        "Non-negative optimisation failed, falling back to secondary approach."
-                                    )
-                                    # Set the flag to only create the matrices
-                                    # and vectors for the fallback problem
-                                    # once.
-                                    trigger = True
-                                    # Get the quadratic coefficients, i.e., the
-                                    # cost matrix.
-                                    P = sparse.csc_matrix(
-                                        (
-                                            W.data,
-                                            np.arange(
-                                                n_b,
-                                                n + n_b,
-                                                dtype=np.min_scalar_type(n + n_b - 1),
-                                            ),
-                                            np.hstack(
-                                                (
-                                                    np.zeros(
-                                                        n_b, np.min_scalar_type(n)
-                                                    ),
-                                                    np.arange(
-                                                        0,
-                                                        n + 1,
-                                                        dtype=np.min_scalar_type(n),
-                                                    ),
-                                                )
-                                            ),
-                                        )
-                                    )
-                                    # Get the linear coefficients, i.e., the
-                                    # cost vector.
-                                    q = np.zeros(n + n_b)
-                                    # Get the linear constraints matrix and
-                                    # part of the vector that represents the
-                                    # non-negative orthant.
-                                    A = sparse.vstack(
-                                        (
-                                            sparse.hstack(
-                                                (
-                                                    S.tocsc(),
-                                                    -sparse.eye(n, format="csc"),
-                                                )
-                                            ),
-                                            -sparse.eye(n_b, n + n_b, format="csc"),
-                                        )
-                                    )
-                                    b = np.zeros(n_b)
+                        # Return the exit status of the solver and the primal
+                        # solution.
+                        status, x = future.result()
+                        # Check that the problem is successfully solved and the
+                        # primal solution is within tolerance.
+                        if not (status and np.min(x) > -1e-8):
+                            raise Exception("Non-negative optimisation failed.")
 
-                                # Submit a fallback job.
-                                futures[i] = executor.submit(
-                                    solve_clarabel,
-                                    self.y_hat.transpose()[i, :],
-                                    i,
-                                    P,
-                                    q,
-                                    A,
-                                    b,
-                                    n,
-                                    n_b,
-                                )
-
-                if not any(future.result()[0] for future in futures):
-                    warnings.warn(
-                        "Non-negative optimisation failed, falling back to heuristic."
-                    )
-                    # As the non-negative optimisation failed for all horizon
-                    # steps, overwrite the base forecasts with the heuristic
-                    # solution.
-                    self.y_hat = y_x0
-                else:
-                    # Extract the (sub)optimal non-negative reconciled bottom
-                    # level forecasts.
-                    y_x = np.vstack(
-                        [future.result()[2] for future in futures]
-                    ).transpose()
-                    # Clip the negative forecasts.
-                    y_x = np.clip(y_x, 0, None)
-                    # Aggregate the clipped bottom level forecasts.
-                    y_x = S @ y_x
-                    # Find the horizon steps, if any, that beat the baseline
-                    # heuristic solution.
-                    i = np.flatnonzero(calc_obj(y_x) < calc_obj(y_x0) + 2e-8)
-                    # Finalise the non-negative reconciled forecasts.
-                    if len(i) == len(futures):
-                        # As the non-negative optimisation was successful,
-                        # overwrite the base forecasts with the solution.
-                        self.y_hat = y_x
-                    elif len(i) > 0 and len(i) < len(futures):
-                        warnings.warn(
-                            "Non-negative optimisation partially successful, falling back to heuristic."
-                        )
-                        # As some horizon steps have solutions that improve
-                        # upon the baseline heuristic solution, replace these
-                        # horizon steps in the baseline heuristic solution.
-                        y_x0[:, i] = y_x[:, i]
-                        # Overwrite the base forecasts with the solution.
-                        self.y_hat = y_x0
-                    else:
-                        warnings.warn(
-                            "Non-negative optimisation failed, falling back to heuristic."
-                        )
-                        # As the non-negative optimisation failed to improve
-                        # upon the baseline heuristic solution for all horizon
-                        # steps, overwrite the base forecasts with the
-                        # heuristic solution.
-                        self.y_hat = y_x0
-
+                # Extract the optimal non-negative reconciled bottom level
+                # forecasts.
+                x = np.vstack([future.result()[1] for future in futures]).transpose()
+                # Clip the negative forecasts within tolerance.
+                x = np.clip(x, 0, None)
+                # Aggregate the clipped bottom level forecasts and overwrite
+                # the base forecasts with the solution.
+                self.y_hat = S @ x
                 # Overwrite the attributes for the P and W matrices with those
                 # for bottom-up reconciliation to force projection onto the
                 # non-negative coherent subspace.
