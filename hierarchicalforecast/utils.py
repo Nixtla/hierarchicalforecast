@@ -259,7 +259,6 @@ class HierarchicalPlot:
         tags: dict[str, np.ndarray],
         S_id_col: str = "unique_id",
     ):
-
         self.S = nw.from_native(S)
         S_cols_ex_id_col = self.S.columns
         S_cols_ex_id_col.remove(S_id_col)

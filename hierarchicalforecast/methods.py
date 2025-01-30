@@ -84,7 +84,6 @@ class HReconciler:
         level: Optional[list[int]] = None,
         sampler: Optional[Union[Normality, PERMBU, Bootstrap]] = None,
     ):
-
         # Mean reconciliation
         res = {"mean": (S @ (P @ y_hat))}
 
@@ -147,11 +146,9 @@ class HReconciler:
         return samples
 
     def fit(self, *args, **kwargs):
-
         raise NotImplementedError("This method is not implemented yet.")
 
     def fit_predict(self, *args, **kwargs):
-
         raise NotImplementedError("This method is not implemented yet.")
 
     __call__ = fit_predict
@@ -337,7 +334,11 @@ def _reconcile_fcst_proportions(
             fcst_parent = reconciled[idx_parent]
             childs_sum = y_hat[idx_childs].sum()
             for idx_child in idx_childs:
-                reconciled[idx_child] = y_hat[idx_child] * fcst_parent / childs_sum
+                if childs_sum == 0:
+                    n_children = len(idx_childs)
+                    reconciled[idx_child] = fcst_parent / n_children
+                else:
+                    reconciled[idx_child] = y_hat[idx_child] * fcst_parent / childs_sum
     return reconciled
 
 # %% ../nbs/src/methods.ipynb 29
@@ -371,7 +372,6 @@ class TopDown(HReconciler):
         y_insample: np.ndarray,
         tags: Optional[dict[str, np.ndarray]] = None,
     ):
-
         n_hiers, n_bottom = S.shape
 
         # Check if the data structure is strictly hierarchical.
