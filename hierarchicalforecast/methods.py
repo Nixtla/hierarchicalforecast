@@ -337,7 +337,7 @@ def _reconcile_fcst_proportions(
             fcst_parent = reconciled[idx_parent]
             childs_sum = y_hat[idx_childs].sum()
             for idx_child in idx_childs:
-                if childs_sum == 0:
+                if np.abs(childs_sum) < 1e-8:
                     n_children = len(idx_childs)
                     reconciled[idx_child] = fcst_parent / n_children
                 else:
