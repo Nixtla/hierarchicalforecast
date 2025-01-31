@@ -84,6 +84,7 @@ class HReconciler:
         level: Optional[list[int]] = None,
         sampler: Optional[Union[Normality, PERMBU, Bootstrap]] = None,
     ):
+
         # Mean reconciliation
         res = {"mean": (S @ (P @ y_hat))}
 
@@ -146,9 +147,11 @@ class HReconciler:
         return samples
 
     def fit(self, *args, **kwargs):
+
         raise NotImplementedError("This method is not implemented yet.")
 
     def fit_predict(self, *args, **kwargs):
+
         raise NotImplementedError("This method is not implemented yet.")
 
     __call__ = fit_predict
@@ -372,6 +375,7 @@ class TopDown(HReconciler):
         y_insample: np.ndarray,
         tags: Optional[dict[str, np.ndarray]] = None,
     ):
+
         n_hiers, n_bottom = S.shape
 
         # Check if the data structure is strictly hierarchical.

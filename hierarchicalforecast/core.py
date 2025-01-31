@@ -439,9 +439,9 @@ class HierarchicalReconciliation:
                         reconciler_args["sigmah"] = sigmah
 
                     reconciler_args["intervals_method"] = intervals_method
-                    reconciler_args[
-                        "num_samples"
-                    ] = 200  # TODO: solve duplicated num_samples
+                    reconciler_args["num_samples"] = (
+                        200  # TODO: solve duplicated num_samples
+                    )
                     reconciler_args["seed"] = seed
 
                 # Mean and Probabilistic reconciliation
