@@ -1123,7 +1123,8 @@ class MinTraceSparse(MinTrace):
     `method`: str, one of `ols`, `wls_struct`, or `wls_var`.<br>
     `nonnegative`: bool, return non-negative reconciled forecasts.<br>
     `num_threads`: int, number of threads to execute non-negative quadratic programming calls.<br>
-    `qp`: bool, implement non-negativity constraint with a quadratic programming approach.<br>
+    `qp`: bool, implement non-negativity constraint with a quadratic programming approach. Setting
+    this to True generally gives better results, but at the expense of higher cost to compute. <br>
     """
 
     is_sparse_method = True
