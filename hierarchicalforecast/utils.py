@@ -238,7 +238,7 @@ def aggregate(
 
     return Y_df, S_df, tags
 
-# %% ../nbs/src/utils.ipynb 24
+# %% ../nbs/src/utils.ipynb 23
 def aggregate_temporal(
     df: FrameT,
     spec: list[list[str]],
@@ -301,7 +301,7 @@ def aggregate_temporal(
 
     return Y_nw_te.to_native(), S_df_te, tags_te
 
-# %% ../nbs/src/utils.ipynb 27
+# %% ../nbs/src/utils.ipynb 26
 class HierarchicalPlot:
     """Hierarchical Plot
 
@@ -586,7 +586,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/src/utils.ipynb 48
+# %% ../nbs/src/utils.ipynb 47
 # convert levels to output quantile names
 def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -631,7 +631,7 @@ def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../nbs/src/utils.ipynb 49
+# %% ../nbs/src/utils.ipynb 48
 # given input array of sample forecasts and inptut quantiles/levels,
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(
@@ -716,7 +716,7 @@ def samples_to_quantiles_df(
 
     return _quantiles, df_nw.to_native()
 
-# %% ../nbs/src/utils.ipynb 57
+# %% ../nbs/src/utils.ipynb 55
 # Masked empirical covariance matrix
 @njit(
     "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool_, 2, 'C'))",
@@ -754,7 +754,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 
     return W
 
-# %% ../nbs/src/utils.ipynb 54
+# %% ../nbs/src/utils.ipynb 56
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
 
@@ -905,7 +905,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(
 
     return W
 
-# %% ../nbs/src/utils.ipynb 56
+# %% ../nbs/src/utils.ipynb 58
 # Lasso cyclic coordinate descent
 @njit(
     "Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)",
