@@ -350,7 +350,7 @@ def aggregate_temporal(
 
     return Y_df, S_df, tags
 
-# %% ../nbs/src/utils.ipynb 25
+# %% ../nbs/src/utils.ipynb 28
 def make_future_dataframe(
     df: Frame,
     freq: Union[str, int],
@@ -390,7 +390,7 @@ def make_future_dataframe(
     )
     return future_df
 
-# %% ../nbs/src/utils.ipynb 27
+# %% ../nbs/src/utils.ipynb 30
 def get_cross_temporal_tags(
     df: Frame,
     tags_cs: dict[str, np.ndarray],
@@ -441,7 +441,7 @@ def get_cross_temporal_tags(
 
     return df, tags_ct
 
-# %% ../nbs/src/utils.ipynb 30
+# %% ../nbs/src/utils.ipynb 33
 class HierarchicalPlot:
     """Hierarchical Plot
 
@@ -726,7 +726,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/src/utils.ipynb 51
+# %% ../nbs/src/utils.ipynb 54
 # convert levels to output quantile names
 def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -771,7 +771,7 @@ def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../nbs/src/utils.ipynb 52
+# %% ../nbs/src/utils.ipynb 55
 # given input array of sample forecasts and inptut quantiles/levels,
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(
@@ -856,7 +856,7 @@ def samples_to_quantiles_df(
 
     return _quantiles, df_nw.to_native()
 
-# %% ../nbs/src/utils.ipynb 59
+# %% ../nbs/src/utils.ipynb 62
 # Masked empirical covariance matrix
 @njit(
     "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool_, 2, 'C'))",
@@ -894,7 +894,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 
     return W
 
-# %% ../nbs/src/utils.ipynb 60
+# %% ../nbs/src/utils.ipynb 63
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
 
@@ -1045,7 +1045,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(
 
     return W
 
-# %% ../nbs/src/utils.ipynb 62
+# %% ../nbs/src/utils.ipynb 65
 # Lasso cyclic coordinate descent
 @njit(
     "Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)",
