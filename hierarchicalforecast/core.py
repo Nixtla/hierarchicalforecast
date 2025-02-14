@@ -50,6 +50,7 @@ def _reverse_engineer_sigmah(
     id_col: str = "unique_id",
     time_col: str = "ds",
     target_col: str = "y",
+    temporal: bool = False,
 ) -> np.ndarray:
     """
     This function assumes that the model creates prediction intervals
@@ -83,6 +84,8 @@ def _reverse_engineer_sigmah(
     level_col = float(level_cols[-1])
     z = norm.ppf(0.5 + level_col / 200)
     sigmah = Y_hat_df[pi_col].to_numpy().reshape(n_series, -1)
+    if temporal:
+        sigmah = sigmah.T
     sigmah = sign * (sigmah - y_hat) / z
 
     return sigmah
@@ -475,7 +478,10 @@ class HierarchicalReconciliation:
                 if has_level and (level is not None):
                     if intervals_method in ["normality", "permbu"]:
                         sigmah = _reverse_engineer_sigmah(
-                            Y_hat_df=Y_hat_nw, y_hat=y_hat, model_name=model_name
+                            Y_hat_df=Y_hat_nw,
+                            y_hat=y_hat,
+                            model_name=model_name,
+                            temporal=temporal,
                         )
                         reconciler_args["sigmah"] = sigmah
 
