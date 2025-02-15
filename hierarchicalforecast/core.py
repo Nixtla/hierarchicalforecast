@@ -50,6 +50,7 @@ def _reverse_engineer_sigmah(
     id_col: str = "unique_id",
     time_col: str = "ds",
     target_col: str = "y",
+    temporal: bool = False,
 ) -> np.ndarray:
     """
     This function assumes that the model creates prediction intervals
@@ -83,6 +84,8 @@ def _reverse_engineer_sigmah(
     level_col = float(level_cols[-1])
     z = norm.ppf(0.5 + level_col / 200)
     sigmah = Y_hat_df[pi_col].to_numpy().reshape(n_series, -1)
+    if temporal:
+        sigmah = sigmah.T
     sigmah = sign * (sigmah - y_hat) / z
 
     return sigmah
@@ -120,12 +123,41 @@ class HierarchicalReconciliation:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
-    ) -> tuple[FrameT, FrameT, FrameT, list[str]]:
+        id_time_col: str = "temporal_id",
+        temporal: bool = False,
+    ) -> tuple[FrameT, FrameT, FrameT, list[str], str]:
         """
         Performs preliminary wrangling and protections
         """
         Y_hat_nw_cols = Y_hat_nw.columns
         S_nw_cols = S_nw.columns
+
+        # Check if Y_hat_df has the necessary columns for temporal
+        if temporal:
+            if Y_nw is not None:
+                raise NotImplementedError(
+                    "Temporal reconciliation requires `Y_df` to be None."
+                )
+
+            missing_cols_temporal = set(
+                [id_col, time_col, target_col, id_time_col]
+            ) - set(Y_hat_nw_cols)
+            if len(missing_cols_temporal) > 0:
+                raise ValueError(
+                    f"Check `Y_hat_df` columns, for temporal reconciliation {reprlib.repr(missing_cols_temporal)} must be in `Y_hat_df` columns."
+                )
+            if id_time_col not in S_nw_cols:
+                raise ValueError(
+                    f"Check `S_df` columns, {reprlib.repr(id_time_col)} must be in `S_df` columns."
+                )
+            id_cols = [id_col, time_col, target_col, id_time_col]
+            id_col = id_time_col
+        else:
+            id_cols = [id_col, time_col, target_col]
+            if id_col not in S_nw_cols:
+                raise ValueError(
+                    f"Check `S_df` columns, {reprlib.repr(id_col)} must be in `S_df` columns."
+                )
 
         # -------------------------------- Match Y_hat/Y/S index order --------------------------------#
         # TODO: This is now a bit slow as we always sort.
@@ -151,8 +183,18 @@ class HierarchicalReconciliation:
 
         # TODO: this logic should be method specific
         if self.insample or (intervals_method in ["bootstrap", "permbu"]):
+            if temporal:
+                if self.insample:
+                    # TODO: improve error message by mentioning which method isn't supported
+                    raise NotImplementedError(
+                        "Temporal reconciliation is not supported for one or more of the chosen reconcilers"
+                    )
+                if intervals_method in ["bootstrap", "permbu"]:
+                    raise NotImplementedError(
+                        f"Temporal reconciliation does not yet support intervals_method {intervals_method}"
+                    )
             if Y_nw is None:
-                raise Exception("You need to provide `Y_df`.")
+                raise ValueError("You need to provide `Y_df`.")
 
         # Protect level list
         if level is not None:
@@ -163,9 +205,7 @@ class HierarchicalReconciliation:
                 )
 
         # Declare output names
-        model_names = [
-            col for col in Y_hat_nw.columns if col not in [id_col, time_col, target_col]
-        ]
+        model_names = [col for col in Y_hat_nw.columns if col not in id_cols]
 
         # Ensure numeric columns
         for model in model_names:
@@ -228,7 +268,7 @@ class HierarchicalReconciliation:
         unique_ids = Y_hat_nw[id_col].unique().to_numpy()
         S_nw = S_nw.filter(nw.col(id_col).is_in(unique_ids))
 
-        return Y_hat_nw, S_nw, Y_nw, model_names
+        return Y_hat_nw, S_nw, Y_nw, model_names, id_col
 
     def _prepare_Y(
         self,
@@ -277,6 +317,8 @@ class HierarchicalReconciliation:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
+        id_time_col: str = "temporal_id",
+        temporal: bool = False,
     ) -> FrameT:
         """Hierarchical Reconciliation Method.
 
@@ -320,7 +362,7 @@ class HierarchicalReconciliation:
             Y_nw = None
 
         # Check input's validity and sort dataframes
-        Y_hat_nw, S_nw, Y_nw, self.model_names = self._prepare_fit(
+        Y_hat_nw, S_nw, Y_nw, self.model_names, id_col = self._prepare_fit(
             Y_hat_nw=Y_hat_nw,
             S_nw=S_nw,
             Y_nw=Y_nw,
@@ -330,6 +372,8 @@ class HierarchicalReconciliation:
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
+            id_time_col=id_time_col,
+            temporal=temporal,
         )
 
         # Initialize reconciler arguments
@@ -434,7 +478,10 @@ class HierarchicalReconciliation:
                 if has_level and (level is not None):
                     if intervals_method in ["normality", "permbu"]:
                         sigmah = _reverse_engineer_sigmah(
-                            Y_hat_df=Y_hat_nw, y_hat=y_hat, model_name=model_name
+                            Y_hat_df=Y_hat_nw,
+                            y_hat=y_hat,
+                            model_name=model_name,
+                            temporal=temporal,
                         )
                         reconciler_args["sigmah"] = sigmah
 
