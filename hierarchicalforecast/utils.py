@@ -317,6 +317,17 @@ def aggregate_temporal(
         df_nw = df_nw.with_columns(nw.lit(0).alias("y"))
         df = df_nw.to_native()
 
+    # Check if ds column is a timestamp or integer, if not raise an error
+    df_nw = nw.from_native(df)
+    ds_pd = df_nw[time_col].to_pandas()
+    if not pd.api.types.is_datetime64_any_dtype(
+        ds_pd
+    ) and not pd.api.types.is_integer_dtype(ds_pd):
+        raise ValueError(
+            f"Check the dtype of '{time_col}', it must be a timestamp or integer"
+        )
+    df = df_nw.to_native()
+
     # Compute time features
     time_features.remove(time_col)
     df, _ = ufe.time_features(
@@ -390,7 +401,7 @@ def make_future_dataframe(
     )
     return future_df
 
-# %% ../nbs/src/utils.ipynb 30
+# %% ../nbs/src/utils.ipynb 32
 def get_cross_temporal_tags(
     df: Frame,
     tags_cs: dict[str, np.ndarray],
@@ -426,14 +437,22 @@ def get_cross_temporal_tags(
     tags_ct : dict
         Tags for the cross-temporal hierarchies
     """
+    df_nw = nw.from_native(df)
+
+    # Check if relevant columns are present
+    if id_col not in df_nw.columns:
+        raise ValueError(f"Column '{id_col}' not present in df")
+    if id_time_col not in df_nw.columns:
+        raise ValueError(f"Column '{id_time_col}' not present in df")
+
+    # Create cross-temporal tags
     tags_ct = {}
     for key_cs, value_cs in tags_cs.items():
         for key_te, value_te in tags_te.items():
-            key_ct = key_cs + "//" + key_te
-            value_ct = list("//".join(s) for s in itertools.product(value_cs, value_te))
+            key_ct = key_cs + sep + key_te
+            value_ct = list(sep.join(s) for s in itertools.product(value_cs, value_te))
             tags_ct[key_ct] = value_ct
 
-    df_nw = nw.from_native(df)
     df_nw = df_nw.with_columns(
         **{cross_temporal_id_col: df_nw[id_col] + sep + df_nw[id_time_col]}
     )
@@ -441,7 +460,7 @@ def get_cross_temporal_tags(
 
     return df, tags_ct
 
-# %% ../nbs/src/utils.ipynb 33
+# %% ../nbs/src/utils.ipynb 37
 class HierarchicalPlot:
     """Hierarchical Plot
 
@@ -726,7 +745,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/src/utils.ipynb 54
+# %% ../nbs/src/utils.ipynb 58
 # convert levels to output quantile names
 def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -771,7 +790,7 @@ def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../nbs/src/utils.ipynb 55
+# %% ../nbs/src/utils.ipynb 59
 # given input array of sample forecasts and inptut quantiles/levels,
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(
@@ -856,7 +875,7 @@ def samples_to_quantiles_df(
 
     return _quantiles, df_nw.to_native()
 
-# %% ../nbs/src/utils.ipynb 62
+# %% ../nbs/src/utils.ipynb 66
 # Masked empirical covariance matrix
 @njit(
     "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool_, 2, 'C'))",
@@ -894,7 +913,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 
     return W
 
-# %% ../nbs/src/utils.ipynb 63
+# %% ../nbs/src/utils.ipynb 67
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
 
@@ -1045,7 +1064,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(
 
     return W
 
-# %% ../nbs/src/utils.ipynb 65
+# %% ../nbs/src/utils.ipynb 69
 # Lasso cyclic coordinate descent
 @njit(
     "Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)",
