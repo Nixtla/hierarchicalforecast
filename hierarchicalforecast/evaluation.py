@@ -4,7 +4,6 @@
 __all__ = ['evaluate']
 
 # %% ../nbs/src/evaluation.ipynb 3
-import itertools
 import narwhals as nw
 import numpy as np
 import utilsforecast.evaluation as ufe
@@ -499,14 +498,12 @@ def evaluate(
     df: FrameT,
     metrics: list[Callable],
     tags: Optional[dict[str, np.ndarray]] = None,
-    tags_te: Optional[dict[str, np.ndarray]] = None,
     models: Optional[list[str]] = None,
     train_df: Optional[FrameT] = None,
     level: Optional[list[int]] = None,
     id_col: str = "unique_id",
     time_col: str = "ds",
     target_col: str = "y",
-    id_time_col: str = "temporal_id",
     agg_fn: Optional[str] = "mean",
     benchmark: Optional[str] = None,
 ) -> FrameT:
@@ -521,8 +518,6 @@ def evaluate(
         Functions with arguments `df`, `models`, `id_col`, `target_col` and optionally `train_df`.
     tags : dict
         Each key is a level in the hierarchy and its value contains tags associated to that level.
-    tags_te : dict
-        Each key is a level in the temporal hierarchy and its value contains tags associated to that level.
     models : list of str, optional (default=None)
         Names of the models to evaluate.
         If `None` will use every column in the dataframe after removing id, time and target.
@@ -536,8 +531,6 @@ def evaluate(
         Column that identifies each timestep, its values can be timestamps or integers.
     target_col : str (default='y')
         Column that contains the target.
-    id_time_col : str (default='temporal_id')
-        Column that identifies each aggregated timestep.
     agg_fn : str, optional (default="mean")
         Statistic to compute on the scores by id to reduce them to a single number.
     benchmark : str, optional (default=None)
@@ -556,38 +549,6 @@ def evaluate(
         model_cols = None
 
     df_nw = nw.from_native(df)
-
-    # Check tags
-    if tags is None and tags_te is None:
-        raise ValueError("Either tags or tags_te must be provided")
-
-    if tags is not None and id_col not in df_nw.columns:
-        raise ValueError(f"Column '{id_col}' not found in df")
-
-    if tags_te is not None and id_time_col not in df_nw.columns:
-        raise ValueError(f"Column '{id_time_col}' not found in df")
-
-    # Create joint tags if both are provided
-    if tags is not None and tags_te is not None:
-        tags_ct = {}
-        for key_cs, value_cs in tags.items():
-            for key_te, value_te in tags_te.items():
-                key_ct = key_cs + "//" + key_te
-                value_ct = list(
-                    "//".join(s) for s in itertools.product(value_cs, value_te)
-                )
-                tags_ct[key_ct] = value_ct
-        tags = tags_ct
-        df_nw = df_nw.with_columns(
-            **{"cross_temporal_id": df_nw[id_col] + "//" + df_nw[time_col]}
-        )
-        id_col = "cross_temporal_id"
-    elif tags_te is not None:
-        tags = tags_te
-        df_nw = df_nw.drop(id_col, strict=False)
-        id_col = id_time_col
-    elif tags is not None:
-        df_nw = df_nw.drop(id_time_col, strict=False)
 
     if train_df is not None:
         train_nw = nw.from_native(train_df)
