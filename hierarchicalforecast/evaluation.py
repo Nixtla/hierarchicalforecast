@@ -549,7 +549,6 @@ def evaluate(
         model_cols = None
 
     df_nw = nw.from_native(df)
-
     if train_df is not None:
         train_nw = nw.from_native(train_df)
     tag_scores = []

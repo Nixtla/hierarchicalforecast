@@ -346,7 +346,7 @@ def aggregate_temporal(
     )
     Y_nw = nw.from_native(Y_df)
 
-    # Add unique_id_ds column to Y_df
+    # Add id_time_col column to Y_df
     # This is a bit dirty but Narwhals does not support string splitting
     timestamps = pd.to_datetime(
         Y_nw[id_time_col].to_pandas().str.split("/").str[-1], format="mixed"
