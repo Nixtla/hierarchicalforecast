@@ -497,7 +497,7 @@ class HierarchicalEvaluation:
 def evaluate(
     df: FrameT,
     metrics: list[Callable],
-    tags: Optional[dict[str, np.ndarray]] = None,
+    tags: dict[str, np.ndarray],
     models: Optional[list[str]] = None,
     train_df: Optional[FrameT] = None,
     level: Optional[list[int]] = None,
@@ -553,8 +553,7 @@ def evaluate(
     if train_df is not None:
         train_nw = nw.from_native(train_df)
     tag_scores = []
-    if tags is not None:
-        tags_ = {**tags, "Overall": np.concatenate(list(tags.values()))}
+    tags_ = {**tags, "Overall": np.concatenate(list(tags.values()))}
 
     eps = np.finfo(np.float32).eps
 
