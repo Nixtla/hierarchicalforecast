@@ -401,11 +401,6 @@ class HierarchicalReconciliation:
                     .astype(np.float64, copy=False)
                 )
 
-            has_fitted = (
-                "y_hat_insample" in signature(reconciler.fit_predict).parameters
-            )
-            has_level = "level" in signature(reconciler.fit_predict).parameters
-
             for model_name in self.model_names:
                 start = time.time()
                 recmodel_name = f"{model_name}/{reconcile_fn_name}"
@@ -423,36 +418,20 @@ class HierarchicalReconciliation:
                 )
                 reconciler_args["y_hat"] = y_hat
 
-                if (reconciler.insample and has_fitted) or intervals_method in [
-                    "bootstrap",
-                    "permbu",
-                ]:
-                    # We don't require insample predictions for topdown methods if they are not provided, we just use the historical actuals
-                    if (
-                        model_name not in Y_nw.columns
-                        and "topdown" in reconcile_fn_name.lower()
-                    ):
-                        model_cols = [id_col, time_col, target_col]
-                        y_hat_insample = self._prepare_Y(
-                            Y_nw=Y_nw[model_cols],
-                            S_nw=S_nw,
-                            is_balanced=is_balanced,
-                            id_col=id_col,
-                            time_col=time_col,
-                            target_col=target_col,
-                        )
-                    else:
-                        y_hat_insample = self._prepare_Y(
-                            Y_nw=Y_nw[model_cols],
-                            S_nw=S_nw,
-                            is_balanced=is_balanced,
-                            id_col=id_col,
-                            time_col=time_col,
-                            target_col=model_name,
-                        )
+                # if (reconciler.insample and has_fitted) or intervals_method in ['bootstrap', 'permbu']:
+                # pass
+                if model_name in Y_nw.columns:
+                    y_hat_insample = self._prepare_Y(
+                        Y_nw=Y_nw[model_cols],
+                        S_nw=S_nw,
+                        is_balanced=is_balanced,
+                        id_col=id_col,
+                        time_col=time_col,
+                        target_col=model_name,
+                    )
                     reconciler_args["y_hat_insample"] = y_hat_insample
 
-                if has_level and (level is not None):
+                if level is not None:
                     if intervals_method in ["normality", "permbu"]:
                         sigmah = _reverse_engineer_sigmah(
                             Y_hat_df=Y_hat_nw, y_hat=y_hat, model_name=model_name
