@@ -39,6 +39,8 @@ def main():
                    OptimalCombination(method='ols'),
                    OptimalCombination(method='wls_struct'),
                    ERM(method='closed'),
+                   ERM(method='reg'),
+                   ERM(method='reg_bu'),
     ]
     hrec = HierarchicalReconciliation(reconcilers=reconcilers)
     Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df,
