@@ -418,9 +418,7 @@ class HierarchicalReconciliation:
                 )
                 reconciler_args["y_hat"] = y_hat
 
-                # if (reconciler.insample and has_fitted) or intervals_method in ['bootstrap', 'permbu']:
-                # pass
-                if model_name in Y_nw.columns:
+                if Y_nw is not None and model_name in Y_nw.columns:
                     y_hat_insample = self._prepare_Y(
                         Y_nw=Y_nw[model_cols],
                         S_nw=S_nw,
