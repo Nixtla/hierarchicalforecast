@@ -656,12 +656,15 @@ class MiddleOut(HReconciler):
         `y_hat`: Forecast values of size (`base`, `horizon`).<br>
         `tags`: Each key is a level and each value its `S` indices.<br>
         `y_insample`: Insample values of size (`base`, `insample_size`). Only used for `forecast_proportions`<br>
-        `level`: deprecated. <br>
-        `intervals_method`: deprecated.<br>
+        `level`: Not supported. <br>
+        `intervals_method`: Not supported.<br>
 
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the Middle Out approach.
         """
+        if level is not None or intervals_method is not None:
+            raise ValueError("Prediction intervals not implemented for `MiddleOut`")
+
         if not is_strictly_hierarchical(S, tags):
             raise ValueError(
                 "Middle out reconciliation requires strictly hierarchical structures."
@@ -766,6 +769,9 @@ class MiddleOutSparse(MiddleOut):
         **Returns:**<br>
         `y_tilde`: Reconciliated y_hat using the Middle Out Sparse approach.
         """
+        if level is not None or intervals_method is not None:
+            raise ValueError("Prediction intervals not implemented for `MiddleOut`")
+
         # Check if the data structure is strictly hierarchical.
         if not is_strictly_hierarchical(S, tags):
             raise ValueError(
