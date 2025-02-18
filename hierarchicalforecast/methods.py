@@ -140,7 +140,7 @@ class HReconciler:
         if not self.fitted:
             raise Exception("This model instance is not fitted yet, Call fit method.")
         if self.sampler is None:
-            raise Exception(
+            raise ValueError(
                 "This model instance does not have sampler. Call fit with `intervals_method`."
             )
 
@@ -409,9 +409,11 @@ class TopDown(HReconciler):
         elif self.method == "proportion_averages":
             prop = np.mean(y_btm, axis=1) / np.mean(y_top)
         elif self.method == "forecast_proportions":
-            raise Exception(f"Fit method not implemented for {self.method} yet")
+            raise NotImplementedError(
+                f"Fit method not implemented for {self.method} yet"
+            )
         else:
-            raise Exception(f"Unknown method {self.method}")
+            raise ValueError(f"Unknown method {self.method}")
 
         P = np.zeros_like(
             S, np.float64
@@ -424,7 +426,7 @@ class TopDown(HReconciler):
         self,
         S,
         y_hat,
-        y_insample: Optional[np.ndarray] = None,
+        y_insample: np.ndarray,
         y_hat_insample: Optional[np.ndarray] = None,
         sigmah: Optional[np.ndarray] = None,
         intervals_method: Optional[str] = None,
@@ -632,13 +634,13 @@ class MiddleOut(HReconciler):
         ]
 
     def _get_PW_matrices(self, **kwargs):
-        raise Exception("Not implemented")
+        raise NotImplementedError("Not implemented")
 
     def fit(self, **kwargs):
-        raise Exception("Not implemented")
+        raise NotImplementedError("Not implemented")
 
     def predict(self, **kwargs):
-        raise Exception("Not implemented")
+        raise NotImplementedError("Not implemented")
 
     def fit_predict(
         self,
@@ -663,7 +665,9 @@ class MiddleOut(HReconciler):
         `y_tilde`: Reconciliated y_hat using the Middle Out approach.
         """
         if level is not None or intervals_method is not None:
-            raise ValueError("Prediction intervals not implemented for `MiddleOut`")
+            raise NotImplementedError(
+                "Prediction intervals are not implemented for `MiddleOut`"
+            )
 
         if not is_strictly_hierarchical(S, tags):
             raise ValueError(
@@ -1126,11 +1130,13 @@ class MinTrace(HReconciler):
         """
         if self.nonnegative:
             if (level is not None) and intervals_method in ["bootstrap", "permbu"]:
-                raise Exception(
-                    "nonnegative reconciliation is not compatible with bootstrap forecasts"
+                raise ValueError(
+                    "nonnegative reconciliation is not compatible with bootstrap or permbu forecasts"
                 )
             if idx_bottom is None:
-                raise Exception("idx_bottom needed for nonnegative reconciliation")
+                raise ValueError(
+                    "`idx_bottom` cannot be None with nonnegative reconciliation"
+                )
 
         # Fit creates P, W and sampler attributes
         self.fit(
