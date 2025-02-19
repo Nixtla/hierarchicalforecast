@@ -57,6 +57,13 @@
             "examples/tourismlarge-evaluation.html"
           ]
         },
+        {
+          "group": "Temporal Reconciliation",
+          "pages": [
+            "examples/australiandomestictourismtemporal.html",
+            "examples/australiandomestictourismcrosstemporal.html"
+          ]
+        },        
         "examples/mlframeworksexample.html"
       ]
     },
