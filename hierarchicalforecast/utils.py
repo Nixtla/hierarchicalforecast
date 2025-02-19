@@ -343,14 +343,6 @@ def aggregate_temporal(
             f"Check the last (bottom) level of spec, it has missing time features: {reprlib.repr(missing_time_features_in_bottom_spec)}"
         )
 
-    # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
-    add_placeholder = False
-    if set(df.columns) == set([time_col, id_col]):
-        add_placeholder = True
-        df_nw = nw.from_native(df)
-        df_nw = df_nw.with_columns(nw.lit(0).alias("y"))
-        df = df_nw.to_native()
-
     # Check if ds column is a timestamp or integer, if not raise an error
     df_nw = nw.from_native(df)
     ds_pd = df_nw[time_col].to_pandas()
@@ -360,6 +352,15 @@ def aggregate_temporal(
         raise ValueError(
             f"Check the dtype of '{time_col}', it must be a timestamp or integer"
         )
+
+    # Check if every series is present for each timestamp
+
+    # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
+    add_placeholder = False
+    if set(df.columns) == set([time_col, id_col]):
+        add_placeholder = True
+        df_nw = df_nw.with_columns(nw.lit(0).alias("y"))
+
     # Get unique bottom-level timestamps
     unique_ds_bottom = df_nw.select(time_col).unique().sort(by=time_col)
     unique_ds_bottom = nw.maybe_reset_index(unique_ds_bottom)
@@ -524,7 +525,7 @@ def get_cross_temporal_tags(
 
     return df, tags_ct
 
-# %% ../nbs/src/utils.ipynb 39
+# %% ../nbs/src/utils.ipynb 40
 class HierarchicalPlot:
     """Hierarchical Plot
 
@@ -809,7 +810,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/src/utils.ipynb 60
+# %% ../nbs/src/utils.ipynb 61
 # convert levels to output quantile names
 def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -854,7 +855,7 @@ def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../nbs/src/utils.ipynb 61
+# %% ../nbs/src/utils.ipynb 62
 # given input array of sample forecasts and inptut quantiles/levels,
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(
@@ -939,7 +940,7 @@ def samples_to_quantiles_df(
 
     return _quantiles, df_nw.to_native()
 
-# %% ../nbs/src/utils.ipynb 68
+# %% ../nbs/src/utils.ipynb 69
 # Masked empirical covariance matrix
 @njit(
     "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool_, 2, 'C'))",
@@ -977,7 +978,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 
     return W
 
-# %% ../nbs/src/utils.ipynb 69
+# %% ../nbs/src/utils.ipynb 70
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
 
@@ -1128,7 +1129,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(
 
     return W
 
-# %% ../nbs/src/utils.ipynb 71
+# %% ../nbs/src/utils.ipynb 72
 # Lasso cyclic coordinate descent
 @njit(
     "Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)",
