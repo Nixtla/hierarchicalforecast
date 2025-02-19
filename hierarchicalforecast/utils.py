@@ -337,6 +337,7 @@ def aggregate_temporal(
         df=df, freq=freq, h=0, features=time_features, time_col=time_col, id_col=id_col
     )
 
+    # Now that we have the time features, we prefix them with the feature name. This is to avoid duplicate tags, e.g. quarter and month can give a feature value (=tag) with a value of 1 for both. If we would later on filter based on tag values in our forecasting pipeline, we would not be able to distinguish between the two.
     df_nw = nw.from_native(df)
     for feature in time_features:
         df_nw = df_nw.with_columns(nw.lit(feature).alias(f"{feature}_name"))
@@ -360,7 +361,7 @@ def aggregate_temporal(
     )
     Y_nw = nw.from_native(Y_df)
 
-    # Add the timestamps to the aggregated DataFrame
+    # Add the timestamps for each aggregation to the aggregated DataFrame. The strategy is to add the bottom-level timestamps where the step size is determined by the number of unique timestamps for each tag. r
     timestamps = []
     for tag in tags:
         unique_ds_tag = (
@@ -371,7 +372,7 @@ def aggregate_temporal(
         )
         unique_ds_tag = nw.maybe_reset_index(unique_ds_tag)
         n_unique_ds_tag = len(unique_ds_tag)
-        step_size = n_unique_ds_bottom // n_unique_ds_tag
+        step_size = int(np.ceil(n_unique_ds_bottom / n_unique_ds_tag))
         idxs = [i for i in range(0, n_unique_ds_bottom, step_size)]
         unique_ds_bottom_tag = nw.maybe_reset_index(unique_ds_bottom[idxs])
         timestamps_tag = nw.concat(
