@@ -86,6 +86,7 @@ def aggregate(
     id_col: str = "unique_id",
     time_col: str = "ds",
     target_cols: list[str] = ["y"],
+    maintain_order: bool = False,
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function.
     Aggregates bottom level series contained in the DataFrame `df` according
@@ -109,6 +110,8 @@ def aggregate(
         Column that identifies each timestep, its values can be timestamps or integers.
     target_cols : (default=['y'])
         list of columns that contains the targets to aggregate.
+    maintain_order : bool (default=False)
+        If True, the order of the input dataframe will be maintained in the output dataframe. If False, the output dataframe will be sorted by the id_col and time_col.
 
     Returns
     -------
@@ -197,12 +200,36 @@ def aggregate(
         level_name = level_sep.join(level)
 
         # Create Y_df
-        Y_level = df_nw.group_by(level + [time_col]).agg(
-            *[
-                getattr(nw.col(col), agg)().alias(col_name)
-                for col_name, (col, agg) in agg_dict.items()
-            ]
-        )
+        # For temporal reconciliation, we need to maintain order
+        # Unforunately, Narwhals does not support maintain_order=True in group_by, so we need to convert to Pandas/Polars
+        if maintain_order:
+            if backend == nw.Implementation.POLARS:
+                import polars as pl
+
+                df_pl = df_nw.to_native()
+                Y_level_pl = df_pl.group_by(
+                    level + [time_col], maintain_order=True
+                ).agg(
+                    *[
+                        getattr(pl.col(col), agg)().alias(col_name)
+                        for col_name, (col, agg) in agg_dict.items()
+                    ]
+                )
+                Y_level = nw.from_native(Y_level_pl)
+            elif backend == nw.Implementation.PANDAS:
+                df_pd = df_nw.to_native()
+                Y_level_pd = df_pd.groupby(
+                    level + [time_col], sort=False, as_index=False, observed=True
+                ).agg(**agg_dict)
+                Y_level = nw.from_native(Y_level_pd)
+        else:
+            Y_level = df_nw.group_by(level + [time_col]).agg(
+                *[
+                    getattr(nw.col(col), agg)().alias(col_name)
+                    for col_name, (col, agg) in agg_dict.items()
+                ]
+            )
+
         Y_level = Y_level.select(
             nw.concat_str([nw.col(col) for col in level], separator=level_sep).alias(
                 id_col
@@ -210,10 +237,17 @@ def aggregate(
             nw.all(),
         )
         Y_level = Y_level[[id_col, time_col, *target_cols] + exog_var_names]
-        Y_level = Y_level.sort(by=[id_col, time_col])
-        Y_nws.append(Y_level)
+        if maintain_order:
+            tags[level_name] = (
+                Y_level[id_col].unique(maintain_order=maintain_order).to_numpy()
+            )
+        else:
+            Y_level = Y_level.sort(by=[id_col, time_col])
+            tags[level_name] = (
+                Y_level[id_col].unique(maintain_order=maintain_order).sort().to_numpy()
+            )
 
-        tags[level_name] = Y_level[id_col].unique().sort().to_numpy()
+        Y_nws.append(Y_level)
         category_list.extend(tags[level_name])
 
     Y_nw = nw.concat(Y_nws, how="vertical")
@@ -358,17 +392,17 @@ def aggregate_temporal(
         id_col=id_time_col,
         target_cols=target_cols,
         time_col=id_col,
+        maintain_order=True,
     )
     Y_nw = nw.from_native(Y_df)
 
-    # Add the timestamps for each aggregation to the aggregated DataFrame. The strategy is to add the bottom-level timestamps where the step size is determined by the number of unique timestamps for each tag. r
+    # Add the timestamps for each aggregation to the aggregated DataFrame. The strategy is to add the bottom-level timestamps per level where the step size between each timestep is determined by the number of unique timestamps for each tag. Thus, we assume that the timestamps of the temporal aggregations are evenly spaced, starting from the first bottom timestamp.
     timestamps = []
     for tag in tags:
         unique_ds_tag = (
             Y_nw.filter(nw.col(id_time_col).is_in(tags[tag]))
             .select(nw.col(id_time_col))
-            .unique()
-            .sort(by=[id_time_col])
+            .unique(maintain_order=True)
         )
         unique_ds_tag = nw.maybe_reset_index(unique_ds_tag)
         n_unique_ds_tag = len(unique_ds_tag)
@@ -490,7 +524,7 @@ def get_cross_temporal_tags(
 
     return df, tags_ct
 
-# %% ../nbs/src/utils.ipynb 37
+# %% ../nbs/src/utils.ipynb 39
 class HierarchicalPlot:
     """Hierarchical Plot
 
@@ -775,7 +809,7 @@ class HierarchicalPlot:
         plt.grid()
         plt.show()
 
-# %% ../nbs/src/utils.ipynb 58
+# %% ../nbs/src/utils.ipynb 60
 # convert levels to output quantile names
 def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
@@ -820,7 +854,7 @@ def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../nbs/src/utils.ipynb 59
+# %% ../nbs/src/utils.ipynb 61
 # given input array of sample forecasts and inptut quantiles/levels,
 # output a Pandas Dataframe with columns of quantile predictions
 def samples_to_quantiles_df(
@@ -905,7 +939,7 @@ def samples_to_quantiles_df(
 
     return _quantiles, df_nw.to_native()
 
-# %% ../nbs/src/utils.ipynb 66
+# %% ../nbs/src/utils.ipynb 68
 # Masked empirical covariance matrix
 @njit(
     "Array(float64, 2, 'F')(Array(float64, 2, 'C'), Array(bool_, 2, 'C'))",
@@ -943,7 +977,7 @@ def _ma_cov(residuals: np.ndarray, not_nan_mask: np.ndarray):
 
     return W
 
-# %% ../nbs/src/utils.ipynb 67
+# %% ../nbs/src/utils.ipynb 69
 # Shrunk covariance matrix using the Schafer-Strimmer method
 
 
@@ -1094,7 +1128,7 @@ def _shrunk_covariance_schaferstrimmer_with_nans(
 
     return W
 
-# %% ../nbs/src/utils.ipynb 69
+# %% ../nbs/src/utils.ipynb 71
 # Lasso cyclic coordinate descent
 @njit(
     "Array(float64, 1, 'C')(Array(float64, 2, 'C'), Array(float64, 1, 'C'), float64, int64, float64)",
