@@ -133,9 +133,22 @@ class HierarchicalReconciliation:
 
         # Check if Y_hat_df has the necessary columns for temporal
         if temporal:
+            # We don't support insample methods, so Y_df must be None
             if Y_nw is not None:
                 raise NotImplementedError(
                     "Temporal reconciliation requires `Y_df` to be None."
+                )
+            # If Y_nw is None, we need to check if the reconcilers are not insample methods
+            for reconciler in self.orig_reconcilers:
+                if reconciler.insample:
+                    reconciler_name = _build_fn_name(reconciler)
+                    raise NotImplementedError(
+                        f"Temporal reconciliation is not supported for `{reconciler_name}`."
+                    )
+            # Hence we also don't support bootstrap or permbu (rely on insample values)
+            if intervals_method in ["bootstrap", "permbu"]:
+                raise NotImplementedError(
+                    f"Temporal reconciliation is not supported for intervals_method=`{intervals_method}`."
                 )
 
             missing_cols_temporal = set(
@@ -180,6 +193,7 @@ class HierarchicalReconciliation:
         if intervals_method not in ["normality", "bootstrap", "permbu"]:
             raise ValueError(f"Unknown interval method: {intervals_method}")
 
+        # Check absence of Y_nw for insample reconcilers
         if Y_nw is None:
             for reconciler in self.orig_reconcilers:
                 if reconciler.insample:
@@ -188,7 +202,9 @@ class HierarchicalReconciliation:
                         f"You need to provide `Y_df` for reconciler {reconciler_name}"
                     )
             if intervals_method in ["bootstrap", "permbu"]:
-                raise ValueError("You need to provide `Y_df`.")
+                raise ValueError(
+                    f"You need to provide `Y_df` when using intervals_method=`{intervals_method}`."
+                )
 
         # Protect level list
         if level is not None:

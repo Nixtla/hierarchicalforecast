@@ -121,7 +121,7 @@ def aggregate(
     """
     # To Narwhals
     df_nw = nw.from_native(df)
-    native_namespace = nw.get_native_namespace(df_nw)
+    backend = df_nw.implementation
 
     # Checks
     # Generate order-preserving list of unique cols based on spec
@@ -194,7 +194,7 @@ def aggregate(
     level_sep = "/"
     # Perform the aggregation
     for level in spec:
-        level_name = "/".join(level)
+        level_name = level_sep.join(level)
 
         # Create Y_df
         Y_level = df_nw.group_by(level + [time_col]).agg(
@@ -226,7 +226,7 @@ def aggregate(
     S = np.empty((len(bottom_levels), len(spec)), dtype=object)
 
     for j, levels in enumerate(spec[:-1]):
-        S[:, j] = _to_upper_hierarchy(bottom, bottom_levels, "/".join(levels))
+        S[:, j] = _to_upper_hierarchy(bottom, bottom_levels, level_sep.join(levels))
     S[:, -1] = tags[level_name]
     categories = list(tags.values())
 
@@ -241,7 +241,7 @@ def aggregate(
                 **{id_col: category_list},
                 **dict(zip(tags[level_name], S_dum)),
             },
-            native_namespace=native_namespace,
+            backend=backend,
         )
         S_nw = nw.maybe_reset_index(S_nw)
         S_df = S_nw.to_native()
@@ -326,13 +326,27 @@ def aggregate_temporal(
         raise ValueError(
             f"Check the dtype of '{time_col}', it must be a timestamp or integer"
         )
-    df = df_nw.to_native()
+    # Get unique bottom-level timestamps
+    unique_ds_bottom = df_nw.select(time_col).unique().sort(by=time_col)
+    unique_ds_bottom = nw.maybe_reset_index(unique_ds_bottom)
+    n_unique_ds_bottom = len(unique_ds_bottom)
 
     # Compute time features
     time_features.remove(time_col)
     df, _ = ufe.time_features(
         df=df, freq=freq, h=0, features=time_features, time_col=time_col, id_col=id_col
     )
+
+    df_nw = nw.from_native(df)
+    for feature in time_features:
+        df_nw = df_nw.with_columns(nw.lit(feature).alias(f"{feature}_name"))
+        df_nw = df_nw.with_columns(
+            nw.concat_str(
+                [nw.col(f"{feature}_name"), nw.col(feature)], separator="-"
+            ).alias(feature)
+        )
+        df_nw = df_nw.drop(f"{feature}_name")
+    df = df_nw.to_native()
 
     # Create the aggregation
     Y_df, S_df, tags = aggregate(
@@ -346,12 +360,27 @@ def aggregate_temporal(
     )
     Y_nw = nw.from_native(Y_df)
 
-    # Add id_time_col column to Y_df
-    # This is a bit dirty but Narwhals does not support string splitting
-    timestamps = pd.to_datetime(
-        Y_nw[id_time_col].to_pandas().str.split("/").str[-1], format="mixed"
-    ).values
-    Y_nw = Y_nw.with_columns(**{time_col: timestamps})
+    # Add the timestamps to the aggregated DataFrame
+    timestamps = []
+    for tag in tags:
+        unique_ds_tag = (
+            Y_nw.filter(nw.col(id_time_col).is_in(tags[tag]))
+            .select(nw.col(id_time_col))
+            .unique()
+            .sort(by=[id_time_col])
+        )
+        unique_ds_tag = nw.maybe_reset_index(unique_ds_tag)
+        n_unique_ds_tag = len(unique_ds_tag)
+        step_size = n_unique_ds_bottom // n_unique_ds_tag
+        idxs = [i for i in range(0, n_unique_ds_bottom, step_size)]
+        unique_ds_bottom_tag = nw.maybe_reset_index(unique_ds_bottom[idxs])
+        timestamps_tag = nw.concat(
+            [unique_ds_tag, unique_ds_bottom_tag], how="horizontal"
+        )
+        timestamps.append(timestamps_tag)
+
+    timestamps_nw = nw.concat(timestamps, how="vertical")
+    Y_nw = Y_nw.join(timestamps_nw, on=[id_time_col], how="left")
 
     # Drop the placeholder column if it was added
     if add_placeholder:
