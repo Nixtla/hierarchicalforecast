@@ -19,6 +19,8 @@ from scipy import sparse
 # %% ../nbs/src/methods.ipynb 4
 from .probabilistic_methods import PERMBU, Bootstrap, Normality
 from hierarchicalforecast.utils import (
+    _construct_adjacency_matrix,
+    _is_strictly_hierarchical,
     _lasso,
     _ma_cov,
     _shrunk_covariance_schaferstrimmer_no_nans,
@@ -308,7 +310,7 @@ class BottomUpSparse(BottomUp):
             W = sparse.eye(n_hiers, dtype=np.float64, format="csr")
         return P, W
 
-# %% ../nbs/src/methods.ipynb 27
+# %% ../nbs/src/methods.ipynb 28
 def _get_child_nodes(
     S: Union[np.ndarray, sparse.csr_matrix], tags: dict[str, np.ndarray]
 ):
@@ -330,7 +332,7 @@ def _get_child_nodes(
         nodes[level] = nodes_level
     return nodes
 
-# %% ../nbs/src/methods.ipynb 28
+# %% ../nbs/src/methods.ipynb 29
 def _reconcile_fcst_proportions(
     S: np.ndarray,
     y_hat: np.ndarray,
@@ -354,7 +356,7 @@ def _reconcile_fcst_proportions(
                     reconciled[idx_child] = y_hat[idx_child] * fcst_parent / childs_sum
     return reconciled
 
-# %% ../nbs/src/methods.ipynb 29
+# %% ../nbs/src/methods.ipynb 30
 class TopDown(HReconciler):
     """Top Down Reconciliation Class.
 
@@ -544,7 +546,7 @@ class TopDown(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 35
+# %% ../nbs/src/methods.ipynb 36
 class TopDownSparse(TopDown):
     """TopDownSparse Reconciliation Class.
 
@@ -564,7 +566,9 @@ class TopDownSparse(TopDown):
         tags: Optional[dict[str, np.ndarray]] = None,
     ):
         # Check if the data structure is strictly hierarchical.
-        if tags is not None and not is_strictly_hierarchical(S, tags):
+        if tags is not None and not _is_strictly_hierarchical(
+            _construct_adjacency_matrix(S, tags)
+        ):
             raise ValueError(
                 "Top-down reconciliation requires strictly hierarchical structures."
             )
@@ -606,7 +610,80 @@ class TopDownSparse(TopDown):
 
         return P, W
 
-# %% ../nbs/src/methods.ipynb 45
+    def fit_predict(
+        self,
+        S: sparse.csr_matrix,
+        y_hat: np.ndarray,
+        tags: dict[str, np.ndarray],
+        idx_bottom: np.ndarray = None,
+        y_insample: Optional[np.ndarray] = None,
+        y_hat_insample: Optional[np.ndarray] = None,
+        sigmah: Optional[np.ndarray] = None,
+        level: Optional[list[int]] = None,
+        intervals_method: Optional[str] = None,
+        num_samples: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> dict[str, np.ndarray]:
+        if self.method == "forecast_proportions":
+            # Check if probabilistic reconciliation is required.
+            if level is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not implemented for `forecast_proportions`."
+                )
+            # Construct the adjacency matrix.
+            A = _construct_adjacency_matrix(S, tags)
+            # Check if the data structure is strictly hierarchical.
+            if tags is not None and not _is_strictly_hierarchical(A):
+                raise ValueError(
+                    "Top-down reconciliation requires strictly hierarchical structures."
+                )
+            A = A.astype(np.float64)
+            # As we may have zero sibling sums, replace any zeroes with eps.
+            y_hat[y_hat == 0.0] = np.finfo(np.float64).eps
+            # Calculate the relative proportions for each node.
+            with np.errstate(divide="ignore"):
+                P = y_hat / ((A.T @ A) @ y_hat)
+            # Set the relative proportion of the root node.
+            P[P == np.inf] = 1.0
+            # Precompute the transpose of the summing matrix.
+            S_T = S.T
+            # Propagate the relative proportions for the nodes along each leaf
+            # node's disaggregation pathway, convert the resultant sparse
+            # matrix to a LIL matrix for an efficient dense conversion, stack
+            # the lists, calculate the row-wise product to get the forecast
+            # proportions, and use these to reconcile the forecasts.
+            y_tilde = np.array(
+                [
+                    S
+                    @ (
+                        y_hat[0, i]
+                        * np.prod(np.vstack(S_T.multiply(P[:, i]).tolil().data), 1)
+                    )
+                    for i in range(y_hat.shape[1])
+                ]
+            ).T
+            return {"mean": y_tilde}
+        else:
+            # Fit creates the P, W, and sampler attributes.
+            self.fit(
+                S=S,
+                y_hat=y_hat,
+                y_insample=y_insample,
+                y_hat_insample=y_hat_insample,
+                sigmah=sigmah,
+                intervals_method=intervals_method,
+                num_samples=num_samples,
+                seed=seed,
+                tags=tags,
+                idx_bottom=idx_bottom,
+            )
+            return self._reconcile(
+                S=S, P=self.P, y_hat=y_hat, level=level, sampler=self.sampler
+            )
+
+    __call__ = fit_predict
+
+# %% ../nbs/src/methods.ipynb 47
 class MiddleOut(HReconciler):
     """Middle Out Reconciliation Class.
 
@@ -735,7 +812,7 @@ class MiddleOut(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 51
+# %% ../nbs/src/methods.ipynb 53
 class MiddleOutSparse(MiddleOut):
     """MiddleOutSparse Reconciliation Class.
 
@@ -842,7 +919,7 @@ class MiddleOutSparse(MiddleOut):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 61
+# %% ../nbs/src/methods.ipynb 63
 class MinTrace(HReconciler):
     """MinTrace Reconciliation Class.
 
@@ -1158,7 +1235,7 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 67
+# %% ../nbs/src/methods.ipynb 69
 class MinTraceSparse(MinTrace):
     """MinTraceSparse Reconciliation Class.
 
@@ -1485,7 +1562,7 @@ class MinTraceSparse(MinTrace):
         self.fitted = True
         return self
 
-# %% ../nbs/src/methods.ipynb 78
+# %% ../nbs/src/methods.ipynb 80
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1521,7 +1598,7 @@ class OptimalCombination(MinTrace):
         )
         self.insample = False
 
-# %% ../nbs/src/methods.ipynb 86
+# %% ../nbs/src/methods.ipynb 88
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
