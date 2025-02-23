@@ -414,11 +414,13 @@ class TopDown(HReconciler):
             )
         else:
             raise ValueError(f"Unknown method {self.method}")
-        
+
         if np.isnan(prop).any():
             warnings.warn(
-                '''Warning: There are NaN values in either Y_hat_df or Y_df, which will result 
-                in NaN values for average proportions and proportion averages'''
+                """
+                Warning: There are NaN values either in Y_hat_df or Y_df, which leads to Nan values in 
+                average proportions and proportion averages forecast values.
+                """
             )
 
         P = np.zeros_like(
