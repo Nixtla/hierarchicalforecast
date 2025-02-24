@@ -353,20 +353,19 @@ def aggregate_temporal(
             f"Check the dtype of '{time_col}', it must be a timestamp or integer"
         )
 
-    # Check if every series is present for each timestamp
-
     # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
     add_placeholder = False
     if set(df.columns) == set([time_col, id_col]):
         add_placeholder = True
         df_nw = df_nw.with_columns(nw.lit(0).alias("y"))
 
-    # Get unique bottom-level timestamps
-    unique_ds_bottom = df_nw.select(time_col).unique().sort(by=time_col)
+    # Get bottom-level timestamps
+    unique_ds_bottom = df_nw.select(time_col).unique().sort(time_col)
     unique_ds_bottom = nw.maybe_reset_index(unique_ds_bottom)
     n_unique_ds_bottom = len(unique_ds_bottom)
 
     # Compute time features
+    df = df_nw.to_native()
     time_features.remove(time_col)
     df, _ = ufe.time_features(
         df=df, freq=freq, h=0, features=time_features, time_col=time_col, id_col=id_col
@@ -407,8 +406,9 @@ def aggregate_temporal(
         )
         unique_ds_tag = nw.maybe_reset_index(unique_ds_tag)
         n_unique_ds_tag = len(unique_ds_tag)
-        step_size = int(np.ceil(n_unique_ds_bottom / n_unique_ds_tag))
-        idxs = [i for i in range(0, n_unique_ds_bottom, step_size)]
+        idxs = np.linspace(
+            0, n_unique_ds_bottom, n_unique_ds_tag, endpoint=False, dtype=int
+        )
         unique_ds_bottom_tag = nw.maybe_reset_index(unique_ds_bottom[idxs])
         timestamps_tag = nw.concat(
             [unique_ds_tag, unique_ds_bottom_tag], how="horizontal"
