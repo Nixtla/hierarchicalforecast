@@ -407,15 +407,24 @@ class TopDown(HReconciler):
         y_top = y_insample[idx_top]
 
         if self.method == "average_proportions":
-            prop = np.mean(y_btm / y_top, axis=1)
+            prop = np.nanmean(y_btm / y_top, axis=1)
         elif self.method == "proportion_averages":
-            prop = np.mean(y_btm, axis=1) / np.mean(y_top)
+            prop = np.nanmean(y_btm, axis=1) / np.nanmean(y_top)
         elif self.method == "forecast_proportions":
             raise NotImplementedError(
                 f"Fit method not implemented for {self.method} yet"
             )
         else:
             raise ValueError(f"Unknown method {self.method}")
+
+        if np.isnan(prop).any():
+            warnings.warn(
+                """
+                Warning: There are NaN values in either Y_hat_df or Y_df.
+                This can lead to unexpected behavior for average proportions and
+                proportion averages.
+                """
+            )
 
         P = np.zeros_like(
             S, np.float64
