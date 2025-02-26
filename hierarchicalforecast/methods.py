@@ -557,6 +557,7 @@ class TopDownSparse(TopDown):
     """
 
     is_sparse_method = True
+    is_strictly_hierarchical = False
 
     def _get_PW_matrices(
         self,
@@ -565,13 +566,16 @@ class TopDownSparse(TopDown):
         y_insample: np.ndarray,
         tags: Optional[dict[str, np.ndarray]] = None,
     ):
-        # Check if the data structure is strictly hierarchical.
-        if tags is not None and not _is_strictly_hierarchical(
-            _construct_adjacency_matrix(S, tags)
-        ):
-            raise ValueError(
-                "Top-down reconciliation requires strictly hierarchical structures."
-            )
+
+        # Avoid a redundant check during middle-out reconciliation.
+        if not self.is_strictly_hierarchical:
+            # Check if the data structure is strictly hierarchical.
+            if tags is not None and not _is_strictly_hierarchical(
+                _construct_adjacency_matrix(S, tags)
+            ):
+                raise ValueError(
+                    "Top-down reconciliation requires strictly hierarchical structures."
+                )
 
         # Get the dimensions of the "summing" matrix.
         n_hiers, n_bottom = S.shape
@@ -837,30 +841,21 @@ class MiddleOutSparse(MiddleOut):
         level: Optional[list[int]] = None,
         intervals_method: Optional[str] = None,
     ) -> dict[str, np.ndarray]:
-        """Middle Out Sparse Reconciliation Method.
-
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
-        `y_insample`: Insample values of size (`base`, `insample_size`). Only used for `forecast_proportions`<br>
-        `level`: deprecated. <br>
-        `intervals_method`: deprecated.<br>
-
-        **Returns:**<br>
-        `y_tilde`: Reconciliated y_hat using the Middle Out Sparse approach.
-        """
+        # Check if probabilistic reconciliation is required.
         if level is not None or intervals_method is not None:
-            raise ValueError("Prediction intervals not implemented for `MiddleOut`")
-
-        # Check if the data structure is strictly hierarchical.
-        if not is_strictly_hierarchical(S, tags):
-            raise ValueError(
-                "Middle-out reconciliation requires strictly hierarchical structures."
+            raise NotImplementedError(
+                "Prediction intervals are not implemented for `MiddleOutSparse`."
             )
         # Check if the middle level exists in the level to nodes mapping.
         if self.middle_level not in tags.keys():
             raise KeyError(f"{self.middle_level} is not a key in `tags`.")
+        # Check if the data structure is strictly hierarchical.
+        if not _is_strictly_hierarchical(
+            _construct_adjacency_matrix(sparse.csr_matrix(S), tags)
+        ):
+            raise ValueError(
+                "Middle-out reconciliation requires strictly hierarchical structures."
+            )
 
         # Sort the levels by the number of nodes.
         levels = dict(sorted(tags.items(), key=lambda x: len(x[1])))
@@ -878,6 +873,10 @@ class MiddleOutSparse(MiddleOut):
             y_hat=y_hat[:cut_idx, :],
             idx_bottom=None,
         )["mean"]
+
+        # Set up the reconciler for top-down reconciliation.
+        cls_top_down = TopDownSparse(self.top_down_method)
+        cls_top_down.is_strictly_hierarchical = True
 
         # Perform sparse top-down reconciliation from the middle level.
         for cut_node in cut_nodes:
@@ -908,7 +907,7 @@ class MiddleOutSparse(MiddleOut):
                         acc += n
 
             # Perform sparse top-down reconciliation from the cut node.
-            y_tilde[sub_idx, :] = TopDownSparse(self.top_down_method).fit_predict(
+            y_tilde[sub_idx, :] = cls_top_down.fit_predict(
                 S=sparse.csr_matrix(S[sub_idx[:, None], leaf_idx]),
                 y_hat=y_hat[sub_idx, :],
                 y_insample=y_insample[sub_idx, :] if y_insample is not None else None,
