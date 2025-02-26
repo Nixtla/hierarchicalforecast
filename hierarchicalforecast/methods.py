@@ -566,7 +566,6 @@ class TopDownSparse(TopDown):
         y_insample: np.ndarray,
         tags: Optional[dict[str, np.ndarray]] = None,
     ):
-
         # Avoid a redundant check during middle-out reconciliation.
         if not self.is_strictly_hierarchical:
             # Check if the data structure is strictly hierarchical.
