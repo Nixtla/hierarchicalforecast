@@ -415,12 +415,11 @@ class TopDown(HReconciler):
         else:
             raise ValueError(f"Unknown method {self.method}")
 
-        if np.isnan(prop).any():
+        if np.isnan(y_btm).any() or np.isnan(y_top).any():
             warnings.warn(
                 """
-                Warning: There are NaN values in either Y_hat_df or Y_df.
-                This can lead to unexpected behavior for average proportions and
-                proportion averages.
+                Warning: There are NaN values in one or more levels of Y_df.
+                This may lead to unexpected behavior when computing average proportions and proportion averages.
                 """
             )
 
