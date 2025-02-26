@@ -438,7 +438,7 @@ class HierarchicalReconciliation:
 
                     reconciler_args["intervals_method"] = intervals_method
                     reconciler_args["num_samples"] = (
-                        200  # TODO: solve duplicated num_samples
+                        200 if num_samples < 0 else num_samples
                     )
                     reconciler_args["seed"] = seed
 
