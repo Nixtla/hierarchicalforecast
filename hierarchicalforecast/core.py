@@ -154,7 +154,7 @@ class HierarchicalReconciliation:
             missing_cols_temporal = set(
                 [id_col, time_col, target_col, id_time_col]
             ) - set(Y_hat_nw_cols)
-            if len(missing_cols_temporal) > 0:
+            if missing_cols_temporal:
                 raise ValueError(
                     f"Check `Y_hat_df` columns, for temporal reconciliation {reprlib.repr(missing_cols_temporal)} must be in `Y_hat_df` columns."
                 )
@@ -236,7 +236,7 @@ class HierarchicalReconciliation:
         ]
         if intervals_method in ["bootstrap", "permbu"] and Y_nw is not None:
             missing_models = set(model_names) - set(Y_nw.columns)
-            if len(missing_models) > 0:
+            if missing_models:
                 raise ValueError(
                     f"Check `Y_df` columns, {reprlib.repr(missing_models)} must be in `Y_df` columns."
                 )

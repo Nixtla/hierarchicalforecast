@@ -133,7 +133,7 @@ def aggregate(
 
     # Check if last level in spec contains all levels
     missing_cols_in_bottom_spec = set(spec_cols) - set(spec[-1])
-    if len(missing_cols_in_bottom_spec) > 0:
+    if missing_cols_in_bottom_spec:
         raise ValueError(
             f"Check the last (bottom) level of spec, it has missing columns: {reprlib.repr(missing_cols_in_bottom_spec)}"
         )
@@ -338,7 +338,7 @@ def aggregate_temporal(
     time_features = [col for cols in spec for col in cols if col not in fseen and not fseen.add(col)]  # type: ignore[func-returns-value]
     # Check if last level in spec is equivalent to time features
     missing_time_features_in_bottom_spec = set(time_features) - set(spec[-1])
-    if len(missing_time_features_in_bottom_spec) > 0:
+    if missing_time_features_in_bottom_spec:
         raise ValueError(
             f"Check the last (bottom) level of spec, it has missing time features: {reprlib.repr(missing_time_features_in_bottom_spec)}"
         )
