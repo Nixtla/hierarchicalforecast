@@ -13,13 +13,14 @@ import matplotlib.pyplot as plt
 import narwhals as nw
 import numpy as np
 import pandas as pd
+import utilsforecast.feature_engineering as ufe
+import utilsforecast.processing as ufp
+import utilsforecast.validation as ufv
 
 from narwhals.typing import Frame, FrameT
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
 from typing import Optional, Union, Sequence
-import utilsforecast.feature_engineering as ufe
-import utilsforecast.processing as ufp
 
 # %% ../nbs/src/utils.ipynb 5
 # Global variables
@@ -344,14 +345,8 @@ def aggregate_temporal(
         )
 
     # Check if ds column is a timestamp or integer, if not raise an error
+    df = ufv.ensure_time_dtype(df, time_col)
     df_nw = nw.from_native(df)
-    ds_pd = df_nw[time_col].to_pandas()
-    if not pd.api.types.is_datetime64_any_dtype(
-        ds_pd
-    ) and not pd.api.types.is_integer_dtype(ds_pd):
-        raise ValueError(
-            f"Check the dtype of '{time_col}', it must be a timestamp or integer"
-        )
 
     # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
     add_placeholder = False
