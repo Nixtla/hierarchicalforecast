@@ -621,10 +621,7 @@ class TopDownSparse(TopDown):
 
         return P, W
 
-
-
-# %% ../nbs/src/methods.ipynb 47
-
+# %% ../nbs/src/methods.ipynb 49
 class MiddleOut(HReconciler):
     """Middle Out Reconciliation Class.
 
@@ -753,10 +750,7 @@ class MiddleOut(HReconciler):
 
     __call__ = fit_predict
 
-
-# %% ../nbs/src/methods.ipynb 52
-
-
+# %% ../nbs/src/methods.ipynb 55
 class MiddleOutSparse(MiddleOut):
     """MiddleOutSparse Reconciliation Class.
 
@@ -858,9 +852,7 @@ class MiddleOutSparse(MiddleOut):
 
     __call__ = fit_predict
 
-
-# %% ../nbs/src/methods.ipynb 62
-
+# %% ../nbs/src/methods.ipynb 65
 class MinTrace(HReconciler):
     """MinTrace Reconciliation Class.
 
@@ -1176,8 +1168,7 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 68
-
+# %% ../nbs/src/methods.ipynb 71
 class MinTraceSparse(MinTrace):
     """MinTraceSparse Reconciliation Class.
 
@@ -1504,8 +1495,7 @@ class MinTraceSparse(MinTrace):
         self.fitted = True
         return self
 
-# %% ../nbs/src/methods.ipynb 79
-
+# %% ../nbs/src/methods.ipynb 82
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1541,9 +1531,7 @@ class OptimalCombination(MinTrace):
         )
         self.insample = False
 
-
-# %% ../nbs/src/methods.ipynb 87
-
+# %% ../nbs/src/methods.ipynb 90
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
