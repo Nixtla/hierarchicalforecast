@@ -11,4 +11,5 @@ dependencies:
   - matplotlib
   - pip
   - pip:
-    - nbdev==2.3.25
+    - nbdev
+    - ipython<=8.32.0
