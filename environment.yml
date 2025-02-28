@@ -13,4 +13,4 @@ dependencies:
   - tqdm
   - pip
   - pip:
-    - nbdev
+    - nbdev==2.3.25
