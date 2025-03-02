@@ -635,12 +635,13 @@ class TopDownSparse(TopDown):
                 )
             # Construct the adjacency matrix.
             A = _construct_adjacency_matrix(S, tags)
-            # Check if the data structure is strictly hierarchical.
-            if tags is not None and not _is_strictly_hierarchical(A):
-                raise ValueError(
-                    "Top-down reconciliation requires strictly hierarchical structures."
-                )
-            A = A.astype(np.float64)
+            # Avoid a redundant check during middle-out reconciliation.
+            if not self.is_strictly_hierarchical:
+                # Check if the data structure is strictly hierarchical.
+                if tags is not None and not _is_strictly_hierarchical(A):
+                    raise ValueError(
+                        "Top-down reconciliation requires strictly hierarchical structures."
+                    )
             # As we may have zero sibling sums, replace any zeroes with eps.
             y_hat[y_hat == 0.0] = np.finfo(np.float64).eps
             # Calculate the relative proportions for each node.
@@ -659,8 +660,8 @@ class TopDownSparse(TopDown):
                 [
                     S
                     @ (
-                        y_hat[0, i]
-                        * np.prod(np.vstack(S_T.multiply(P[:, i]).tolil().data), 1)
+                        np.prod(np.vstack(S_T.multiply(P[:, i]).tolil().data), 1)
+                        * y_hat[0, i]
                     )
                     for i in range(y_hat.shape[1])
                 ]
