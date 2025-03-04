@@ -407,15 +407,23 @@ class TopDown(HReconciler):
         y_top = y_insample[idx_top]
 
         if self.method == "average_proportions":
-            prop = np.mean(y_btm / y_top, axis=1)
+            prop = np.nanmean(y_btm / y_top, axis=1)
         elif self.method == "proportion_averages":
-            prop = np.mean(y_btm, axis=1) / np.mean(y_top)
+            prop = np.nanmean(y_btm, axis=1) / np.nanmean(y_top)
         elif self.method == "forecast_proportions":
             raise NotImplementedError(
                 f"Fit method not implemented for {self.method} yet"
             )
         else:
             raise ValueError(f"Unknown method {self.method}")
+
+        if np.isnan(y_btm).any() or np.isnan(y_top).any():
+            warnings.warn(
+                """
+                Warning: There are NaN values in one or more levels of Y_df.
+                This may lead to unexpected behavior when computing average proportions and proportion averages.
+                """
+            )
 
         P = np.zeros_like(
             S, np.float64
@@ -613,7 +621,81 @@ class TopDownSparse(TopDown):
 
         return P, W
 
-# %% ../nbs/src/methods.ipynb 47
+    def fit_predict(
+        self,
+        S: sparse.csr_matrix,
+        y_hat: np.ndarray,
+        tags: dict[str, np.ndarray],
+        idx_bottom: np.ndarray = None,
+        y_insample: Optional[np.ndarray] = None,
+        y_hat_insample: Optional[np.ndarray] = None,
+        sigmah: Optional[np.ndarray] = None,
+        level: Optional[list[int]] = None,
+        intervals_method: Optional[str] = None,
+        num_samples: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> dict[str, np.ndarray]:
+        if self.method == "forecast_proportions":
+            # Check if probabilistic reconciliation is required.
+            if level is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not implemented for `forecast_proportions`."
+                )
+            # Construct the adjacency matrix.
+            A = _construct_adjacency_matrix(S, tags)
+            # Avoid a redundant check during middle-out reconciliation.
+            if not self.is_strictly_hierarchical:
+                # Check if the data structure is strictly hierarchical.
+                if tags is not None and not _is_strictly_hierarchical(A):
+                    raise ValueError(
+                        "Top-down reconciliation requires strictly hierarchical structures."
+                    )
+            # As we may have zero sibling sums, replace any zeroes with eps.
+            y_hat[y_hat == 0.0] = np.finfo(np.float64).eps
+            # Calculate the relative proportions for each node.
+            with np.errstate(divide="ignore"):
+                P = y_hat / ((A.T @ A) @ y_hat)
+            # Set the relative proportion of the root node.
+            P[P == np.inf] = 1.0
+            # Precompute the transpose of the summing matrix.
+            S_T = S.T
+            # Propagate the relative proportions for the nodes along each leaf
+            # node's disaggregation pathway, convert the resultant sparse
+            # matrix to a LIL matrix for an efficient dense conversion, stack
+            # the lists, calculate the row-wise product to get the forecast
+            # proportions, and use these to reconcile the forecasts.
+            y_tilde = np.array(
+                [
+                    S
+                    @ (
+                        np.prod(np.vstack(S_T.multiply(P[:, i]).tolil().data), 1)
+                        * y_hat[0, i]
+                    )
+                    for i in range(y_hat.shape[1])
+                ]
+            ).T
+            return {"mean": y_tilde}
+        else:
+            # Fit creates the P, W, and sampler attributes.
+            self.fit(
+                S=S,
+                y_hat=y_hat,
+                y_insample=y_insample,
+                y_hat_insample=y_hat_insample,
+                sigmah=sigmah,
+                intervals_method=intervals_method,
+                num_samples=num_samples,
+                seed=seed,
+                tags=tags,
+                idx_bottom=idx_bottom,
+            )
+            return self._reconcile(
+                S=S, P=self.P, y_hat=y_hat, level=level, sampler=self.sampler
+            )
+
+    __call__ = fit_predict
+
+# %% ../nbs/src/methods.ipynb 49
 class MiddleOut(HReconciler):
     """Middle Out Reconciliation Class.
 
@@ -742,7 +824,7 @@ class MiddleOut(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 53
+# %% ../nbs/src/methods.ipynb 55
 class MiddleOutSparse(MiddleOut):
     """MiddleOutSparse Reconciliation Class.
 
@@ -844,7 +926,7 @@ class MiddleOutSparse(MiddleOut):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 63
+# %% ../nbs/src/methods.ipynb 65
 class MinTrace(HReconciler):
     """MinTrace Reconciliation Class.
 
@@ -1160,7 +1242,7 @@ class MinTrace(HReconciler):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 69
+# %% ../nbs/src/methods.ipynb 71
 class MinTraceSparse(MinTrace):
     """MinTraceSparse Reconciliation Class.
 
@@ -1487,7 +1569,7 @@ class MinTraceSparse(MinTrace):
         self.fitted = True
         return self
 
-# %% ../nbs/src/methods.ipynb 80
+# %% ../nbs/src/methods.ipynb 82
 class OptimalCombination(MinTrace):
     """Optimal Combination Reconciliation Class.
 
@@ -1523,7 +1605,7 @@ class OptimalCombination(MinTrace):
         )
         self.insample = False
 
-# %% ../nbs/src/methods.ipynb 88
+# %% ../nbs/src/methods.ipynb 90
 class ERM(HReconciler):
     """Optimal Combination Reconciliation Class.
 
