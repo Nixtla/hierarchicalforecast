@@ -621,7 +621,6 @@ class TopDownSparse(TopDown):
 
         return P, W
 
-# %% ../nbs/src/methods.ipynb 49
     def fit_predict(
         self,
         S: sparse.csr_matrix,
@@ -696,7 +695,7 @@ class TopDownSparse(TopDown):
 
     __call__ = fit_predict
 
-# %% ../nbs/src/methods.ipynb 47
+# %% ../nbs/src/methods.ipynb 49
 class MiddleOut(HReconciler):
     """Middle Out Reconciliation Class.
 
