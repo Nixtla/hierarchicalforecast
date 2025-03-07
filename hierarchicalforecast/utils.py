@@ -21,7 +21,7 @@ from scipy import sparse
 from narwhals.typing import Frame, FrameT
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
-from typing import Optional, Union, Sequence
+from typing import Optional, Union, Sequence, Callable
 
 # %% ../nbs/src/utils.ipynb 5
 # Global variables
@@ -146,8 +146,8 @@ def aggregate(
     sparse_s: bool = False,
     id_col: str = "unique_id",
     time_col: str = "ds",
+    id_time_col: Optional[str] = None,
     target_cols: list[str] = ["y"],
-    maintain_order: bool = False,
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function.
     Aggregates bottom level series contained in the DataFrame `df` according
@@ -169,10 +169,10 @@ def aggregate(
         Column that will identify each serie after aggregation.
     time_col : str (default='ds')
         Column that identifies each timestep, its values can be timestamps or integers.
+    id_time_col : str (default=None)
+        Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally.
     target_cols : (default=['y'])
         list of columns that contains the targets to aggregate.
-    maintain_order : bool (default=False)
-        If True, the order of the input dataframe will be maintained in the output dataframe. If False, the output dataframe will be sorted by the id_col and time_col.
 
     Returns
     -------
@@ -186,6 +186,16 @@ def aggregate(
     # To Narwhals
     df_nw = nw.from_native(df)
     backend = df_nw.implementation
+
+    # Check if we do temporal aggregation
+    if id_time_col is not None:
+        temporal_agg = True
+        group_col = id_col
+        _id_col = id_time_col
+    else:
+        temporal_agg = False
+        group_col = time_col
+        _id_col = id_col
 
     # Checks
     # Generate order-preserving list of unique cols based on spec
@@ -261,51 +271,34 @@ def aggregate(
         level_name = level_sep.join(level)
 
         # Create Y_df
-        # For temporal reconciliation, we need to maintain order
-        # Unforunately, Narwhals does not support maintain_order=True in group_by, so we need to convert to Pandas/Polars
-        if maintain_order:
-            if backend == nw.Implementation.POLARS:
-                import polars as pl
-
-                df_pl = df_nw.to_native()
-                Y_level_pl = df_pl.group_by(
-                    level + [time_col], maintain_order=True
-                ).agg(
-                    *[
-                        getattr(pl.col(col), agg)().alias(col_name)
-                        for col_name, (col, agg) in agg_dict.items()
-                    ]
-                )
-                Y_level = nw.from_native(Y_level_pl)
-            elif backend == nw.Implementation.PANDAS:
-                df_pd = df_nw.to_native()
-                Y_level_pd = df_pd.groupby(
-                    level + [time_col], sort=False, as_index=False, observed=True
-                ).agg(**agg_dict)
-                Y_level = nw.from_native(Y_level_pd)
-        else:
-            Y_level = df_nw.group_by(level + [time_col]).agg(
-                *[
-                    getattr(nw.col(col), agg)().alias(col_name)
-                    for col_name, (col, agg) in agg_dict.items()
-                ]
-            )
-
+        Y_level = df_nw.with_columns(
+            *[
+                getattr(nw.col(col), agg)().over(level + [group_col]).alias(col_name)
+                for col_name, (col, agg) in agg_dict.items()
+            ]
+        )
         Y_level = Y_level.select(
             nw.concat_str([nw.col(col) for col in level], separator=level_sep).alias(
-                id_col
+                _id_col
             ),
             nw.all(),
         )
-        Y_level = Y_level[[id_col, time_col, *target_cols] + exog_var_names]
-        if maintain_order:
+        # For temporal aggregation, we need to keep the time column
+        if temporal_agg:
+            Y_level = Y_level.sort(by=[id_col, time_col])
+            Y_level = Y_level.unique(
+                subset=level + [group_col], maintain_order=temporal_agg, keep="first"
+            ).select([_id_col, group_col, time_col, *target_cols] + exog_var_names)
             tags[level_name] = (
-                Y_level[id_col].unique(maintain_order=maintain_order).to_numpy()
+                Y_level[_id_col].unique(maintain_order=temporal_agg).to_numpy()
             )
         else:
-            Y_level = Y_level.sort(by=[id_col, time_col])
+            Y_level = Y_level.unique(
+                subset=level + [group_col], maintain_order=temporal_agg, keep="first"
+            ).select([_id_col, group_col, *target_cols] + exog_var_names)
+            Y_level = Y_level.sort(by=[_id_col, group_col])
             tags[level_name] = (
-                Y_level[id_col].unique(maintain_order=maintain_order).sort().to_numpy()
+                Y_level[_id_col].unique(maintain_order=temporal_agg).sort().to_numpy()
             )
 
         Y_nws.append(Y_level)
@@ -333,7 +326,7 @@ def aggregate(
     if not sparse_s:
         S_nw = nw.from_dict(
             {
-                **{id_col: category_list},
+                **{_id_col: category_list},
                 **dict(zip(tags[level_name], S_dum)),
             },
             backend=backend,
@@ -344,14 +337,14 @@ def aggregate(
         S_df = pd.DataFrame.sparse.from_spmatrix(
             S_dum.T, columns=list(bottom_levels), index=category_list
         )
-        S_df = S_df.reset_index(names=id_col)
+        S_df = S_df.reset_index(names=_id_col)
 
     return Y_df, S_df, tags
 
 # %% ../nbs/src/utils.ipynb 25
 def aggregate_temporal(
     df: Frame,
-    spec: list[list[str]],
+    spec: list[list[Union[str, Callable]]],
     freq: Union[str, int],
     exog_vars: Optional[dict[str, Union[str, list[str]]]] = None,
     sparse_s: bool = False,
@@ -369,7 +362,7 @@ def aggregate_temporal(
     df : DataFrame
         Dataframe with columns `[time_col, target_cols]` and columns to aggregate.
     spec : list of list of str
-        List of temporal levels. May only contain string aliases of timestamp attributes.
+        List of temporal levels. Can be string aliases of timestamp attributes or functions to apply to the times.
     freq : str or int
         Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
     exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
@@ -394,18 +387,34 @@ def aggregate_temporal(
     tags : dict
         Temporal aggregation indices.
     """
-    # Generate order-preserving list of unique time features based on spec
-    fseen = set()
-    time_features = [col for cols in spec for col in cols if col not in fseen and not fseen.add(col)]  # type: ignore[func-returns-value]
+    # Generate list of unique time features based on spec
+    time_features_names: list[str] = []
+    time_features: list[Union[str, Callable]] = []
+    spec_names: list[list[str]] = []
+    for i, level in enumerate(spec):
+        spec_names.append([] * len(level))
+        for j, col in enumerate(level):
+            if callable(col):
+                col_name = col.__name__
+            else:
+                col_name = col
+            if col_name not in time_features_names:
+                time_features.append(col)
+                time_features_names.append(col_name)
+            spec_names[i][j] = col_name
+
     # Check if last level in spec is equivalent to time features
-    missing_time_features_in_bottom_spec = set(time_features) - set(spec[-1])
+    missing_time_features_in_bottom_spec = set(time_features_names) - set(
+        spec_names[-1]
+    )
     if missing_time_features_in_bottom_spec:
         raise ValueError(
             f"Check the last (bottom) level of spec, it has missing time features: {reprlib.repr(missing_time_features_in_bottom_spec)}"
         )
 
     # Check if ds column is a timestamp or integer, if not raise an error
-    df = ufv.ensure_time_dtype(df, time_col)
+    df = ufv.ensure_time_dtype(df=df, time_col=time_col)
+    df = ufp.ensure_sorted(df=df, id_col=id_col, time_col=time_col)
     df_nw = nw.from_native(df)
 
     # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
@@ -413,11 +422,6 @@ def aggregate_temporal(
     if set(df.columns) == set([time_col, id_col]):
         add_placeholder = True
         df_nw = df_nw.with_columns(nw.lit(0).alias("y"))
-
-    # Get bottom-level timestamps
-    unique_ds_bottom = df_nw.select(time_col).unique().sort(time_col)
-    unique_ds_bottom = nw.maybe_reset_index(unique_ds_bottom)
-    n_unique_ds_bottom = len(unique_ds_bottom)
 
     # Compute time features
     df = df_nw.to_native()
@@ -428,7 +432,8 @@ def aggregate_temporal(
 
     # Now that we have the time features, we prefix them with the feature name. This is to avoid duplicate tags, e.g. quarter and month can give a feature value (=tag) with a value of 1 for both. If we would later on filter based on tag values in our forecasting pipeline, we would not be able to distinguish between the two.
     df_nw = nw.from_native(df)
-    for feature in time_features:
+    time_features_names.remove(time_col)
+    for feature in time_features_names:
         df_nw = df_nw.with_columns(nw.lit(feature).alias(f"{feature}_name"))
         df_nw = df_nw.with_columns(
             nw.concat_str(
@@ -441,37 +446,15 @@ def aggregate_temporal(
     # Create the aggregation
     Y_df, S_df, tags = aggregate(
         df=df,
-        spec=spec,
+        spec=spec_names,
         exog_vars=exog_vars,
         sparse_s=sparse_s,
-        id_col=id_time_col,
+        id_col=id_col,
+        time_col=time_col,
         target_cols=target_cols,
-        time_col=id_col,
-        maintain_order=True,
+        id_time_col=id_time_col,
     )
     Y_nw = nw.from_native(Y_df)
-
-    # Add the timestamps for each aggregation to the aggregated DataFrame. The strategy is to add the bottom-level timestamps per level where the step size between each timestep is determined by the number of unique timestamps for each tag. Thus, we assume that the timestamps of the temporal aggregations are evenly spaced, starting from the first bottom timestamp.
-    timestamps = []
-    for tag in tags:
-        unique_ds_tag = (
-            Y_nw.filter(nw.col(id_time_col).is_in(tags[tag]))
-            .select(nw.col(id_time_col))
-            .unique(maintain_order=True)
-        )
-        unique_ds_tag = nw.maybe_reset_index(unique_ds_tag)
-        n_unique_ds_tag = len(unique_ds_tag)
-        idxs = np.linspace(
-            0, n_unique_ds_bottom, n_unique_ds_tag, endpoint=False, dtype=int
-        )
-        unique_ds_bottom_tag = nw.maybe_reset_index(unique_ds_bottom[idxs])
-        timestamps_tag = nw.concat(
-            [unique_ds_tag, unique_ds_bottom_tag], how="horizontal"
-        )
-        timestamps.append(timestamps_tag)
-
-    timestamps_nw = nw.concat(timestamps, how="vertical")
-    Y_nw = Y_nw.join(timestamps_nw, on=[id_time_col], how="left")
 
     # Drop the placeholder column if it was added
     if add_placeholder:
@@ -990,7 +973,7 @@ def samples_to_quantiles_df(
             **{id_col: unique_ids, time_col: ds, model_name: forecasts_mean},
             **dict(zip(col_names, forecasts_quantiles.T)),
         },
-        native_namespace=namespace,
+        backend=backend,
     )
 
     return _quantiles, df_nw.to_native()
