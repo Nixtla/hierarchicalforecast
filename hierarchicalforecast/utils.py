@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import narwhals as nw
 import numpy as np
 import pandas as pd
-import utilsforecast.feature_engineering as ufe
 import utilsforecast.processing as ufp
 import utilsforecast.validation as ufv
 from scipy import sparse
@@ -21,7 +20,7 @@ from scipy import sparse
 from narwhals.typing import Frame, FrameT
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
-from typing import Optional, Union, Sequence, Callable
+from typing import Optional, Union, Sequence
 
 # %% ../nbs/src/utils.ipynb 5
 # Global variables
@@ -161,8 +160,6 @@ def aggregate(
         list of levels. Each element of the list should contain a list of columns of `df` to aggregate.
     exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
         keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance
-    is_balanced : bool (default=False)
-        Deprecated.
     sparse_s : bool (default=False)
         Return `S_df` as a sparse Pandas dataframe.
     id_col : str (default='unique_id')
@@ -344,8 +341,7 @@ def aggregate(
 # %% ../nbs/src/utils.ipynb 25
 def aggregate_temporal(
     df: Frame,
-    spec: list[list[Union[str, Callable]]],
-    freq: Union[str, int],
+    spec: dict[str, int],
     exog_vars: Optional[dict[str, Union[str, list[str]]]] = None,
     sparse_s: bool = False,
     id_col: str = "unique_id",
@@ -361,10 +357,8 @@ def aggregate_temporal(
     ----------
     df : DataFrame
         Dataframe with columns `[time_col, target_cols]` and columns to aggregate.
-    spec : list of list of str
-        List of temporal levels. Can be string aliases of timestamp attributes or functions to apply to the times.
-    freq : str or int
-        Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
+    spec : dict
+        Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation. For example, for monthly data, a spec for a temporal aggregation for yearly and monthly aggregations could be: spec = {"year": 12, "month": 1}.
     exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
         keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance
     sparse_s : bool (default=False)
@@ -387,35 +381,66 @@ def aggregate_temporal(
     tags : dict
         Temporal aggregation indices.
     """
-    # Generate list of unique time features based on spec
-    time_features_names: list[str] = []
-    time_features: list[Union[str, Callable]] = []
-    spec_names: list[list[str]] = []
-    for i, level in enumerate(spec):
-        spec_names.append([] * len(level))
-        for j, col in enumerate(level):
-            if callable(col):
-                col_name = col.__name__
-            else:
-                col_name = col
-            if col_name not in time_features_names:
-                time_features.append(col)
-                time_features_names.append(col_name)
-            spec_names[i][j] = col_name
-
-    # Check if last level in spec is equivalent to time features
-    missing_time_features_in_bottom_spec = set(time_features_names) - set(
-        spec_names[-1]
-    )
-    if missing_time_features_in_bottom_spec:
-        raise ValueError(
-            f"Check the last (bottom) level of spec, it has missing time features: {reprlib.repr(missing_time_features_in_bottom_spec)}"
-        )
-
     # Check if ds column is a timestamp or integer, if not raise an error
     df = ufv.ensure_time_dtype(df=df, time_col=time_col)
     df = ufp.ensure_sorted(df=df, id_col=id_col, time_col=time_col)
     df_nw = nw.from_native(df)
+
+    # We add a cumulative count column to the dataframe to be able to compute the aggregations
+    df_nw = df_nw.with_columns(
+        nw.col(time_col).cum_count().over([id_col]).alias(f"{time_col}_count")
+    )
+
+    # Check spec that lowest level with seasonality of 1 has been defined
+    if 1 not in spec.values():
+        raise ValueError(
+            "The spec must contain a level with a seasonality of 1. This represents the lowest level in the temporal aggregation."
+        )
+
+    # Check for duplicate values in spec
+    if len(spec) != len(set(spec.values())):
+        raise ValueError(
+            "The spec must contain unique values for each level. Each value represents the seasonality of the aggregation."
+        )
+
+    # Check for duplicate keys in spec
+    if len(spec) != len(set(spec.keys())):
+        raise ValueError(
+            "The spec must contain unique keys for each level. Each key represents the name of the aggregation."
+        )
+
+    # Loop over the spec and create the aggregation columns
+    spec_agg: list = []
+    for agg, seasonality in spec.items():
+        # Check if the number of timesteps is divisible by each seasonality
+        divisors = df_nw.group_by(id_col).agg(
+            nw.col(time_col).count().alias("number_of_timesteps")
+        )
+        divisor_check = divisors["number_of_timesteps"] % seasonality != 0
+        if divisor_check.any():
+            raise ValueError(
+                f"Aggregation '{agg}' with seasonality={seasonality} failed.\n "
+                "Make sure each time series has an amount of timesteps that is divisible by each seasonality.\n"
+                f"The following time series have an amount of timesteps that is not divisible by {seasonality}:\n"
+                f"{divisors.filter(nw.col(f'{time_col}_count') % seasonality != 0).to_native()}"
+            )
+        else:
+            df_nw = df_nw.with_columns(
+                nw.concat_str(
+                    [
+                        nw.lit(agg),
+                        nw.lit("-"),
+                        (((nw.col(f"{time_col}_count") - 1) // seasonality) + 1).cast(
+                            nw.String
+                        ),
+                    ]
+                ).alias(agg)
+            )
+            if seasonality != 1:
+                spec_agg.append([agg])
+            else:
+                all_aggs = [key for key in spec.keys()]
+                spec_agg.append(all_aggs)
 
     # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
     add_placeholder = False
@@ -423,30 +448,11 @@ def aggregate_temporal(
         add_placeholder = True
         df_nw = df_nw.with_columns(nw.lit(0).alias("y"))
 
-    # Compute time features
-    df = df_nw.to_native()
-    time_features.remove(time_col)
-    df, _ = ufe.time_features(
-        df=df, freq=freq, h=0, features=time_features, time_col=time_col, id_col=id_col
-    )
-
-    # Now that we have the time features, we prefix them with the feature name. This is to avoid duplicate tags, e.g. quarter and month can give a feature value (=tag) with a value of 1 for both. If we would later on filter based on tag values in our forecasting pipeline, we would not be able to distinguish between the two.
-    df_nw = nw.from_native(df)
-    time_features_names.remove(time_col)
-    for feature in time_features_names:
-        df_nw = df_nw.with_columns(nw.lit(feature).alias(f"{feature}_name"))
-        df_nw = df_nw.with_columns(
-            nw.concat_str(
-                [nw.col(f"{feature}_name"), nw.col(feature)], separator="-"
-            ).alias(feature)
-        )
-        df_nw = df_nw.drop(f"{feature}_name")
-    df = df_nw.to_native()
-
     # Create the aggregation
+    df = df_nw.to_native()
     Y_df, S_df, tags = aggregate(
         df=df,
-        spec=spec_names,
+        spec=spec_agg,
         exog_vars=exog_vars,
         sparse_s=sparse_s,
         id_col=id_col,
