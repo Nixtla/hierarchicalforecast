@@ -36,7 +36,6 @@ summing matrix `S` which recovers the full dataset from the bottom level
 hierarchy and the indices of each hierarchy denoted by `tags`.
 
 ```python
-import numpy as np
 import pandas as pd
 
 from datasetsforecast.hierarchical import HierarchicalData, HierarchicalInfo
@@ -118,7 +117,7 @@ from statsforecast.models import AutoARIMA, Naive
 ```python
 fcst = StatsForecast(
     models=[AutoARIMA(season_length=group.seasonality), Naive()], 
-    freq=group.freq, 
+    freq="QE", 
     n_jobs=-1
 )
 Y_hat_df = fcst.forecast(df=Y_train_df, h=group.horizon)
@@ -150,8 +149,8 @@ from hierarchicalforecast.methods import BottomUp, TopDown, MiddleOut
 reconcilers = [
     BottomUp(),
     TopDown(method='forecast_proportions'),
-    MiddleOut(middle_level='Country/Purpose/State', 
-              top_down_method='forecast_proportions')
+    TopDown(method='proportion_averages'),
+    MiddleOut(middle_level="Country/Purpose/State", top_down_method="proportion_averages"),
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_train_df, S=S_df, tags=tags)
@@ -179,16 +178,17 @@ evaluation = evaluate(df = df,
                       metrics = [mse],
                       benchmark="Naive")
 
-evaluation[["level", "metric", "AutoARIMA", "AutoARIMA/BottomUp", "AutoARIMA/TopDown_method-forecast_proportions"]]
+evaluation.set_index(["level", "metric"]).filter(like="ARIMA", axis=1)
 ```
 
-|  | level | metric | AutoARIMA | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-forecast_proportions |
-|----|----|----|----|----|----|
-| 0 | Country | mse-scaled | 0.317897 | 0.226999 | 0.317897 |
-| 1 | Country/Purpose | mse-scaled | 0.323207 | 0.199359 | 0.251368 |
-| 2 | Country/Purpose/State | mse-scaled | 0.266118 | 0.305711 | 0.308241 |
-| 3 | Country/Purpose/State/CityNonCity | mse-scaled | 0.305173 | 0.305173 | 0.305913 |
-| 4 | Overall | mse-scaled | 0.311707 | 0.234934 | 0.289406 |
+|  |  | AutoARIMA | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-forecast_proportions | AutoARIMA/TopDown_method-proportion_averages | AutoARIMA/MiddleOut_middle_level-Country/Purpose/State_top_down_method-proportion_averages |
+|----|----|----|----|----|----|----|
+| level | metric |  |  |  |  |  |
+| Country | mse-scaled | 0.317897 | 0.367078 | 0.317897 | 0.317897 | 0.305053 |
+| Country/Purpose | mse-scaled | 0.318950 | 0.233606 | 0.262216 | 0.320225 | 0.196062 |
+| Country/Purpose/State | mse-scaled | 0.268057 | 0.281189 | 0.320349 | 0.511356 | 0.268057 |
+| Country/Purpose/State/CityNonCity | mse-scaled | 0.292136 | 0.292136 | 0.323261 | 0.509784 | 0.280599 |
+| Overall | mse-scaled | 0.308942 | 0.295690 | 0.297072 | 0.364775 | 0.255038 |
 
 ### References
 

@@ -31,6 +31,7 @@ HierarchicalForecast.
 
 
 ```python
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -80,7 +81,7 @@ with CodeTimer('Read and Parse data   ', verbose):
 
 ``` text
 TourismSmall
-Code block 'Read and Parse data   ' took:   0.01112 seconds
+Code block 'Read and Parse data   ' took:   0.00653 seconds
 ```
 
 ```python
@@ -157,7 +158,7 @@ with CodeTimer('Reconcile Predictions ', verbose):
             MinTrace(method='ols'),
             MinTrace(method='wls_var'),
             MinTrace(method='mint_shrink'),
-            ERM(method='closed')
+            ERM(method='closed'),
         ]
     else:
         reconcilers = [
@@ -165,7 +166,7 @@ with CodeTimer('Reconcile Predictions ', verbose):
             MinTrace(method='ols'),
             MinTrace(method='wls_var'),
             MinTrace(method='mint_shrink'),
-            ERM(method='closed')
+            ERM(method='closed'),
         ]
     
     hrec = HierarchicalReconciliation(reconcilers=reconcilers)
@@ -181,7 +182,7 @@ with CodeTimer('Reconcile Predictions ', verbose):
 ```
 
 ``` text
-Code block 'Reconcile Predictions ' took:   7.62321 seconds
+Code block 'Reconcile Predictions ' took:   7.49314 seconds
 ```
 
 Qualitative evaluation, of parsed quantiles
@@ -235,7 +236,7 @@ results.sort_values(by=["metric", "level"])
 ```
 
 ``` text
-Code block 'Evaluate Models CRPS and MSSE ' took:   4.46367 seconds
+Code block 'Evaluate Models CRPS and MSSE ' took:   4.25192 seconds
 ```
 
 |  | level | metric | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-average_proportions | AutoARIMA/TopDown_method-proportion_averages | AutoARIMA/MinTrace_method-ols | AutoARIMA/MinTrace_method-wls_var | AutoARIMA/MinTrace_method-mint_shrink | AutoARIMA/ERM_method-closed_lambda_reg-0.01 |

@@ -31,7 +31,7 @@ $\hat{\mathbf{y}}_{[a,b],\tau}$.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L160"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L163"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp
@@ -55,7 +55,7 @@ $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathr
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L186"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L189"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.fit
@@ -76,17 +76,22 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
 Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
-`level`: float list 0-100, confidence levels for prediction
-intervals.<br/> `intervals_method`: Sampler for prediction intevals, one
-of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
-sampler instantiation arguments.<br/>
+`y_insample`: In-sample values of size (`base`, `horizon`).<br/>
+`y_hat_insample`: In-sample forecast values of size (`base`,
+`horizon`).<br/> `sigmah`: Estimated standard deviation of the
+conditional marginal distribution.<br/>  
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `**sampler_kwargs`: Coherent sampler instantiation
+arguments.<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.predict
@@ -109,7 +114,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L230"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L237"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.fit_predict
@@ -132,10 +137,16 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
 Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: In-sample values of size (`base`, `insample_size`).<br/>
+`y_hat_insample`: In-sample forecast values of size (`base`,
+`insample_size`).<br/> `sigmah`: Estimated standard deviation of the
+conditional marginal distribution.<br/>  
 `level`: float list 0-100, confidence levels for prediction
-intervals.<br/> `intervals_method`: Sampler for prediction intevals, one
-of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
-sampler instantiation arguments.<br/>
+intervals.<br/> `intervals_method`: Sampler for prediction intervals, one
+of `normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of
+samples for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `**sampler_kwargs`: Coherent sampler instantiation
+arguments.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Bottom Up
 approach.\*
@@ -143,7 +154,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUp.sample
@@ -168,7 +179,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L278"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L290"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUpSparse
@@ -191,7 +202,7 @@ See the parent class for more details.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L186"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L189"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUpSparse.fit
@@ -213,17 +224,22 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
 Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
-`level`: float list 0-100, confidence levels for prediction
-intervals.<br/> `intervals_method`: Sampler for prediction intevals, one
-of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
-sampler instantiation arguments.<br/>
+`y_insample`: In-sample values of size (`base`, `horizon`).<br/>
+`y_hat_insample`: In-sample forecast values of size (`base`,
+`horizon`).<br/> `sigmah`: Estimated standard deviation of the
+conditional marginal distribution.<br/>  
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `**sampler_kwargs`: Coherent sampler instantiation
+arguments.<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUpSparse.predict
@@ -246,7 +262,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L230"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L237"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUpSparse.fit_predict
@@ -269,10 +285,16 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
 Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: In-sample values of size (`base`, `insample_size`).<br/>
+`y_hat_insample`: In-sample forecast values of size (`base`,
+`insample_size`).<br/> `sigmah`: Estimated standard deviation of the
+conditional marginal distribution.<br/>  
 `level`: float list 0-100, confidence levels for prediction
-intervals.<br/> `intervals_method`: Sampler for prediction intevals, one
-of `normality`, `bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent
-sampler instantiation arguments.<br/>
+intervals.<br/> `intervals_method`: Sampler for prediction intervals, one
+of `normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of
+samples for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `**sampler_kwargs`: Coherent sampler instantiation
+arguments.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Bottom Up
 approach.\*
@@ -280,7 +302,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BottomUpSparse.sample
@@ -307,7 +329,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L344"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L360"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown
@@ -338,7 +360,7 @@ doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L409"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L435"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.fit
@@ -356,22 +378,25 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*TopDown Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
-key is a level and each value its `S` indices.<br/> `y_insample`:
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
 Insample values of size (`base`, `insample_size`). Optional for
-`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
-to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
-0-100, confidence levels for prediction intervals.<br/>
-`intervals_method`: Sampler for prediction intevals, one of `normality`,
-`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
-instantiation arguments.<br/>
+`forecast_proportions` method.<br/> `y_hat_insample`: Insample forecast
+values of size (`base`, `insample_size`). Optional for
+`forecast_proportions` method.<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/>
+`interval_method`: Sampler for prediction intervals, one of `normality`,
+`bootstrap`, `permbu`.<br/> `num_samples`: Number of samples for
+probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/> `idx_bottom`: Indices corresponding to the bottom level of
+`S`, size (`bottom`).<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.predict
@@ -394,7 +419,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L457"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L485"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.fit_predict
@@ -416,14 +441,18 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
-key is a level and each value its `S` indices.<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Optional for
-`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
-to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
-0-100, confidence levels for prediction intervals.<br/>
-`intervals_method`: Sampler for prediction intevals, one of `normality`,
-`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
-instantiation arguments.<br/>
+key is a level and each value its `S` indices.<br/> `idx_bottom`: Indices
+corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: Insample values of size (`base`, `insample_size`).
+Optional for `forecast_proportions` method.<br/> `y_hat_insample`:
+Insample forecast values of size (`base`, `insample_size`). Optional for
+`forecast_proportions` method.<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Top Down
 approach.\*
@@ -431,7 +460,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDown.sample
@@ -456,7 +485,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L527"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L558"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDownSparse
@@ -476,7 +505,7 @@ See the parent class for more details.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L409"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L435"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDownSparse.fit
@@ -495,22 +524,25 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*TopDown Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
-key is a level and each value its `S` indices.<br/> `y_insample`:
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
 Insample values of size (`base`, `insample_size`). Optional for
-`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
-to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
-0-100, confidence levels for prediction intervals.<br/>
-`intervals_method`: Sampler for prediction intevals, one of `normality`,
-`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
-instantiation arguments.<br/>
+`forecast_proportions` method.<br/> `y_hat_insample`: Insample forecast
+values of size (`base`, `insample_size`). Optional for
+`forecast_proportions` method.<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/>
+`interval_method`: Sampler for prediction intervals, one of `normality`,
+`bootstrap`, `permbu`.<br/> `num_samples`: Number of samples for
+probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/> `idx_bottom`: Indices corresponding to the bottom level of
+`S`, size (`bottom`).<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDownSparse.predict
@@ -533,13 +565,14 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L457"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L624"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDownSparse.fit_predict
 
 > ``` text
->  TopDownSparse.fit_predict (S:numpy.ndarray, y_hat:numpy.ndarray,
+>  TopDownSparse.fit_predict (S:scipy.sparse._csr.csr_matrix,
+>                             y_hat:numpy.ndarray,
 >                             tags:dict[str,numpy.ndarray],
 >                             idx_bottom:numpy.ndarray=None,
 >                             y_insample:Optional[numpy.ndarray]=None,
@@ -555,14 +588,18 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
-key is a level and each value its `S` indices.<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Optional for
-`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
-to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
-0-100, confidence levels for prediction intervals.<br/>
-`intervals_method`: Sampler for prediction intevals, one of `normality`,
-`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
-instantiation arguments.<br/>
+key is a level and each value its `S` indices.<br/> `idx_bottom`: Indices
+corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: Insample values of size (`base`, `insample_size`).
+Optional for `forecast_proportions` method.<br/> `y_hat_insample`:
+Insample forecast values of size (`base`, `insample_size`). Optional for
+`forecast_proportions` method.<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Top Down
 approach.\*
@@ -570,7 +607,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TopDownSparse.sample
@@ -592,12 +629,29 @@ coherent distribution.<br/>
 **Returns:**<br/> `samples`: Coherent samples of size (`num_series`,
 `horizon`, `num_samples`).\*
 
+```python
+cls_top_down(
+                S=S, y_hat=S @ y_hat_bottom, y_insample=S @ y_bottom, tags=tags
+            )["mean"]
+```
+
+
+```python
+#\ hide
+cls_top_down = TopDownSparse(method="average_proportions")
+test_fail(
+    cls_top_down,
+    contains="Top-down reconciliation requires strictly hierarchical structures.",
+    args=(sparse.csr_matrix(S_non_hier), None, tags_non_hier),
+)
+```
+
 # 3. Middle-Out
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L589"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L699"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut
@@ -626,7 +680,7 @@ Australia. OTexts.com/fpp3 Accessed on July
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L618"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L728"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut.fit
@@ -638,7 +692,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L621"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L731"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut.predict
@@ -660,7 +714,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L624"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L734"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut.fit_predict
@@ -679,7 +733,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
 key is a level and each value its `S` indices.<br/> `y_insample`:
 Insample values of size (`base`, `insample_size`). Only used for
-`forecast_proportions`<br/>
+`forecast_proportions`<br/> `level`: Not supported. <br/>
+`intervals_method`: Not supported.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Middle Out
 approach.\*
@@ -687,7 +742,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOut.sample
@@ -712,7 +767,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L711"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L828"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOutSparse
@@ -732,7 +787,7 @@ See the parent class for more details.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L618"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L728"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOutSparse.fit
@@ -744,7 +799,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L621"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L731"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOutSparse.predict
@@ -766,7 +821,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L726"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L843"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOutSparse.fit_predict
@@ -785,7 +840,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
 key is a level and each value its `S` indices.<br/> `y_insample`:
 Insample values of size (`base`, `insample_size`). Only used for
-`forecast_proportions`<br/>
+`forecast_proportions`<br/> `level`: Not supported. <br/>
+`intervals_method`: Not supported.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the Middle Out
 approach.\*
@@ -793,7 +849,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MiddleOutSparse.sample
@@ -820,7 +876,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L802"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L930"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace
@@ -864,7 +920,7 @@ https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L947"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1077"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.fit
@@ -882,22 +938,25 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*MinTrace Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
-key is a level and each value its `S` indices.<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Optional for
-`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
-to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
-0-100, confidence levels for prediction intervals.<br/>
-`intervals_method`: Sampler for prediction intevals, one of `normality`,
-`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
-instantiation arguments.<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Only used with
+“wls_var”, “mint_cov”, “mint_shrink”.<br/> `y_hat_insample`: Insample
+forecast values of size (`base`, `insample_size`). Only used with
+“wls_var”, “mint_cov”, “mint_shrink”<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/>
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/> `idx_bottom`: Indices corresponding to the bottom level of
+`S`, size (`bottom`).<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.predict
@@ -920,7 +979,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1051"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1183"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.fit_predict
@@ -941,14 +1000,19 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*MinTrace Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Only used by
-`wls_var`, `mint_cov`, `mint_shrink`<br/> `y_hat_insample`: Insample
-fitted values of size (`base`, `insample_size`). Only used by `wls_var`,
-`mint_cov`, `mint_shrink`<br/> `idx_bottom`: Indices corresponding to the
-bottom level of `S`, size (`bottom`).<br/> `level`: float list 0-100,
-confidence levels for prediction intervals.<br/> `sampler`: Sampler for
-prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
+Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: Insample values of size (`base`, `insample_size`). Only
+used by `wls_var`, `mint_cov`, `mint_shrink`<br/> `y_hat_insample`:
+Insample fitted values of size (`base`, `insample_size`). Only used by
+`wls_var`, `mint_cov`, `mint_shrink`<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the MinTrace
 approach.\*
@@ -956,7 +1020,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTrace.sample
@@ -981,36 +1045,37 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1108"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1246"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTraceSparse
 
 > ``` text
->  MinTraceSparse (method:str, nonnegative:bool=False,
->                  mint_shr_ridge:Optional[float]=2e-08, num_threads:int=1)
+>  MinTraceSparse (method:str, nonnegative:bool=False, num_threads:int=1,
+>                  qp:bool=True)
 > ```
 
 \*MinTraceSparse Reconciliation Class.
 
-This is the implementation of a subset of MinTrace features using the
-sparse matrix approach. It works much more efficient on datasets with
-many time series.
+This is the implementation of OLS and WLS estimators using sparse
+matrices. It is not guaranteed to give identical results to the
+non-sparse version, but works much more efficiently on data sets with
+many time series.<br/>
 
-See the parent class for more details.
+See the parent class for more details.<br/>
 
-Currently supported: \* Methods using diagonal W matrix, i.e. “ols”,
-“wls_struct”, “wls_var”, \* The standard MinT version (non-negative is
-not supported).
-
-Note: due to the numerical instability of the matrix inversion when
-creating the P matrix, the method is NOT guaranteed to give identical
-results to the non-sparse version.\*
+**Parameters:**<br/> `method`: str, one of `ols`, `wls_struct`, or
+`wls_var`.<br/> `nonnegative`: bool, return non-negative reconciled
+forecasts.<br/> `num_threads`: int, number of threads to execute
+non-negative quadratic programming calls.<br/> `qp`: bool, implement
+non-negativity constraint with a quadratic programming approach. Setting
+this to True generally gives better results, but at the expense of
+higher cost to compute. <br/>\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1217"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1367"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTraceSparse.fit
@@ -1027,25 +1092,27 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      idx_bottom:Optional[numpy.ndarray]=None)
 > ```
 
-\*MinTrace Fit Method.
+\*MinTraceSparse Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
-key is a level and each value its `S` indices.<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Optional for
-`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
-to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
-0-100, confidence levels for prediction intervals.<br/>
-`intervals_method`: Sampler for prediction intevals, one of `normality`,
-`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
-instantiation arguments.<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Only used with
+“wls_var”.<br/> `y_hat_insample`: Insample forecast values of size
+(`base`, `insample_size`). Only used with “wls_var”<br/> `sigmah`:
+Estimated standard deviation of the conditional marginal
+distribution.<br/> `intervals_method`: Sampler for prediction intervals,
+one of `normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of
+samples for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/> `idx_bottom`: Indices corresponding to the bottom level of
+`S`, size (`bottom`).<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTraceSparse.predict
@@ -1068,7 +1135,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1051"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1183"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTraceSparse.fit_predict
@@ -1089,14 +1156,19 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*MinTrace Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Only used by
-`wls_var`, `mint_cov`, `mint_shrink`<br/> `y_hat_insample`: Insample
-fitted values of size (`base`, `insample_size`). Only used by `wls_var`,
-`mint_cov`, `mint_shrink`<br/> `idx_bottom`: Indices corresponding to the
-bottom level of `S`, size (`bottom`).<br/> `level`: float list 0-100,
-confidence levels for prediction intervals.<br/> `sampler`: Sampler for
-prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
+Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: Insample values of size (`base`, `insample_size`). Only
+used by `wls_var`, `mint_cov`, `mint_shrink`<br/> `y_hat_insample`:
+Insample fitted values of size (`base`, `insample_size`). Only used by
+`wls_var`, `mint_cov`, `mint_shrink`<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the MinTrace
 approach.\*
@@ -1104,7 +1176,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinTraceSparse.sample
@@ -1131,7 +1203,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1285"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1573"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination
@@ -1172,7 +1244,7 @@ https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L947"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1077"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.fit
@@ -1192,22 +1264,25 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*MinTrace Fit Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `tags`: Each
-key is a level and each value its `S` indices.<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Optional for
-`forecast_proportions` method.<br/> `idx_bottom`: Indices corresponding
-to the bottom level of `S`, size (`bottom`).<br/> `level`: float list
-0-100, confidence levels for prediction intervals.<br/>
-`intervals_method`: Sampler for prediction intevals, one of `normality`,
-`bootstrap`, `permbu`.<br/> `**sampler_kwargs`: Coherent sampler
-instantiation arguments.<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
+Insample values of size (`base`, `insample_size`). Only used with
+“wls_var”, “mint_cov”, “mint_shrink”.<br/> `y_hat_insample`: Insample
+forecast values of size (`base`, `insample_size`). Only used with
+“wls_var”, “mint_cov”, “mint_shrink”<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/>
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/> `idx_bottom`: Indices corresponding to the bottom level of
+`S`, size (`bottom`).<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.predict
@@ -1230,7 +1305,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1051"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1183"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.fit_predict
@@ -1251,14 +1326,19 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*MinTrace Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
-Insample values of size (`base`, `insample_size`). Only used by
-`wls_var`, `mint_cov`, `mint_shrink`<br/> `y_hat_insample`: Insample
-fitted values of size (`base`, `insample_size`). Only used by `wls_var`,
-`mint_cov`, `mint_shrink`<br/> `idx_bottom`: Indices corresponding to the
-bottom level of `S`, size (`bottom`).<br/> `level`: float list 0-100,
-confidence levels for prediction intervals.<br/> `sampler`: Sampler for
-prediction intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
+Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: Insample values of size (`base`, `insample_size`). Only
+used by `wls_var`, `mint_cov`, `mint_shrink`<br/> `y_hat_insample`:
+Insample fitted values of size (`base`, `insample_size`). Only used by
+`wls_var`, `mint_cov`, `mint_shrink`<br/> `sigmah`: Estimated standard
+deviation of the conditional marginal distribution.<br/> `level`: float
+list 0-100, confidence levels for prediction intervals.<br/>
+`intervals_method`: Sampler for prediction intervals, one of
+`normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of samples
+for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the MinTrace
 approach.\*
@@ -1266,7 +1346,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### OptimalCombination.sample
@@ -1293,7 +1373,7 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1321"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1609"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM
@@ -1332,7 +1412,7 @@ Machinery.](https://doi.org/10.1145/3292500.3330976).<br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1407"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1699"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.fit
@@ -1352,18 +1432,20 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 `y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
 Train values of size (`base`, `insample_size`).<br/> `y_hat_insample`:
 Insample train predictions of size (`base`, `insample_size`).<br/>
-`idx_bottom`: Indices corresponding to the bottom level of `S`, size
-(`bottom`).<br/> `level`: float list 0-100, confidence levels for
-prediction intervals.<br/> `intervals_method`: Sampler for prediction
-intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
-`**sampler_kwargs`: Coherent sampler instantiation arguments.<br/>
+`sigmah`: Estimated standard deviation of the conditional marginal
+distribution.<br/> `intervals_method`: Sampler for prediction intervals,
+one of `normality`, `bootstrap`, `permbu`.<br/> `num_samples`: Number of
+samples for probabilistic coherent distribution.<br/> `seed`: Seed for
+reproducibility.<br/> `tags`: Each key is a level and each value its `S`
+indices.<br/> `idx_bottom`: Indices corresponding to the bottom level of
+`S`, size (`bottom`).<br/>
 
 **Returns:**<br/> `self`: object, fitted reconciler.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L103"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L106"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.predict
@@ -1386,7 +1468,7 @@ list 0-100, confidence levels for prediction intervals.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1458"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L1752"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.fit_predict
@@ -1406,13 +1488,17 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*ERM Reconciliation Method.
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
-`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `y_insample`:
-Train values of size (`base`, `insample_size`).<br/> `y_hat_insample`:
-Insample train predictions of size (`base`, `insample_size`).<br/>
-`idx_bottom`: Indices corresponding to the bottom level of `S`, size
-(`bottom`).<br/> `level`: float list 0-100, confidence levels for
-prediction intervals.<br/> `intervals_method`: Sampler for prediction
-intevals, one of `normality`, `bootstrap`, `permbu`.<br/>
+`y_hat`: Forecast values of size (`base`, `horizon`).<br/> `idx_bottom`:
+Indices corresponding to the bottom level of `S`, size (`bottom`).<br/>
+`y_insample`: Train values of size (`base`, `insample_size`).<br/>
+`y_hat_insample`: Insample train predictions of size (`base`,
+`insample_size`).<br/> `sigmah`: Estimated standard deviation of the
+conditional marginal distribution.<br/> `level`: float list 0-100,
+confidence levels for prediction intervals.<br/> `intervals_method`:
+Sampler for prediction intervals, one of `normality`, `bootstrap`,
+`permbu`.<br/> `num_samples`: Number of samples for probabilistic
+coherent distribution.<br/> `seed`: Seed for reproducibility.<br/> `tags`:
+Each key is a level and each value its `S` indices.<br/>
 
 **Returns:**<br/> `y_tilde`: Reconciliated y_hat using the ERM
 approach.\*
@@ -1420,7 +1506,7 @@ approach.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L125"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/methods.py#L128"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ERM.sample
