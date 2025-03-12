@@ -387,9 +387,11 @@ def aggregate_temporal(
     df_nw = nw.from_native(df)
 
     # We add a cumulative count column to the dataframe to be able to compute the aggregations
-    df_nw = df_nw.with_columns(
-        nw.col(time_col).cum_count().over([id_col]).alias(f"{time_col}_count")
+    unique_ts = df_nw.select(nw.col(time_col)).unique(maintain_order=True)
+    unique_ts = unique_ts.with_columns(
+        nw.col(time_col).cum_count().alias(f"{time_col}_count")
     )
+    df_nw = df_nw.join(unique_ts, on=[time_col], how="left")
 
     # Check spec that lowest level with seasonality of 1 has been defined
     if 1 not in spec.values():
@@ -412,35 +414,22 @@ def aggregate_temporal(
     # Loop over the spec and create the aggregation columns
     spec_agg: list = []
     for agg, seasonality in spec.items():
-        # Check if the number of timesteps is divisible by each seasonality
-        divisors = df_nw.group_by(id_col).agg(
-            nw.col(time_col).count().alias("number_of_timesteps")
+        df_nw = df_nw.with_columns(
+            nw.concat_str(
+                [
+                    nw.lit(agg),
+                    nw.lit("-"),
+                    (((nw.col(f"{time_col}_count") - 1) // seasonality) + 1).cast(
+                        nw.String
+                    ),
+                ]
+            ).alias(agg)
         )
-        divisor_check = divisors["number_of_timesteps"] % seasonality != 0
-        if divisor_check.any():
-            raise ValueError(
-                f"Aggregation '{agg}' with seasonality={seasonality} failed.\n "
-                "Make sure each time series has an amount of timesteps that is divisible by each seasonality.\n"
-                f"The following time series have an amount of timesteps that is not divisible by {seasonality}:\n"
-                f"{divisors.filter(nw.col(f'{time_col}_count') % seasonality != 0).to_native()}"
-            )
+        if seasonality != 1:
+            spec_agg.append([agg])
         else:
-            df_nw = df_nw.with_columns(
-                nw.concat_str(
-                    [
-                        nw.lit(agg),
-                        nw.lit("-"),
-                        (((nw.col(f"{time_col}_count") - 1) // seasonality) + 1).cast(
-                            nw.String
-                        ),
-                    ]
-                ).alias(agg)
-            )
-            if seasonality != 1:
-                spec_agg.append([agg])
-            else:
-                all_aggs = [key for key in spec.keys()]
-                spec_agg.append(all_aggs)
+            all_aggs = [key for key in spec.keys()]
+            spec_agg.append(all_aggs)
 
     # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
     add_placeholder = False
