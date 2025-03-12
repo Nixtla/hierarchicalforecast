@@ -284,14 +284,14 @@ def aggregate(
         if temporal_agg:
             Y_level = Y_level.sort(by=[id_col, time_col])
             Y_level = Y_level.unique(
-                subset=level + [group_col], maintain_order=temporal_agg, keep="first"
+                subset=level + [group_col], maintain_order=temporal_agg, keep="last"
             ).select([_id_col, group_col, time_col, *target_cols] + exog_var_names)
             tags[level_name] = (
                 Y_level[_id_col].unique(maintain_order=temporal_agg).to_numpy()
             )
         else:
             Y_level = Y_level.unique(
-                subset=level + [group_col], maintain_order=temporal_agg, keep="first"
+                subset=level + [group_col], maintain_order=temporal_agg, keep="last"
             ).select([_id_col, group_col, *target_cols] + exog_var_names)
             Y_level = Y_level.sort(by=[_id_col, group_col])
             tags[level_name] = (
@@ -348,6 +348,7 @@ def aggregate_temporal(
     time_col: str = "ds",
     id_time_col: str = "temporal_id",
     target_cols: list[str] = ["y"],
+    aggregation_type: str = "local",
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function for Temporal aggregations.
     Aggregates bottom level timesteps contained in the DataFrame `df` according
@@ -371,6 +372,8 @@ def aggregate_temporal(
         Column that will identify each timestep after aggregation.
     target_cols : (default=['y'])
         List of columns that contain the targets to aggregate.
+    aggregation_type : str (default='local')
+        If 'local' the aggregation will be performed on the timestamps of each timeseries independently. If 'global' the aggregation will be performed on the unique timestamps of all timeseries.
 
     Returns
     -------
@@ -387,11 +390,20 @@ def aggregate_temporal(
     df_nw = nw.from_native(df)
 
     # We add a cumulative count column to the dataframe to be able to compute the aggregations
-    unique_ts = df_nw.select(nw.col(time_col)).unique(maintain_order=True)
-    unique_ts = unique_ts.with_columns(
-        nw.col(time_col).cum_count().alias(f"{time_col}_count")
-    )
-    df_nw = df_nw.join(unique_ts, on=[time_col], how="left")
+    if aggregation_type == "local":
+        df_nw = df_nw.with_columns(
+            nw.col(time_col).cum_count().over([id_col]).alias(f"{time_col}_count")
+        )
+    elif aggregation_type == "global":
+        unique_ts = df_nw.select(nw.col(time_col)).unique(maintain_order=True)
+        unique_ts = unique_ts.with_columns(
+            nw.col(time_col).cum_count().alias(f"{time_col}_count")
+        )
+        df_nw = df_nw.join(unique_ts, on=[time_col], how="left")
+        df_nw = df_nw.sort(by=[id_col, time_col])
+    else:
+        raise ValueError("aggregation_type must be either 'local' or 'global'.")
+    df_nw = nw.maybe_reset_index(df_nw)
 
     # Check spec that lowest level with seasonality of 1 has been defined
     if 1 not in spec.values():

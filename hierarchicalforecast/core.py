@@ -50,7 +50,6 @@ def _reverse_engineer_sigmah(
     id_col: str = "unique_id",
     time_col: str = "ds",
     target_col: str = "y",
-    temporal: bool = False,
     num_samples: int = 200,
 ) -> np.ndarray:
     """
@@ -85,8 +84,6 @@ def _reverse_engineer_sigmah(
     level_col = float(level_cols[-1])
     z = norm.ppf(0.5 + level_col / num_samples)
     sigmah = Y_hat_df[pi_col].to_numpy().reshape(n_series, -1)
-    if temporal:
-        sigmah = sigmah.T
     sigmah = sign * (sigmah - y_hat) / z
 
     return sigmah
@@ -490,7 +487,6 @@ class HierarchicalReconciliation:
                             Y_hat_df=Y_hat_nw,
                             y_hat=y_hat,
                             model_name=model_name,
-                            temporal=temporal,
                             id_col=id_col,
                             time_col=time_col,
                             target_col=target_col,
