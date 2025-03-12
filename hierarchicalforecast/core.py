@@ -51,6 +51,7 @@ def _reverse_engineer_sigmah(
     time_col: str = "ds",
     target_col: str = "y",
     temporal: bool = False,
+    num_samples: int = 200,
 ) -> np.ndarray:
     """
     This function assumes that the model creates prediction intervals
@@ -82,7 +83,7 @@ def _reverse_engineer_sigmah(
     sign = -1 if "lo" in pi_col else 1
     level_cols = re.findall("[\d]+[.,\d]+|[\d]*[.][\d]+|[\d]+", pi_col)
     level_col = float(level_cols[-1])
-    z = norm.ppf(0.5 + level_col / 200)
+    z = norm.ppf(0.5 + level_col / num_samples)
     sigmah = Y_hat_df[pi_col].to_numpy().reshape(n_series, -1)
     if temporal:
         sigmah = sigmah.T
@@ -480,20 +481,22 @@ class HierarchicalReconciliation:
                     reconciler_args["y_hat_insample"] = y_hat_insample
 
                 if level is not None:
+                    reconciler_args["intervals_method"] = intervals_method
+                    reconciler_args["num_samples"] = 200
+                    reconciler_args["seed"] = seed
+
                     if intervals_method in ["normality", "permbu"]:
                         sigmah = _reverse_engineer_sigmah(
                             Y_hat_df=Y_hat_nw,
                             y_hat=y_hat,
                             model_name=model_name,
                             temporal=temporal,
+                            id_col=id_col,
+                            time_col=time_col,
+                            target_col=target_col,
+                            num_samples=reconciler_args["num_samples"],
                         )
                         reconciler_args["sigmah"] = sigmah
-
-                    reconciler_args["intervals_method"] = intervals_method
-                    reconciler_args["num_samples"] = (
-                        200  # TODO: solve duplicated num_samples
-                    )
-                    reconciler_args["seed"] = seed
 
                 # Mean and Probabilistic reconciliation
                 kwargs_ls = [
