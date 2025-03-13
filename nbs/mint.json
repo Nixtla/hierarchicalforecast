@@ -61,7 +61,9 @@
           "group": "Temporal Reconciliation",
           "pages": [
             "examples/australiandomestictourismtemporal.html",
-            "examples/australiandomestictourismcrosstemporal.html"
+            "examples/australiandomestictourismcrosstemporal.html",
+            "examples/m3withthief.html",
+            "examples/localglobalaggregation.html"              
           ]
         },        
         "examples/mlframeworksexample.html"
