@@ -452,11 +452,7 @@ def aggregate_temporal(
                 ]
             ).alias(agg)
         )
-        # if seasonality != 1:
         spec_agg.append([agg])
-        # else:
-        # all_aggs = [key for key in spec.keys()]
-        # spec_agg.append(all_aggs)
 
     # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
     add_placeholder = False
