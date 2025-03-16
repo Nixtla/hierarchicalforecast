@@ -201,7 +201,7 @@ def aggregate(
 
     # Check if last level in spec contains all levels
     missing_cols_in_bottom_spec = set(spec_cols) - set(spec[-1])
-    if missing_cols_in_bottom_spec:
+    if missing_cols_in_bottom_spec and not temporal_agg:
         raise ValueError(
             f"Check the last (bottom) level of spec, it has missing columns: {reprlib.repr(missing_cols_in_bottom_spec)}"
         )
@@ -306,14 +306,29 @@ def aggregate(
     Y_df = Y_nw.to_native()
 
     # construct S
-    bottom = spec[-1]
-    bottom_levels = tags[level_name]
+    if temporal_agg:
+        bottom = spec_cols
+        bottom_levels = (
+            df_nw.select(
+                nw.concat_str(
+                    [nw.col(col) for col in bottom], separator=level_sep
+                ).alias(_id_col)
+            )
+            .unique(subset=[_id_col], maintain_order=temporal_agg, keep="last")[_id_col]
+            .to_numpy()
+        )
+        categories = list([v for k, v in tags.items() if k != level_name])
+        categories += [bottom_levels]
+    else:
+        bottom = spec[-1]
+        bottom_levels = tags[level_name]
+        categories = list(tags.values())
+
     S = np.empty((len(bottom_levels), len(spec)), dtype=object)
 
     for j, levels in enumerate(spec[:-1]):
         S[:, j] = _to_upper_hierarchy(bottom, bottom_levels, level_sep.join(levels))
-    S[:, -1] = tags[level_name]
-    categories = list(tags.values())
+    S[:, -1] = bottom_levels
 
     encoder = OneHotEncoder(
         categories=categories, sparse_output=sparse_s, dtype=np.float64
@@ -437,11 +452,11 @@ def aggregate_temporal(
                 ]
             ).alias(agg)
         )
-        if seasonality != 1:
-            spec_agg.append([agg])
-        else:
-            all_aggs = [key for key in spec.keys()]
-            spec_agg.append(all_aggs)
+        # if seasonality != 1:
+        spec_agg.append([agg])
+        # else:
+        # all_aggs = [key for key in spec.keys()]
+        # spec_agg.append(all_aggs)
 
     # If target_cols is not in df, we add a placeholder column so that we can compute the aggregations
     add_placeholder = False
