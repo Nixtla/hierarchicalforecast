@@ -57,7 +57,7 @@ Series”.](https://otexts.com/fpp3/hierarchical.html)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L271"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L314"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### reconcile
@@ -70,7 +70,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             pe]=None, level:Optional[list[int]]=None,
 >             intervals_method:str='normality', num_samples:int=-1,
 >             seed:int=0, is_balanced:bool=False, id_col:str='unique_id',
->             time_col:str='ds', target_col:str='y')
+>             time_col:str='ds', target_col:str='y',
+>             id_time_col:str='temporal_id', temporal:bool=False)
 > ```
 
 \*Hierarchical Reconciliation Method.
@@ -116,7 +117,7 @@ column that contains the target.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L507"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/core.py#L554"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### bootstrap_reconcile

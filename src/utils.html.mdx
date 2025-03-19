@@ -21,7 +21,7 @@ external libraries into a compatible data frame format.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L137"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L142"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### aggregate
@@ -32,7 +32,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             ny]')], spec:list[list[str]],
 >             exog_vars:Optional[dict[str,Union[str,list[str]]]]=None,
 >             sparse_s:bool=False, id_col:str='unique_id',
->             time_col:str='ds', target_cols:list[str]=['y'])
+>             time_col:str='ds', id_time_col:Optional[str]=None,
+>             target_cols:collections.abc.Sequence[str]=('y',))
 > ```
 
 *Utils Aggregation Function. Aggregates bottom level series contained in
@@ -46,15 +47,110 @@ the DataFrame `df` according to levels defined in the `spec` list.*
 | sparse_s | bool | False | Return `S_df` as a sparse Pandas dataframe. |
 | id_col | str | unique_id | Column that will identify each serie after aggregation. |
 | time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
-| target_cols | list | \[‘y’\] | list of columns that contains the targets to aggregate. |
+| id_time_col | Optional | None | Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally. |
+| target_cols | Sequence | (‘y’,) | list of columns that contains the targets to aggregate. |
 | **Returns** | **tuple** |  | **Hierarchically structured series.** |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L359"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### aggregate_temporal
+
+> ``` text
+>  aggregate_temporal
+>                      (df:Union[ForwardRef('DataFrame[Any]'),ForwardRef('La
+>                      zyFrame[Any]')], spec:dict[str,int], exog_vars:Option
+>                      al[dict[str,Union[str,list[str]]]]=None,
+>                      sparse_s:bool=False, id_col:str='unique_id',
+>                      time_col:str='ds', id_time_col:str='temporal_id',
+>                      target_cols:collections.abc.Sequence[str]=('y',),
+>                      aggregation_type:str='local')
+> ```
+
+*Utils Aggregation Function for Temporal aggregations. Aggregates bottom
+level timesteps contained in the DataFrame `df` according to temporal
+levels defined in the `spec` list.*
+
+|  | **Type** | **Default** | **Details** |
+|------|------------------|-------------------------|-------------------------|
+| df | Union |  | Dataframe with columns `[time_col, target_cols]` and columns to aggregate. |
+| spec | dict |  | Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation. For example, for monthly data, a spec for a temporal aggregation for yearly and monthly aggregations could be: spec = {“year”: 12, “month”: 1}. |
+| exog_vars | Optional | None |  |
+| sparse_s | bool | False | Return `S_df` as a sparse Pandas dataframe. |
+| id_col | str | unique_id | Column that will identify each serie after aggregation. |
+| time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
+| id_time_col | str | temporal_id | Column that will identify each timestep after aggregation. |
+| target_cols | Sequence | (‘y’,) | List of columns that contain the targets to aggregate. |
+| aggregation_type | str | local | If ‘local’ the aggregation will be performed on the timestamps of each timeseries independently. If ‘global’ the aggregation will be performed on the unique timestamps of all timeseries. |
+| **Returns** | **tuple** |  | **Temporally hierarchically structured series.** |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L489"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### make_future_dataframe
+
+> ``` text
+>  make_future_dataframe
+>                         (df:Union[ForwardRef('DataFrame[Any]'),ForwardRef(
+>                         'LazyFrame[Any]')], freq:Union[str,int], h:int,
+>                         id_col:str='unique_id', time_col:str='ds')
+> ```
+
+*Create future dataframe for forecasting.*
+
+|  | **Type** | **Default** | **Details** |
+|------|------------------|-------------------------|-------------------------|
+| df | Union |  | Dataframe with ids, times and values for the exogenous regressors. |
+| freq | Union |  | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. |
+| h | int |  | Forecast horizon. |
+| id_col | str | unique_id | Column that identifies each serie. |
+| time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
+| **Returns** | **FrameT** |  | **DataFrame with future values** |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L529"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### get_cross_temporal_tags
+
+> ``` text
+>  get_cross_temporal_tags
+>                           (df:Union[ForwardRef('DataFrame[Any]'),ForwardRe
+>                           f('LazyFrame[Any]')],
+>                           tags_cs:dict[str,numpy.ndarray],
+>                           tags_te:dict[str,numpy.ndarray], sep:str='//',
+>                           id_col:str='unique_id',
+>                           id_time_col:str='temporal_id',
+>                           cross_temporal_id_col:str='cross_temporal_id')
+> ```
+
+*Get cross-temporal tags.*
+
+|  | **Type** | **Default** | **Details** |
+|------|------------------|-------------------------|-------------------------|
+| df | Union |  | DataFrame with temporal ids. |
+| tags_cs | dict |  | Tags for the cross-sectional hierarchies |
+| tags_te | dict |  | Tags for the temporal hierarchies |
+| sep | str | // | Separator for the cross-temporal tags. |
+| id_col | str | unique_id | Column that identifies each serie. |
+| id_time_col | str | temporal_id | Column that identifies each (aggregated) timestep. |
+| cross_temporal_id_col | str | cross_temporal_id | Column that will identify each cross-temporal aggregation. |
+| **Returns** | **tuple** |  | **DataFrame with cross-temporal ids.** |
 
 # Hierarchical Visualization
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L302"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L588"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HierarchicalPlot
@@ -82,7 +178,7 @@ aggregation.<br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L329"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L615"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_summing_matrix
@@ -99,7 +195,7 @@ $\mathbf{S}$.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L340"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L626"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_series
@@ -131,7 +227,7 @@ interval level.<br/><br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L419"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L705"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchically_linked_series
@@ -166,7 +262,7 @@ interval level.<br/><br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L515"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L801"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchical_predictions_gap
@@ -266,13 +362,14 @@ hplots.plot_hierarchical_predictions_gap(
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L634"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L920"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### samples_to_quantiles_df
 
 > ``` text
->  samples_to_quantiles_df (samples:numpy.ndarray, unique_ids:Sequence[str],
+>  samples_to_quantiles_df (samples:numpy.ndarray,
+>                           unique_ids:collections.abc.Sequence[str],
 >                           dates:list[str],
 >                           quantiles:Optional[list[float]]=None,
 >                           level:Optional[list[int]]=None,
