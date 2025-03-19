@@ -17,10 +17,11 @@ import utilsforecast.processing as ufp
 import utilsforecast.validation as ufv
 from scipy import sparse
 
+from collections.abc import Sequence
 from narwhals.typing import Frame, FrameT
 from numba import njit, prange
 from sklearn.preprocessing import OneHotEncoder
-from typing import Optional, Union, Sequence
+from typing import Optional, Union
 
 # %% ../nbs/src/utils.ipynb 5
 # Global variables
@@ -146,7 +147,7 @@ def aggregate(
     id_col: str = "unique_id",
     time_col: str = "ds",
     id_time_col: Optional[str] = None,
-    target_cols: list[str] = ["y"],
+    target_cols: Sequence[str] = ("y",),
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function.
     Aggregates bottom level series contained in the DataFrame `df` according
@@ -181,6 +182,7 @@ def aggregate(
         Aggregation indices.
     """
     # To Narwhals
+    target_cols = list(target_cols)
     df_nw = nw.from_native(df)
     backend = df_nw.implementation
 
@@ -362,7 +364,7 @@ def aggregate_temporal(
     id_col: str = "unique_id",
     time_col: str = "ds",
     id_time_col: str = "temporal_id",
-    target_cols: list[str] = ["y"],
+    target_cols: Sequence[str] = ("y",),
     aggregation_type: str = "local",
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function for Temporal aggregations.
@@ -400,6 +402,7 @@ def aggregate_temporal(
         Temporal aggregation indices.
     """
     # Check if ds column is a timestamp or integer, if not raise an error
+    target_cols = list(target_cols)
     df = ufv.ensure_time_dtype(df=df, time_col=time_col)
     df = ufp.ensure_sorted(df=df, id_col=id_col, time_col=time_col)
     df_nw = nw.from_native(df)
