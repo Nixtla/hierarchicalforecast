@@ -60,7 +60,7 @@ spec  = {"year": 365, "quarter": 91, "month": 30, "week": 7, "day": 1}
 
 In local aggregation, we treat the timestamps of each timeseries
 individually. It means that the temporal aggregation is performed by
-only lookking at the timestamps of each series, disregarding the
+only looking at the timestamps of each series, disregarding the
 timestamps of other series.
 
 ```python
@@ -103,8 +103,8 @@ Y_df_global, S_df_global, tags_globval = aggregate_temporal(df, spec, aggregatio
 We have created temporal aggregations *across all timeseries*, as the
 temporal aggregation `month-1` corresponds to the same (year,
 month)-combination for both timeseries. Since `month-1` isn’t present in
-the second timeseries (as it is shorter), we have only have one record
-for the aggregation.
+the second timeseries (as it is shorter), we have only one record for
+the aggregation.
 
 ```python
 Y_df_global.query("temporal_id == 'month-1'")
@@ -142,7 +142,7 @@ series.
 -   The `global` behavior can be useful when dealing with timeseries
     where we expect relationships between the timeseries. For example,
     in case of forecasting daily product demand individual products may
-    not always have sales for all timeesteps, but one is interested in
+    not always have sales for all timesteps, but one is interested in
     the overall temporal yearly aggregation across all products. The
     `global` setting has more room for error, so be careful and check
     the aggregation result carefully. This would typically be the
