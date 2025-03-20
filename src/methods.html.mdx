@@ -26,15 +26,16 @@ forecasts are coherent with each other. This can be formalized as:
 
 $$\tilde{\textbf{Y}} = SP\hat{\textbf{Y}} \;, $$
 
-where \$ ^{m p} \$ denotes the matrix of forecasts for all $m$ time
-series for all $p$ time steps in the hierarchy,
-$S \in \lbrace0, 1\rbrace^{m \times n}$ is a matrix that defines the
-hierarchical relationship between the $n$ bottom-level time series and
-the $m^* = m - n$ aggregations, $P \in \mathbb{R}^{n \times m}$ is a
-matrix that encapsulates the contribution of each forecast to the final
-estimate, and $\tilde{\textbf{Y}} \in \mathbb{R}^{m \times p}$ is the
-matrix of reconciled forecasts. We can use the matrix $P$ to define
-various forecast contribution scenarios.
+where $\hat{\textbf{Y}} \in \mathbb{R}^{m \times p}$ denotes the matrix
+of forecasts for all $m$ time series for all $p$ time steps in the
+hierarchy, $S \in \lbrace 0, 1 \rbrace^{m \times n}$ is a matrix that
+defines the hierarchical relationship between the $n$ bottom-level time
+series and the $m^* = m - n$ aggregations,
+$P \in \mathbb{R}^{n \times m}$ is a matrix that encapsulates the
+contribution of each forecast to the final estimate, and
+$\tilde{\textbf{Y}} \in \mathbb{R}^{m \times p}$ is the matrix of
+reconciled forecasts. We can use the matrix $P$ to define various
+forecast contribution scenarios.
 
 Cross-sectional reconciliation methods aim to find the optimal $P$
 matrix.
@@ -48,7 +49,7 @@ formalize the temporal hierarchical forecasting problem as:
 
 $$\tilde{\textbf{Y}} = \left( S_{te} P_{te} \hat{\textbf{Y}}^{\intercal} \right)^{\intercal}  \;, $$
 
-where $S_{te} \in \lbrace0, 1\rbrace^{p \times k}$ is a matrix that
+where $S_{te} \in \lbrace 0, 1 \rbrace^{p \times k}$ is a matrix that
 defines the hierarchical relationship between the $k$ bottom-level time
 steps and the $p^* = p - k$ aggregations and
 $P_{te} \in \mathbb{R}^{k \times p}$ is a matrix that encapsulates the
