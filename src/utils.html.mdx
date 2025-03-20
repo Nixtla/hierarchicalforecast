@@ -77,7 +77,7 @@ levels defined in the `spec` list.*
 |  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
 | df | Union |  | Dataframe with columns `[time_col, target_cols]` and columns to aggregate. |
-| spec | dict |  | Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation. For example, for monthly data, a spec for a temporal aggregation for yearly and monthly aggregations could be: spec = {“year”: 12, “month”: 1}. |
+| spec | dict |  | Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation. |
 | exog_vars | Optional | None |  |
 | sparse_s | bool | False | Return `S_df` as a sparse Pandas dataframe. |
 | id_col | str | unique_id | Column that will identify each serie after aggregation. |
