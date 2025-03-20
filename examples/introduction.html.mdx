@@ -20,39 +20,65 @@ for all disaggregate and aggregate series. A natural desire is for those
 predictions to be **“coherent”**, that is, for the bottom series to add
 up precisely to the forecasts of the aggregated series.
 
-<figure>
-<img src="./imgs/hierarchical_motivation1.png"
-alt="Figure 1. A two level time series hierarchical structure, with four bottom level variables." />
-<figcaption aria-hidden="true">Figure 1. A two level time series
-hierarchical structure, with four bottom level variables.</figcaption>
-</figure>
+<img src="https://github.com/Nixtla/docs/raw/docs/hierarchicalforecast/examples/imgs/hierarchical_motivation1.png?raw=true" />
 
-Figure 1. shows a simple hierarchical structure where we have four
-bottom-level series, two middle-level series, and the top level
+The above figure shows a simple hierarchical structure where we have
+four bottom-level series, two middle-level series, and the top level
 representing the total aggregation. Its hierarchical aggregations or
 coherency constraints are:
 
+$$
+y_{\mathrm{Total},\tau} = y_{\beta_{1},\tau}+y_{\beta_{2},\tau}+y_{\beta_{3},\tau}+y_{\beta_{4},\tau} 
+        \qquad \qquad \qquad \qquad \qquad \\
+        \mathbf{y}_{[a],\tau}=\left[y_{\mathrm{Total},\tau},\; y_{\beta_{1},\tau}+y_{\beta_{2},\tau},\;y_{\beta_{3},\tau}+y_{\beta_{4},\tau}\right]^{\intercal} 
+        \qquad
+        \mathbf{y}_{[b],\tau}=\left[ y_{\beta_{1},\tau},\; y_{\beta_{2},\tau},\; y_{\beta_{3},\tau},\; y_{\beta_{4},\tau} \right]^{\intercal}
+$$
+
 Luckily these constraints can be compactly expressed with the following
 matrices:
+
+$$
+
+\mathbf{S}_{[a,b][b]}
+=
+\begin{bmatrix}
+\mathbf{A}_{\mathrm{[a][b]}} \\ 
+           \\
+           \\
+\mathbf{I}_{\mathrm{[b][b]}} \\
+           \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & 1 & 1 & 1 \\
+1 & 1 & 0 & 0 \\
+0 & 0 & 1 & 1 \\
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 \\
+\end{bmatrix}
+
+$$
 
 where $\mathbf{A}_{[a,b][b]}$ aggregates the bottom series to the upper
 levels, and $\mathbf{I}_{\mathrm{[b][b]}}$ is an identity matrix. The
 representation of the hierarchical series is then:
 
-To visualize an example, in Figure 2. One can think of the hierarchical
+$$
+
+\mathbf{y}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{y}_{[b],\tau}
+
+$$
+
+To visualize an example, in Figure 2, one can think of the hierarchical
 time series structure levels to represent different geographical
-aggregations. For example, in Figure 2. the top level is the total
+aggregations. For example, in Figure 2, the top level is the total
 aggregation of series within a country, the middle level being its
 states and the bottom level its regions.
 
-<figure>
-<img src="./imgs/hierarchical_motivation2.png"
-alt="Figure 2. A hierarchy can be composed of geographic levels. In this example the top level corresponds to country aggregation, middle level to states, and bottom level to regions." />
-<figcaption aria-hidden="true">Figure 2. A hierarchy can be composed of
-geographic levels. In this example the top level corresponds to country
-aggregation, middle level to states, and bottom level to
-regions.</figcaption>
-</figure>
+<img src="https://github.com/Nixtla/docs/raw/docs/hierarchicalforecast/examples/imgs/hierarchical_motivation2.png?raw=true" />
 
 ## 2. Hierarchical Forecast
 
@@ -60,11 +86,15 @@ To achieve **“coherency”**, most statistical solutions to the
 hierarchical forecasting challenge implement a two-stage reconciliation
 process.  
 1. First, we obtain a set of the base forecast
-$\mathbf{\hat{y}}_{[a,b],\tau}$ 2. Later, we reconcile them into
-coherent forecasts $\mathbf{\tilde{y}}_{[a,b],\tau}$.
+$\mathbf{\hat{y}}_{[a,b],\tau}$
+
+1.  Later, we reconcile them into coherent forecasts
+    $\mathbf{\tilde{y}}_{[a,b],\tau}$.
 
 Most hierarchical reconciliation methods can be expressed by the
 following transformations:
+
+$$\tilde{\mathbf{y}}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{P}_{[b][a,b]} \hat{\mathbf{y}}_{[a,b],\tau}$$
 
 The HierarchicalForecast library offers a Python collection of
 reconciliation methods, datasets, evaluation and visualization tools for
