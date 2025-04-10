@@ -15,11 +15,10 @@ def evaluate():
     with open('data/tags.pickle', 'rb') as handle:
         tags = pickle.load(handle)
 
-    Y_hat_df=Y_rec_df.merge(Y_test_df, on=["ds", "unique_id", "temporal_id"], how="left")\
-                     .drop(columns=['y'])
-
+    Y_hat_df=Y_rec_df.merge(Y_test_df, on=["ds", "unique_id", "temporal_id"], how="left")
+    
     evaluation = hfe.evaluate(
-            df=Y_hat_df,
+            df=Y_hat_df.drop(columns="unique_id"),
             tags=tags, 
             metrics=[mae, rmse],
             id_col='temporal_id'
