@@ -594,7 +594,7 @@ class TopDownSparse(TopDown):
         if not self.is_strictly_hierarchical:
             # Check if the data structure is strictly hierarchical.
             if tags is not None and not _is_strictly_hierarchical(
-                _construct_adjacency_matrix(S, tags)
+                _construct_adjacency_matrix(S, tags), tags
             ):
                 raise ValueError(
                     "Top-down reconciliation requires strictly hierarchical structures."
@@ -662,7 +662,7 @@ class TopDownSparse(TopDown):
             # Avoid a redundant check during middle-out reconciliation.
             if not self.is_strictly_hierarchical:
                 # Check if the data structure is strictly hierarchical.
-                if tags is not None and not _is_strictly_hierarchical(A):
+                if tags is not None and not _is_strictly_hierarchical(A, tags):
                     raise ValueError(
                         "Top-down reconciliation requires strictly hierarchical structures."
                     )
@@ -883,7 +883,7 @@ class MiddleOutSparse(MiddleOut):
             raise KeyError(f"{self.middle_level} is not a key in `tags`.")
         # Check if the data structure is strictly hierarchical.
         if not _is_strictly_hierarchical(
-            _construct_adjacency_matrix(sparse.csr_matrix(S), tags)
+            _construct_adjacency_matrix(sparse.csr_matrix(S), tags), tags
         ):
             raise ValueError(
                 "Middle-out reconciliation requires strictly hierarchical structures."
