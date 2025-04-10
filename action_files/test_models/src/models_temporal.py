@@ -7,7 +7,9 @@ from hierarchicalforecast.utils import aggregate_temporal
 from hierarchicalforecast.core import HierarchicalReconciliation
 from hierarchicalforecast.methods import (
     BottomUp, BottomUpSparse, TopDown, 
-    # TopDownSparse, MiddleOut, MiddleOutSparse, 
+    # TopDownSparse, 
+    MiddleOut, 
+    # MiddleOutSparse, 
     MinTrace, 
     MinTraceSparse, 
     OptimalCombination,
@@ -40,7 +42,7 @@ def main():
 
     # Create forecasts
     Y_hat_dfs = []
-    id_cols = ["unique_id", "temporal_id", "ds", "y"]
+    id_cols = ["unique_id", "temporal_id", "ds"]
     # We will train a model for each temporal level
     for level, temporal_ids_train in tags_train.items():
         # Filter the data for the level
@@ -52,9 +54,9 @@ def main():
         horizon_level = Y_level_test["ds"].nunique()
         # Train a model and create forecasts
         fcst = StatsForecast(models=[AutoETS(model='ZZZ')], freq=freq_level, n_jobs=-1)
-        Y_hat_df_level = fcst.forecast(df=Y_level_train[["ds", "unique_id", "y"]], h=horizon_level, level=[80, 90])
+        Y_hat_df_level = fcst.forecast(df=Y_level_train[["ds", "unique_id", "y"]], h=horizon_level)
         # Add the test set to the forecast
-        Y_hat_df_level = Y_hat_df_level.merge(Y_level_test, on=["ds", "unique_id"], how="left")
+        Y_hat_df_level = Y_hat_df_level.merge(Y_level_test.drop(columns="y"), on=["ds", "unique_id"], how="left")
         # Put cols in the right order (for readability)
         Y_hat_cols = id_cols + [col for col in Y_hat_df_level.columns if col not in id_cols]
         Y_hat_df_level = Y_hat_df_level[Y_hat_cols]
@@ -63,8 +65,8 @@ def main():
 
     Y_hat_df = pd.concat(Y_hat_dfs, ignore_index=True)
 
-
-    reconcilers = [BottomUp(),
+    reconcilers = [
+                   BottomUp(),
                    BottomUpSparse(),
                    TopDown(method="forecast_proportions"),
                 #    TopDownSparse(method="forecast_proportions"),
@@ -72,8 +74,8 @@ def main():
                 #    TopDownSparse(method="average_proportions"),
                 #    TopDown(method="proportion_averages"),
                 #    TopDownSparse(method="proportion_averages"),
-                #    MiddleOut(middle_level="Country/State", top_down_method="average_proportions"),
-                #    MiddleOutSparse(middle_level="Country/State", top_down_method="average_proportions"),
+                   MiddleOut(middle_level="semiannual", top_down_method="forecast_proportions"),
+                #    MiddleOutSparse(middle_level="semiannual", top_down_method="forecast_proportions"),
                    MinTrace(method='ols'),
                    MinTrace(method='wls_struct'),
                 #    MinTrace(method='wls_var'),
@@ -87,11 +89,12 @@ def main():
                 #    ERM(method='closed'),
     ]
     hrec = HierarchicalReconciliation(reconcilers=reconcilers)
+
     Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, 
                             S=S_test_df, 
                             tags=tags_test, 
-                            temporal=True, 
-                            level=[80, 90])
+                            temporal=True,
+                            )
 
     execution_times = pd.Series(hrec.execution_times).reset_index()
 
