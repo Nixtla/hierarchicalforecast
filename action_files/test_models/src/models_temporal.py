@@ -11,7 +11,7 @@ from hierarchicalforecast.methods import (
     MinTrace, 
     MinTraceSparse, 
     OptimalCombination,
-    ERM,
+    # ERM,
 )
 
 from statsforecast.models import AutoETS
@@ -84,7 +84,7 @@ def main():
                 #    MinTraceSparse(method='wls_var'),
                    OptimalCombination(method='ols'),
                    OptimalCombination(method='wls_struct'),
-                   ERM(method='closed'),
+                #    ERM(method='closed'),
     ]
     hrec = HierarchicalReconciliation(reconcilers=reconcilers)
     Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, 
