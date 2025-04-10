@@ -341,9 +341,9 @@ def _reconcile_fcst_proportions(
     idxs_top: np.ndarray,
 ):
     reconciled = np.zeros_like(y_hat)
+    level_names = list(tags.keys())
     for idx_top in idxs_top:
         reconciled[idx_top] = y_hat[idx_top]
-        level_names = list(tags.keys())
         for i_level, level in enumerate(level_names[:-1]):
             nodes_level = nodes[level]
             for idx_parent, idx_childs in nodes_level.items():
@@ -527,9 +527,11 @@ class TopDown(HReconciler):
         """
         if self.method == "forecast_proportions":
             S_sum = np.sum(S, axis=1)
-            S_max_idxs = np.argsort(S_sum)[::-1]
-            idxs_top = S_max_idxs[np.cumsum(S_sum[S_max_idxs]) <= S.shape[1]]
-
+            if S.shape[1] > 1:
+                S_max_idxs = np.argsort(S_sum)[::-1]
+                idxs_top = S_max_idxs[np.cumsum(S_sum[S_max_idxs]) <= S.shape[1]]
+            else:
+                idxs_top = np.array([np.argmax(S_sum)])
             levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
             if level is not None:
                 raise ValueError(
