@@ -9,7 +9,7 @@ import re
 import reprlib
 import time
 
-from .methods import HReconciler, TopDownSparse, MiddleOutSparse
+from .methods import HReconciler
 from inspect import signature
 from narwhals.typing import Frame, FrameT
 from scipy.stats import norm
