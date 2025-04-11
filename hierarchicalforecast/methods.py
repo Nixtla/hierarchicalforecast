@@ -671,10 +671,10 @@ class TopDownSparse(TopDown):
             # Calculate the relative proportions for each node.
             with np.errstate(divide="ignore"):
                 P = y_hat / ((A.T @ A) @ y_hat)
-            # Set the relative proportion of the root node(s).
-            P[P == np.inf] = 1.0
             # Get the number of root nodes.
             n = len(next(iter(tags.values())))
+            # Set the relative proportion(s) of the root node(s).
+            P[:n, :] = 1.0
             # Precompute the transpose of the summing matrix.
             S_T = S.T
             # Propagate the relative proportions for the nodes along each leaf
