@@ -465,7 +465,7 @@ class HierarchicalReconciliation:
                 y_hat = self._prepare_Y(
                     Y_nw=Y_hat_nw[model_cols],
                     S_nw=S_nw,
-                    is_balanced=is_balanced,
+                    is_balanced=True,
                     id_col=id_col,
                     time_col=time_col,
                     target_col=model_name,
