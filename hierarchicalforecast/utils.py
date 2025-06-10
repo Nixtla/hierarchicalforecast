@@ -623,8 +623,7 @@ class HierarchicalPlot:
         constraints matrix $\mathbf{S}$.
 
         **Returns:**<br>
-        `fig`: matplotlib.figure.Figure
-            The figure object containing the plot of summing matrix.
+        `fig`: matplotlib.figure.Figure, figure object containing the plot of the summing matrix.
         """
         fig = plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor="w")
         plt.spy(self.S[self.S_cols_ex_id_col].to_numpy())
@@ -654,8 +653,7 @@ class HierarchicalPlot:
         `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
-        `fig`: matplotlib.figure.Figure
-            The figure object containing the plot of single series.
+        `fig`: matplotlib.figure.Figure, figure object containing the plot of the single series.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -710,6 +708,7 @@ class HierarchicalPlot:
         ax.xaxis.set_major_locator(plt.MaxNLocator(min(max(len(df_plot) // 10, 1), 10)))
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             label.set_fontsize(20)
+
         plt.show()
         return fig
 
@@ -736,8 +735,7 @@ class HierarchicalPlot:
         `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
-        `fig`: matplotlib.figure.Figure
-            The figure object containing the plot of hierarchically linked series.
+        `fig`: matplotlib.figure.Figure, figure object containing the plots of the hierarchilly linked series.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -808,7 +806,6 @@ class HierarchicalPlot:
         if sys.version_info.minor > 7:
             kwargs["ncols"] = np.max([2, np.ceil(len(labels) / 2)])
         fig.legend(handles, labels, **kwargs)
-        plt.show()
         return fig
 
     def plot_hierarchical_predictions_gap(
@@ -834,8 +831,7 @@ class HierarchicalPlot:
         `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
-        `fig`: matplotlib.figure.Figure
-            The figure object containing the plot of aggregated predictions at different levels of the hierarchical structure.
+        `fig`: matplotlib.figure.Figure, figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -880,7 +876,6 @@ class HierarchicalPlot:
         plt.legend()
         plt.grid()
         plt.show()
-        
         return fig
 
 # %% ../nbs/src/utils.ipynb 63
