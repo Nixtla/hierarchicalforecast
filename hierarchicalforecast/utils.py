@@ -621,14 +621,11 @@ class HierarchicalPlot:
 
         This method simply plots the hierarchical aggregation
         constraints matrix $\mathbf{S}$.
-
-        **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plot of the summing matrix.
         """
-        fig = plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor="w")
+        plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor="w")
         plt.spy(self.S[self.S_cols_ex_id_col].to_numpy())
         plt.show()
-        return fig
+        plt.close()
 
     def plot_series(
         self,
@@ -653,7 +650,7 @@ class HierarchicalPlot:
         `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plot of the single series.
+        Single series plot with filtered models and prediction interval level.<br><br>
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -709,9 +706,6 @@ class HierarchicalPlot:
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             label.set_fontsize(20)
 
-        plt.show()
-        return fig
-
     def plot_hierarchically_linked_series(
         self,
         bottom_series: str,
@@ -735,7 +729,8 @@ class HierarchicalPlot:
         `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plots of the hierarchilly linked series.
+        Collection of hierarchilly linked series plots associated with the `bottom_series`
+        and filtered models and prediction interval level.<br><br>
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -806,7 +801,6 @@ class HierarchicalPlot:
         if sys.version_info.minor > 7:
             kwargs["ncols"] = np.max([2, np.ceil(len(labels) / 2)])
         fig.legend(handles, labels, **kwargs)
-        return fig
 
     def plot_hierarchical_predictions_gap(
         self,
@@ -831,7 +825,9 @@ class HierarchicalPlot:
         `target_col` : str='y', column that contains the target.<br>
 
         **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
+        Plots of aggregated predictions at different levels of the hierarchical structure.
+        The aggregation is performed according to the tag levels see
+        [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html).<br><br>
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -876,7 +872,6 @@ class HierarchicalPlot:
         plt.legend()
         plt.grid()
         plt.show()
-        return fig
 
 # %% ../nbs/src/utils.ipynb 63
 # convert levels to output quantile names
