@@ -2,18 +2,11 @@ import pickle
 import numpy as np
 import pandas as pd
 
-from hierarchicalforecast.evaluation import HierarchicalEvaluation
+from hierarchicalforecast.evaluation import evaluate
+from utilsforecast.losses import rmse, mase
+from functools import partial
 
-def rmse(y, y_hat):
-    return np.mean(np.sqrt(np.mean((y-y_hat)**2, axis=1)))
-
-def mase(y, y_hat, y_insample, seasonality=4):
-    errors = np.mean(np.abs(y - y_hat), axis=1)
-    scale = np.mean(np.abs(y_insample[:, seasonality:] - y_insample[:, :-seasonality]), axis=1)
-    return np.mean(errors / scale)
-
-
-def evaluate():
+def eval():
     execution_times = pd.read_csv('data/execution_times.csv')
     models = [f"{x[0]} ({x[1]:.2f} secs)" for x in execution_times.values]
 
@@ -31,10 +24,13 @@ def evaluate():
     eval_tags['Bottom'] = tags['Country/State/Region/Purpose']
     eval_tags['All'] = np.concatenate(list(tags.values()))
 
-    evaluator = HierarchicalEvaluation(evaluators=[mase])
-    evaluation = evaluator.evaluate(
-            Y_hat_df=Y_rec_df, Y_test_df=Y_test_df,
-            tags=eval_tags, Y_df=Y_train_df
+    mase_p = partial(mase, seasonality=4)
+    evaluation = evaluate(
+            df=Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds']),
+            metrics = [rmse, mase_p],
+            tags=eval_tags,
+            tags=eval_tags, 
+            train_df=Y_train_df
     )
     evaluation = evaluation.query("level != 'Overall'").set_index(['level', 'metric'])
 
@@ -44,6 +40,6 @@ def evaluate():
 
 
 if __name__ == '__main__':
-    evaluation = evaluate()
+    evaluation = eval()
     evaluation.to_csv('./data/evaluation.csv')
     print(evaluation.T)
