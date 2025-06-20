@@ -16,7 +16,6 @@ from hierarchicalforecast.utils import aggregate
 from src.data import get_tourism
 from statsforecast.models import AutoETS
 from statsforecast.core import StatsForecast
-from typing import Optional
 
 SPECS = {
         "strict": [
@@ -36,7 +35,11 @@ SPECS = {
                     }
 
 
-def main(hierarchy: str = "non-strict", level: Optional[list[int]] = None, engine: str = 'pandas') -> None:
+def main(hierarchy: str = "non-strict", use_level: bool = False, engine: str = 'pandas') -> None:
+    if use_level:
+        level = [80, 90]
+    else:
+        level = None
     # Get data
     Y_df = get_tourism()
     freq = "QS"
