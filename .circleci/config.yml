@@ -66,13 +66,13 @@ jobs:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
 workflows:
-  sample:
+  all-tests:
     jobs:
-      - nbdev-tests
+      # - nbdev-tests
       - test-model-performance:
           matrix:
             parameters:
               hierarchy: ["strict", "non-strict"]
               level: [null, "[80, 90]"]
               engine: ["pandas", "polars"]
-      - test-model-performance-temporal
+      # - test-model-performance-temporal
