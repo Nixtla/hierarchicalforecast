@@ -30,21 +30,26 @@ Bug fixes and features are added through pull requests (PRs).
 * SSH: `git clone git@github.com:Nixtla/hierarchicalforecast.git`
 * GitHub CLI: `gh repo clone Nixtla/hierarchicalforecast`
 
-#### Set up a conda environment
-The repo comes with an `environment.yml` file which contains the libraries needed to run all the tests. In order to set up the environment you must have `conda` installed, we recommend [miniconda](https://docs.conda.io/en/latest/miniconda.html).
+####  Set Up a Virtual Environment with `uv`
 
-Once you have `conda` go to the top level directory of the repository and run the following lines:
+`uv` is an [open-source package management](https://docs.astral.sh/uv/getting-started/installation/) and environment management system that runs on Windows, macOS, and Linux. Once you have `uv` installed, run:
+
 ```
-conda create -n hierarchicalforecast python=3.10
-conda activate hierarchicalforecast
+uv venv --python 3.10
 ```
-Then, run one of the following commands:
+
+Activate your new environment with `source .venv/bin/activate` for MacOS and Linux or `.\.venv\Scripts\activate` for Windows. Then, install all dependencies:
+
 ```
-conda env update -f environment.yml
+uv pip install -r setup.py --extra dev
 ```
 
 #### Install the library
-Once you have your environment setup, activate it using `conda activate hierarchicalforecast` and then install the library in editable mode using `pip install -e ".[dev]"`
+Install the library in editable mode:
+
+```
+pip install -e ".[dev]"
+```
 
 #### Install git hooks
 Before doing any changes to the code, please install the git hooks and checks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
@@ -53,21 +58,20 @@ nbdev_install_hooks
 pre-commit install
 ```
 
-### Preview Changes
-You can preview changes in your local browser before pushing by using the `nbdev_preview`.
-
 ### Build the library
-The library is built using the notebooks contained in the `nbs` folder. If you want to make any changes to the library you have to find the relevant notebook, make your changes and then call 
+The library is built using the notebooks contained in the `nbs` folder. **If you want to make any changes to the library you have to find the relevant notebook and make your changes in that notebook**, and then call 
 ```
 nbdev_export
 ```
+
+### Preview Changes
+You can preview changes in your local browser before pushing by using the `nbdev_preview`.
 
 ### Run tests
 If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 
 
 ### Clean notebook's outputs. 
 Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes. If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks `git checkout nbs/examples`, unless you intend to change the examples.
-
 
 ## Do you want to contribute to the documentation?
 

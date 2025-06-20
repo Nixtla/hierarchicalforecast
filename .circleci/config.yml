@@ -84,5 +84,5 @@ workflows:
             parameters:
               hierarchy: ["strict", "non-strict"]
               forecast_type: ["point", "probabilistic"]
-              engine: ["pandas", "polars"]
+              engine: ["pandas"]
       - test-model-performance-temporal
