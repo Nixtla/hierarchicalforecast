@@ -35,7 +35,7 @@ jobs:
             uv pip install ".[dev]"
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            python -m src.models
+            python -m src.models << parameters.hierarchy >> << parameters.level >> << parameters.engine >>
             python -m src.evaluation
             cd ../../
       - store_artifacts:
@@ -59,7 +59,7 @@ jobs:
             uv pip install ".[dev]"
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            python -m src.models_temporal
+            python -m src.models_temporal 
             python -m src.evaluation_temporal
             cd ../../
       - store_artifacts:
@@ -69,5 +69,10 @@ workflows:
   sample:
     jobs:
       - nbdev-tests
-      - test-model-performance
+      - test-model-performance:
+          matrix:
+            parameters:
+              hierarchy: ["strict", "non-strict"]
+              level: [null, "[80, 90]"]
+              engine: ["pandas", "polars"]
       - test-model-performance-temporal
