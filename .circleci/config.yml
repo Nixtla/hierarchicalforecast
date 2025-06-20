@@ -22,7 +22,7 @@ jobs:
       hierarchy: 
         type: string
         default: "strict"
-      type: 
+      forecast_type: 
         type: string
         default: "point"
       engine: 
@@ -45,8 +45,8 @@ jobs:
             uv pip install ".[dev]"
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            python -m src.models << parameters.hierarchy >> << parameters.type >> << parameters.engine >>
-            python -m src.evaluation << parameters.type >>
+            python -m src.models << parameters.hierarchy >> << parameters.forecast_type >> << parameters.engine >>
+            python -m src.evaluation << parameters.forecast_type >>
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
@@ -83,6 +83,6 @@ workflows:
           matrix:
             parameters:
               hierarchy: ["strict", "non-strict"]
-              type: ["point", "probabilistic"]
+              forecast_type: ["point", "probabilistic"]
               engine: ["pandas", "polars"]
       - test-model-performance-temporal
