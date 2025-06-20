@@ -18,6 +18,16 @@ jobs:
             uv pip install ".[dev]"
             nbdev_test --do_print --timing
   test-model-performance:
+    parameters:
+      hierarchy: 
+        type: string
+        default: "strict"
+      level: 
+        type: string
+        default: null
+      engine: 
+        type: string
+        default: "pandas"
     resource_class: large
     docker:
       - image: python:3.10-slim
@@ -66,13 +76,13 @@ jobs:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
 workflows:
-  all-tests:
+  sample:
     jobs:
-      # - nbdev-tests
+      - nbdev-tests
       - test-model-performance:
           matrix:
             parameters:
               hierarchy: ["strict", "non-strict"]
               level: [null, "[80, 90]"]
               engine: ["pandas", "polars"]
-      # - test-model-performance-temporal
+      - test-model-performance-temporal
