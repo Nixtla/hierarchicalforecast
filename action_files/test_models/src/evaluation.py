@@ -14,7 +14,7 @@ def eval(type: str = "point") -> pd.DataFrame:
         metrics = [rmse, mase_p, scaled_crps]
     elif type == "point":
         level = None
-        metrics = [rmse, mase]        
+        metrics = [rmse, mase_p]        
     else:
         raise ValueError("Type must be either 'point' or 'probabilistic'.")
     execution_times = pd.read_csv('data/execution_times.csv')
