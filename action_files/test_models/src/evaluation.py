@@ -2,7 +2,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
-from hierarchicalforecast.evaluation import evaluate
+import hierarchicalforecast.evaluation as hfe
 from utilsforecast.losses import rmse, mase
 from functools import partial
 
@@ -25,18 +25,17 @@ def eval():
     eval_tags['All'] = np.concatenate(list(tags.values()))
 
     mase_p = partial(mase, seasonality=4)
-    evaluation = evaluate(
-            df=Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds']),
+    evaluation = hfe.evaluate(
+            df=Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds'], how="left"),
             metrics = [rmse, mase_p],
-            tags=eval_tags,
             tags=eval_tags, 
             train_df=Y_train_df
     )
-    evaluation = evaluation.query("level != 'Overall'").set_index(['level', 'metric'])
-
-    evaluation.columns = ['Base'] + models
-    evaluation = evaluation.map('{:.2f}'.format)
+    numeric_cols = evaluation.select_dtypes(include="number").columns
+    evaluation[numeric_cols] = evaluation[numeric_cols].map('{:.3}'.format).astype(np.float64)
+    evaluation.columns = ['level', 'metric', 'Base'] + models
     return evaluation
+
 
 
 if __name__ == '__main__':
