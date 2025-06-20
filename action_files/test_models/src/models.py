@@ -35,8 +35,8 @@ SPECS = {
                     }
 
 
-def main(hierarchy: str = "non-strict", use_level: bool = False, engine: str = 'pandas') -> None:
-    if use_level:
+def main(hierarchy: str = "non-strict", use_level: str = "no", engine: str = 'pandas') -> None:
+    if use_level == "yes":
         level = [80, 90]
     else:
         level = None

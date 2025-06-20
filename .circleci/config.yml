@@ -23,8 +23,8 @@ jobs:
         type: string
         default: "strict"
       use_level: 
-        type: bool
-        default: false
+        type: string
+        default: "no"
       engine: 
         type: string
         default: "pandas"
@@ -83,6 +83,6 @@ workflows:
           matrix:
             parameters:
               hierarchy: ["strict", "non-strict"]
-              use_level: [true, false]
+              use_level: ["yes", "no"]
               engine: ["pandas", "polars"]
       - test-model-performance-temporal
