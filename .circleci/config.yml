@@ -22,9 +22,9 @@ jobs:
       hierarchy: 
         type: string
         default: "strict"
-      use_level: 
+      type: 
         type: string
-        default: "no"
+        default: "point"
       engine: 
         type: string
         default: "pandas"
@@ -45,8 +45,8 @@ jobs:
             uv pip install ".[dev]"
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            python -m src.models << parameters.hierarchy >> << parameters.use_level >> << parameters.engine >>
-            python -m src.evaluation
+            python -m src.models << parameters.hierarchy >> << parameters.type >> << parameters.engine >>
+            python -m src.evaluation << parameters.type >>
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
@@ -83,6 +83,6 @@ workflows:
           matrix:
             parameters:
               hierarchy: ["strict", "non-strict"]
-              use_level: ["yes", "no"]
+              type: ["point", "probabilistic"]
               engine: ["pandas", "polars"]
       - test-model-performance-temporal

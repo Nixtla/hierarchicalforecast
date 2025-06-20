@@ -6,9 +6,17 @@ import pandas as pd
 import hierarchicalforecast.evaluation as hfe
 from utilsforecast.losses import rmse, mase,scaled_crps
 from functools import partial
-from typing import Optional
 
-def eval(level: Optional[list[int]] = None) -> pd.DataFrame:
+def eval(type: str = "point") -> pd.DataFrame:
+    mase_p = partial(mase, seasonality=4)
+    if type == "probabilistic":
+        level = [80, 90]
+        metrics = [rmse, mase_p, scaled_crps]
+    elif type == "point":
+        level = None
+        metrics = [rmse, mase]        
+    else:
+        raise ValueError("Type must be either 'point' or 'probabilistic'.")
     execution_times = pd.read_csv('data/execution_times.csv')
     models = [f"{x[0]} ({x[1]:.2f} secs)" for x in execution_times.values]
 
@@ -19,10 +27,9 @@ def eval(level: Optional[list[int]] = None) -> pd.DataFrame:
     with open('data/tags.pickle', 'rb') as handle:
         tags = pickle.load(handle)
 
-    mase_p = partial(mase, seasonality=4)
     evaluation = hfe.evaluate(
             df=Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds'], how="left"),
-            metrics = [rmse, mase_p, scaled_crps],
+            metrics = metrics,
             level=level,
             tags=tags, 
             train_df=Y_train_df

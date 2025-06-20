@@ -35,10 +35,10 @@ SPECS = {
                     }
 
 
-def main(hierarchy: str = "non-strict", use_level: str = "no", engine: str = 'pandas') -> None:
-    if use_level == "yes":
+def main(hierarchy: str = "non-strict", type: str = "point", engine: str = 'pandas') -> None:
+    if type == "probabilistic":
         level = [80, 90]
-    else:
+    elif type == "point":
         level = None
     # Get data
     Y_df = get_tourism()
