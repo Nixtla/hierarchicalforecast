@@ -23,14 +23,14 @@ Bug fixes and features are added through pull requests (PRs).
 * Do not turn an already submitted PR into your development playground. If after you submitted PR, you discovered that more work is needed - close the PR, do the required work and then submit a new PR. Otherwise each of your commits requires attention from maintainers of the project.
 * If, however, you submitted a PR and received a request for changes, you should proceed with commits inside that PR, so that the maintainer can see the incremental fixes and won't need to review the whole PR again. In the exception case where you realize it'll take many many commits to complete the requests, then it's probably best to close the PR, do the work and then submit it again. Use common sense where you'd choose one way over another.
 
-### Local setup for working on a PR
+## Local setup for working on a PR
 
-#### Clone the repository
+### Clone the repository
 * HTTPS: `git clone https://github.com/Nixtla/hierarchicalforecast.git`
 * SSH: `git clone git@github.com:Nixtla/hierarchicalforecast.git`
 * GitHub CLI: `gh repo clone Nixtla/hierarchicalforecast`
 
-####  Set Up a Virtual Environment with `uv`
+###  Set Up a Virtual Environment with `uv`
 
 `uv` is an [open-source package management](https://docs.astral.sh/uv/getting-started/installation/) and environment management system that runs on Windows, macOS, and Linux. Once you have `uv` installed, run:
 
@@ -38,20 +38,30 @@ Bug fixes and features are added through pull requests (PRs).
 uv venv --python 3.10
 ```
 
-Activate your new environment with `source .venv/bin/activate` for MacOS and Linux or `.\.venv\Scripts\activate` for Windows. Then, install all dependencies:
+Then, activate your new environment:
+- on MacOS / Linux:
+```
+source .venv/bin/activate
+```
+- on Windos:
+```
+.\.venv\Scripts\activate
+```
+
+Install all dependencies:
 
 ```
 uv pip install -r setup.py --extra dev
 ```
 
-#### Install the library
+### Install the library
 Install the library in editable mode:
 
 ```
 pip install -e ".[dev]"
 ```
 
-#### Install git hooks
+### Install git hooks
 Before doing any changes to the code, please install the git hooks and checks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
 ```
 nbdev_install_hooks
@@ -59,21 +69,36 @@ pre-commit install
 ```
 
 ### Build the library
-The library is built using the notebooks contained in the `nbs` folder. **If you want to make any changes to the library you have to find the relevant notebook and make your changes in that notebook**, and then call 
+The library is built using the notebooks contained in the `nbs` folder. **If you want to make any changes to the library you have to find the relevant notebook and make your changes in that notebook**, and then call: 
 ```
 nbdev_export
 ```
 
 ### Preview Changes
-You can preview changes in your local browser before pushing by using the `nbdev_preview`.
+You can preview changes in your local browser before pushing by running:
+```
+nbdev_preview
+```
 
 ### Run tests
-If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 
+If you're working on the local interface you can use
+```
+nbdev_test --n_workers 1 --do_print --timing
+```
 
-### Clean notebook's outputs. 
-Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes. If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks `git checkout nbs/examples`, unless you intend to change the examples.
+### Clean notebook's outputs
+Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Before committing your changes, please make sure to run:
+```
+nbdev_clean --clear_all
+```
 
-## Do you want to contribute to the documentation?
+If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks by running:
+```
+git checkout nbs/examples
+```
+unless you intend to change the examples.
+
+### Do you want to contribute to the documentation?
 
 * Docs are automatically created from the notebooks in the `nbs` folder.
 * In order to modify the documentation:
