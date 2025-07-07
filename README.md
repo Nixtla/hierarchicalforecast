@@ -119,7 +119,7 @@ evaluation = evaluate(df = df,
                       benchmark = "Naive")
 ```
 
-## 📖 Documentation (WIP)
+## 📖 Documentation
 Here is a link to the [documentation](https://nixtlaverse.nixtla.io/hierarchicalforecast/index.html).
 
 ## 📃 License
