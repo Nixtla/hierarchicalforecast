@@ -426,7 +426,7 @@ class HierarchicalReconciliation:
         if any_sparse:
             if not nw.dependencies.is_pandas_dataframe(
                 Y_hat_df
-            ) or not nw.dependencies.is_pandas_dataframe(S):
+            ) or not nw.dependencies.is_pandas_dataframe(S_df):
                 raise ValueError(
                     "You have one or more sparse reconciliation methods. Please convert `S` and `Y_hat_df` to a pandas DataFrame."
                 )
