@@ -71,7 +71,7 @@ class Normality:
         std_ = np.sqrt(self.W.diagonal())
         R1 = self.W / np.outer(std_, std_)
 
-        # Using elementwise multiplication instead of bilinearity
+        # Using elementwise multiplication
         Wh = []
         for sigma in self.sigmah.T:
             # Broadcast sigma to create a matrix of pairwise products
