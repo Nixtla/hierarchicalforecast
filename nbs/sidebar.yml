@@ -17,6 +17,7 @@ website:
           - examples/AustralianDomesticTourism.ipynb
           - examples/AustralianPrisonPopulation.ipynb
           - examples/NonNegativeReconciliation.ipynb
+          - examples/AustralianDomesticTourism-Multimodel.ipynb
         - section: Probabilistic Reconciliation
           contents:
           - examples/AustralianDomesticTourism-Intervals.ipynb
@@ -26,9 +27,6 @@ website:
         - section: ML Forecast Reconciliation
           contents:
           - examples/MLFrameworksExample.ipynb
-        - section: Multi-model Reconciliation
-          contents:
-          - examples/AustralianDomesticTourism-Multimodel.ipynb
       - section: "API Reference"
         contents: src/*
       - section: Community
