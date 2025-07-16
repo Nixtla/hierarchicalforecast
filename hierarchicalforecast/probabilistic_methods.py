@@ -80,7 +80,9 @@ class Normality:
             # Element-wise multiplication with correlation matrix
             if sp.issparse(R1):
                 cov_matrix = R1.multiply(sigma_matrix)
-                cov_rec = (self.SP @ cov_matrix @ self.SP.T).toarray()
+                cov_rec = (
+                    self.SP @ sp.linalg.aslinearoperator(cov_matrix) @ self.SP.T
+                ).toarray()
             else:
                 # If R1 is dense, use numpy multiplication
                 cov_matrix = R1 * sigma_matrix
