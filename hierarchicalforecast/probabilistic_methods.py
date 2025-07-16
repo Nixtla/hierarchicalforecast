@@ -79,20 +79,16 @@ class Normality:
             sigma_matrix = np.outer(sigma, sigma)
             # Element-wise multiplication with correlation matrix
             if sp.issparse(R1):
-                cov_matrix = R1.multiply(sigma_matrix)
-                cov_rec = np.array(
-                    (
-                        self.SP @ sp.linalg.aslinearoperator(cov_matrix) @ self.SP.T
-                    ).todense()
-                )
+                cov_matrix = R1.multiply(sigma_matrix).toarray()
+                cov_rec = self.SP @ cov_matrix @ self.SP.T
             else:
                 # If R1 is dense, use numpy multiplication
                 cov_matrix = R1 * sigma_matrix
                 cov_rec = self.SP @ cov_matrix @ self.SP.T
             cov_recs.append(cov_rec)
-            sigmah_recs.append(np.sqrt(cov_rec.diagonal())[:, None])
+            sigmah_recs.append(np.sqrt(cov_rec.diagonal()))
 
-        self.sigmah_rec = np.hstack(sigmah_recs)
+        self.sigmah_rec = np.hstack(sigmah_recs).reshape(-1, self.sigmah.shape[0]).T
         self.cov_rec = cov_recs
 
     def get_samples(self, num_samples: int):
