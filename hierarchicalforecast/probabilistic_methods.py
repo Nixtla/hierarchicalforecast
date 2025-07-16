@@ -77,7 +77,11 @@ class Normality:
             # Broadcast sigma to create a matrix of pairwise products
             sigma_matrix = np.outer(sigma, sigma)
             # Element-wise multiplication with correlation matrix
-            cov_matrix = R1 * sigma_matrix
+            if sp.issparse(R1):
+                cov_matrix = R1.multiply(sigma_matrix)
+            else:
+                # If R1 is dense, use numpy multiplication
+                cov_matrix = R1 * sigma_matrix
             Wh.append(cov_matrix)
 
         # Reconciled covariances across forecast horizon
