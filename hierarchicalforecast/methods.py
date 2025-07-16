@@ -8,7 +8,6 @@ __all__ = ['BottomUp', 'BottomUpSparse', 'TopDown', 'TopDownSparse', 'MiddleOut'
 import warnings
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from copy import deepcopy
 from typing import Optional, Union
 
 import clarabel
@@ -804,102 +803,105 @@ class MiddleOut(HReconciler):
                 "Middle out reconciliation requires strictly hierarchical structures."
             )
         if self.middle_level not in tags.keys():
-            raise ValueError("You have to provide a `middle_level` in `tags`.")
+            raise KeyError(f"{self.middle_level} is not a key in `tags`.")
 
-        levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
-        reconciled = np.full_like(y_hat, fill_value=np.nan)
-        reconciled_quantiles = None
-        cut_nodes = levels_[self.middle_level]
-        # bottom up reconciliation
-        idxs_bu = []
+        levels = dict(sorted(tags.items(), key=lambda x: len(x[1])))
+        # Allocate an array to store the reconciled point forecasts.
+        y_tilde = np.full_like(y_hat, np.nan)
+        y_tilde_quantiles = None
+        # Find the nodes that constitute the middle level.
+        cut_nodes = levels[self.middle_level]
+
+        # Calculate the cut that separates the middle level from the lower levels.
+        cut_idx = max(cut_nodes) + 1
+
         tags_bu = {}
-        for node, idx_node in levels_.items():
-            idxs_bu.append(idx_node)
+        for node, idx_node in levels.items():
             tags_bu[node] = idx_node
             if node == self.middle_level:
                 break
-        idxs_bu = np.hstack(idxs_bu)
-        # bottom up forecasts
+
+        # Perform bottom-up reconciliation from the middle level.
         bu = BottomUp().fit_predict(
-            S=np.fliplr(np.unique(S[idxs_bu], axis=1)),
-            y_hat=y_hat[idxs_bu],
-            idx_bottom=np.arange(len(idxs_bu))[-len(cut_nodes) :],
-            y_insample=y_insample[idxs_bu] if y_insample is not None else None,
+            S=np.fliplr(np.unique(S[:cut_idx], axis=1)),
+            y_hat=y_hat[:cut_idx],
+            idx_bottom=None,
+            y_insample=y_insample[:cut_idx] if y_insample is not None else None,
             y_hat_insample=(
-                y_hat_insample[idxs_bu] if y_hat_insample is not None else None
+                y_hat_insample[:cut_idx] if y_hat_insample is not None else None
             ),
-            sigmah=sigmah[idxs_bu] if sigmah is not None else None,
+            sigmah=sigmah[:cut_idx] if sigmah is not None else None,
             level=level,
             intervals_method=intervals_method,
             num_samples=num_samples,
             seed=seed,
             tags=tags_bu,
         )
-        reconciled[idxs_bu] = bu["mean"]
+        y_tilde[:cut_idx] = bu["mean"]
         if level is not None:
             if "quantiles" not in bu:
                 raise ValueError("Quantiles not found in BottomUp output.")
-            n_quantiles = bu["quantiles"].shape[-1]
-            reconciled_quantiles = np.full(
-                (reconciled.shape[0], reconciled.shape[1], n_quantiles),
-                fill_value=np.nan,
+            y_tilde_quantiles = np.full(
+                (y_tilde.shape[0], y_tilde.shape[1], bu["quantiles"].shape[-1]),
+                np.nan,
                 dtype=np.float64,
             )
-            reconciled_quantiles[idxs_bu] = bu["quantiles"]
+            y_tilde_quantiles[:cut_idx] = bu["quantiles"]
 
-        # top down
-        child_nodes = _get_child_nodes(S, levels_)
-        # parents contains each node in the middle out level
-        # as key. The values of each node are the levels that
-        # are conected to that node.
-        parents = {node: {self.middle_level: np.array([node])} for node in cut_nodes}
-        level_names = list(levels_.keys())
-        for lv, lv_child in zip(level_names[:-1], level_names[1:]):
-            # if lv is not part of the middle out to bottom
-            # structure we continue
-            if lv not in list(parents.values())[0].keys():
-                continue
-            for idx_middle_out in parents.keys():
-                idxs_parents = parents[idx_middle_out].values()
-                complete_idxs_child = []
-                for idx_parent, idxs_child in child_nodes[lv].items():
-                    if any(idx_parent in val for val in idxs_parents):
-                        complete_idxs_child.append(idxs_child)
-                parents[idx_middle_out][lv_child] = np.hstack(complete_idxs_child)
-
+        # Set up the reconciler for top-down reconciliation.
         cls_top_down = TopDown(self.top_down_method)
         cls_top_down.is_strictly_hierarchical = True
 
-        for node, levels_node in parents.items():
-            idxs_node = np.hstack(list(levels_node.values()))
-            S_node = S[idxs_node]
-            S_node = S_node[:, ~np.all(S_node == 0, axis=0)]
-            counter = 0
-            levels_node_ = deepcopy(levels_node)
-            for lv_name, idxs_level in levels_node_.items():
-                idxs_len = len(idxs_level)
-                levels_node_[lv_name] = np.arange(counter, idxs_len + counter)
-                counter += idxs_len
-            td = cls_top_down.fit_predict(
-                S=S_node,
-                y_hat=y_hat[idxs_node],
-                y_insample=y_insample[idxs_node] if y_insample is not None else None,
+        # Perform top-down reconciliation from the middle level.
+        for cut_node in cut_nodes:
+            # Find the leaf nodes of the subgraph for the cut node.
+            leaf_idx = np.flatnonzero(S[cut_node])
+            # Find all the nodes in the subgraph for the cut node.
+            sub_idx = np.hstack(
+                (cut_node, cut_idx + np.flatnonzero((np.any(S[cut_idx:, leaf_idx], 1))))
+            )
+
+            # Construct the "tags" argument for the cut node.
+            if self.insample and level is None:
+                # It is not required for in-sample disaggregation methods.
+                sub_tags = None
+            else:
+                # Disaggregating using forecast proportions requires the "tags" for
+                # the subgraph.
+                sub_tags = {}
+                acc = 0
+                for level_, nodes in levels.items():
+                    # Find all the nodes in the subgraph for the level.
+                    nodes = np.intersect1d(nodes, sub_idx, True)
+                    # Get the number of nodes in the level.
+                    n = len(nodes)
+                    # Exclude any levels above the cut node or empty ones below.
+                    if len(nodes) > 0:
+                        sub_tags[level_] = np.arange(acc, n + acc)
+                        acc += n
+
+            # Perform top-down reconciliation from the cut node.
+            td_node = cls_top_down.fit_predict(
+                S=S[sub_idx[:, None], leaf_idx],
+                y_hat=y_hat[sub_idx],
+                y_insample=y_insample[sub_idx] if y_insample is not None else None,
                 y_hat_insample=(
-                    y_hat_insample[idxs_node] if y_hat_insample is not None else None
+                    y_hat_insample[sub_idx] if y_hat_insample is not None else None
                 ),
-                sigmah=sigmah[idxs_node] if sigmah is not None else None,
+                sigmah=sigmah[sub_idx] if sigmah is not None else None,
                 level=level,
                 intervals_method=intervals_method,
                 num_samples=num_samples,
                 seed=seed,
-                tags=levels_node_,
+                tags=sub_tags,
             )
-            reconciled[idxs_node] = td["mean"]
-            if level is not None and reconciled_quantiles is not None:
-                if "quantiles" not in td:
+            y_tilde[sub_idx] = td_node["mean"]
+            if level is not None and y_tilde_quantiles is not None:
+                if "quantiles" not in td_node:
                     raise ValueError("Quantiles not found in TopDown output.")
-                reconciled_quantiles[idxs_node] = td["quantiles"]
-        return {"mean": reconciled, "quantiles": reconciled_quantiles}
+                y_tilde_quantiles[sub_idx] = td_node["quantiles"]
+
+        return {"mean": y_tilde, "quantiles": y_tilde_quantiles}
 
     __call__ = fit_predict
 
@@ -962,14 +964,14 @@ class MiddleOutSparse(MiddleOut):
 
         # Perform sparse bottom-up reconciliation from the middle level.
         bu_sparse = BottomUpSparse().fit_predict(
-            S=sparse.csr_matrix(np.fliplr(np.unique(S[:cut_idx, :], axis=1))),
-            y_hat=y_hat[:cut_idx, :],
+            S=sparse.csr_matrix(np.fliplr(np.unique(S[:cut_idx], axis=1))),
+            y_hat=y_hat[:cut_idx],
             idx_bottom=None,
-            y_insample=y_insample[:cut_idx, :] if y_insample is not None else None,
+            y_insample=y_insample[:cut_idx] if y_insample is not None else None,
             y_hat_insample=(
-                y_hat_insample[:cut_idx, :] if y_hat_insample is not None else None
+                y_hat_insample[:cut_idx] if y_hat_insample is not None else None
             ),
-            sigmah=sigmah[:cut_idx, :] if sigmah is not None else None,
+            sigmah=sigmah[:cut_idx] if sigmah is not None else None,
             level=level,
             intervals_method=intervals_method,
             num_samples=num_samples,
@@ -994,7 +996,7 @@ class MiddleOutSparse(MiddleOut):
         # Perform sparse top-down reconciliation from the middle level.
         for cut_node in cut_nodes:
             # Find the leaf nodes of the subgraph for the cut node.
-            leaf_idx = np.flatnonzero(S[cut_node, :])
+            leaf_idx = np.flatnonzero(S[cut_node])
             # Find all the nodes in the subgraph for the cut node.
             sub_idx = np.hstack(
                 (cut_node, cut_idx + np.flatnonzero((np.any(S[cut_idx:, leaf_idx], 1))))
@@ -1022,12 +1024,12 @@ class MiddleOutSparse(MiddleOut):
             # Perform sparse top-down reconciliation from the cut node.
             td_node = cls_top_down.fit_predict(
                 S=sparse.csr_matrix(S[sub_idx[:, None], leaf_idx]),
-                y_hat=y_hat[sub_idx, :],
-                y_insample=y_insample[sub_idx, :] if y_insample is not None else None,
+                y_hat=y_hat[sub_idx],
+                y_insample=y_insample[sub_idx] if y_insample is not None else None,
                 y_hat_insample=(
-                    y_hat_insample[sub_idx, :] if y_hat_insample is not None else None
+                    y_hat_insample[sub_idx] if y_hat_insample is not None else None
                 ),
-                sigmah=sigmah[sub_idx, :] if sigmah is not None else None,
+                sigmah=sigmah[sub_idx] if sigmah is not None else None,
                 level=level,
                 intervals_method=intervals_method,
                 num_samples=num_samples,
