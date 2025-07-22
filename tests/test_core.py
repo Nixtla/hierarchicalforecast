@@ -1,25 +1,13 @@
 # from nbdev.showdoc import show_doc
 import numpy as np
 import pandas as pd
+import polars as pl
+import polars.testing as pltest
+import pytest
 from fastcore.test import test_close, test_eq, test_fail
 
+# from fastcore.test import test_close, test_eq, test_fail
 from hierarchicalforecast.core import HierarchicalReconciliation, _build_fn_name
-from hierarchicalforecast.methods import BottomUp, MinTrace
-
-test_eq(_build_fn_name(BottomUp()), 'BottomUp')
-test_eq(
-    _build_fn_name(MinTrace(method='ols')), 
-    'MinTrace_method-ols'
-)
-test_eq(
-    _build_fn_name(MinTrace(method='ols', nonnegative=True)), 
-    'MinTrace_method-ols_nonnegative-True'
-)
-test_eq(
-    _build_fn_name(MinTrace(method='mint_shrink')), 
-    'MinTrace_method-mint_shrink'
-)
-
 from hierarchicalforecast.methods import (
     ERM,
     BottomUp,
@@ -29,11 +17,13 @@ from hierarchicalforecast.methods import (
 )
 from hierarchicalforecast.utils import aggregate
 
-df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
-df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
-df.insert(0, 'Country', 'Australia')
-df['ds'] = df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
-df['ds'] = pd.to_datetime(df['ds'])
+
+def test_fn_name():
+    assert _build_fn_name(BottomUp()), 'BottomUp'
+    assert _build_fn_name(MinTrace(method='ols')), 'MinTrace_method-ols'
+    assert _build_fn_name(MinTrace(method='ols', nonnegative=True)),  'MinTrace_method-ols_nonnegative-True'
+    assert _build_fn_name(MinTrace(method='mint_shrink')), 'MinTrace_method-mint_shrink'
+
 
 # non strictly hierarchical structure
 hierS_grouped_df = [
