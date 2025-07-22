@@ -23,6 +23,13 @@ def test_fn_name():
     assert _build_fn_name(MinTrace(method='ols')), 'MinTrace_method-ols'
     assert _build_fn_name(MinTrace(method='ols', nonnegative=True)),  'MinTrace_method-ols_nonnegative-True'
     assert _build_fn_name(MinTrace(method='mint_shrink')), 'MinTrace_method-mint_shrink'
+    
+
+df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
+df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
+df.insert(0, 'Country', 'Australia')
+df['ds'] = df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
+df['ds'] = pd.to_datetime(df['ds'])
 
 
 # non strictly hierarchical structure
