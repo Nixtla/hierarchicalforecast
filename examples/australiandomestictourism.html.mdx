@@ -31,6 +31,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 
 <a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourism.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
+
 ```python
 !pip install hierarchicalforecast statsforecast
 ```
@@ -43,6 +44,7 @@ In this example we will use the
 
 The dataset only contains the time series at the lowest level, so we
 need to create the time series for all hierarchies.
+
 
 ```python
 import numpy as np
@@ -71,6 +73,7 @@ Y_df.head()
 The dataset can be grouped in the following non-strictly hierarchical
 structure.
 
+
 ```python
 spec = [
     ['Country'],
@@ -86,6 +89,7 @@ Using the
 [`aggregate`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate)
 function from `HierarchicalForecast` we can get the full set of time
 series.
+
 
 ```python
 from hierarchicalforecast.utils import aggregate
@@ -109,6 +113,7 @@ Y_df.head()
 | 3   | Australia | 1998-10-01 | 20830.129891 |
 | 4   | Australia | 1999-01-01 | 22087.353380 |
 
+
 ```python
 S_df.iloc[:5, :5]
 ```
@@ -120,6 +125,7 @@ S_df.iloc[:5, :5]
 | 2 | Australia/New South Wales | 0.0 | 0.0 | 0.0 | 0.0 |
 | 3 | Australia/Northern Territory | 0.0 | 0.0 | 0.0 | 0.0 |
 | 4 | Australia/Queensland | 0.0 | 0.0 | 0.0 | 0.0 |
+
 
 ```python
 tags['Country/Purpose']
@@ -133,6 +139,7 @@ array(['Australia/Business', 'Australia/Holiday', 'Australia/Other',
 ### Split Train/Test sets
 
 We use the final two years (8 quarters) as test set.
+
 
 ```python
 Y_test_df = Y_df.groupby('unique_id', as_index=False).tail(8)
@@ -166,6 +173,7 @@ The following cell computes the **base forecasts** for each time series
 in `Y_df` using the `ETS` model. Observe that `Y_hat_df` contains the
 forecasts but they are not coherent.
 
+
 ```python
 from statsforecast.models import AutoETS
 from statsforecast.core import StatsForecast
@@ -193,6 +201,7 @@ In this example we use
 and
 [`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#mintrace).
 
+
 ```python
 from hierarchicalforecast.methods import BottomUp, MinTrace
 from hierarchicalforecast.core import HierarchicalReconciliation
@@ -206,10 +215,11 @@ reconcilers = [
     MinTrace(method='ols')
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
-Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_fitted_df, S=S_df, tags=tags)
+Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_fitted_df, S_df=S_df, tags=tags)
 ```
 
 The dataframe `Y_rec_df` contains the reconciled forecasts.
+
 
 ```python
 Y_rec_df.head()
@@ -229,6 +239,7 @@ The `HierarchicalForecast` package includes an
 [`evaluate`](https://Nixtla.github.io/hierarchicalforecast/src/evaluation.html#evaluate)
 function to evaluate the different hierarchies and also is capable of
 compute scaled metrics compared to a benchmark model.
+
 
 ```python
 from hierarchicalforecast.evaluation import evaluate
@@ -262,6 +273,7 @@ evaluation[numeric_cols] = evaluation[numeric_cols].map('{:.2f}'.format).astype(
 The following table shows the performance measured using RMSE across
 levels for each reconciliation method.
 
+
 ```python
 evaluation.query('metric == "rmse"')
 ```
@@ -279,6 +291,7 @@ evaluation.query('metric == "rmse"')
 
 The following table shows the performance measured using MASE across
 levels for each reconciliation method.
+
 
 ```python
 evaluation.query('metric == "mase"')

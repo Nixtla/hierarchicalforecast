@@ -18,14 +18,17 @@ here](https://nixtla.github.io/hierarchicalforecast/examples/example.html).
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L17"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L18"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Normality
 
 > ``` text
->  Normality (S:numpy.ndarray, P:numpy.ndarray, y_hat:numpy.ndarray,
->             sigmah:numpy.ndarray, W:numpy.ndarray, seed:int=0)
+>  Normality (S:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix],
+>             P:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix],
+>             y_hat:numpy.ndarray, sigmah:numpy.ndarray,
+>             W:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix],
+>             seed:int=0)
 > ```
 
 \*Normality Probabilistic Reconciliation Class.
@@ -66,7 +69,7 @@ Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)\
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L77"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L94"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Normality.get_samples
@@ -90,15 +93,17 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L127"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L144"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Bootstrap
 
 > ``` text
->  Bootstrap (S:numpy.ndarray, P:numpy.ndarray, y_hat:numpy.ndarray,
->             y_insample:numpy.ndarray, y_hat_insample:numpy.ndarray,
->             num_samples:int=100, seed:int=0, W:numpy.ndarray=None)
+>  Bootstrap (S:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix],
+>             P:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix],
+>             y_hat:numpy.ndarray, y_insample:numpy.ndarray,
+>             y_hat_insample:numpy.ndarray, num_samples:int=100, seed:int=0,
+>             W:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix]=None)
 > ```
 
 \*Bootstrap Probabilistic Reconciliation Class.
@@ -139,7 +144,7 @@ Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)\
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L179"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L196"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Bootstrap.get_samples
@@ -165,16 +170,17 @@ coherent distribution.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L230"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L245"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PERMBU
 
 > ``` text
->  PERMBU (S:numpy.ndarray, tags:dict[str,numpy.ndarray],
->          y_hat:numpy.ndarray, y_insample:numpy.ndarray,
->          y_hat_insample:numpy.ndarray, sigmah:numpy.ndarray,
->          num_samples:Optional[int]=None, seed:int=0, P:numpy.ndarray=None)
+>  PERMBU (S:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix],
+>          tags:dict[str,numpy.ndarray], y_hat:numpy.ndarray,
+>          y_insample:numpy.ndarray, y_hat_insample:numpy.ndarray,
+>          sigmah:numpy.ndarray, num_samples:Optional[int]=None, seed:int=0,
+>          P:Union[numpy.ndarray,scipy.sparse._matrix.spmatrix]=None)
 > ```
 
 \*PERMBU Probabilistic Reconciliation Class.
@@ -214,7 +220,7 @@ ICML.](https://proceedings.mlr.press/v70/taieb17a.html)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L362"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/probabilistic_methods.py#L379"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PERMBU.get_samples

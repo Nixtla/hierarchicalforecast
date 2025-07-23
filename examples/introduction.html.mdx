@@ -111,11 +111,13 @@ Among its probabilistic coherent methods we have
 
 ## 3. Minimal Example
 
+
 ```python
 !pip install hierarchicalforecast statsforecast datasetsforecast
 ```
 
 ### Wrangling Data
+
 
 ```python
 import numpy as np
@@ -127,6 +129,7 @@ time series structure like the one in Figure 1.
 
 We will create a two level structure with four bottom series where
 aggregations of the series are self evident.
+
 
 ```python
 # Create Figure 1. synthetic bottom data
@@ -174,6 +177,7 @@ Finally the `tags` contains a list within `Y_hier_df` composing each
 hierarchical level, for example the `tags['top_level']` contains
 `Australia`’s aggregated series index.
 
+
 ```python
 from hierarchicalforecast.utils import aggregate
 ```
@@ -196,6 +200,7 @@ Y_hier_df.shape (56, 3)
 tags['top_level'] ['Australia']
 ```
 
+
 ```python
 Y_hier_df.groupby('unique_id').head(2)
 ```
@@ -217,6 +222,7 @@ Y_hier_df.groupby('unique_id').head(2)
 | 48  | Australia/State2/r4 | 2000-01-01 | 100 |
 | 49  | Australia/State2/r4 | 2000-02-01 | 200 |
 
+
 ```python
 S_df
 ```
@@ -236,6 +242,7 @@ S_df
 Next, we compute the *base forecast* for each time series using the
 `naive` model. Observe that `Y_hat_df` contains the forecasts but they
 are not coherent.
+
 
 ```python
 from statsforecast.models import Naive
@@ -258,6 +265,7 @@ Y_fitted_df = fcst.forecast_fitted_values()
 
 ### Reconciliation
 
+
 ```python
 from hierarchicalforecast.methods import BottomUp
 from hierarchicalforecast.core import HierarchicalReconciliation
@@ -271,7 +279,7 @@ hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, 
                           Y_df=Y_fitted_df,
-                          S=S_df, tags=tags)
+                          S_df=S_df, tags=tags)
 Y_rec_df.groupby('unique_id').head(2)
 ```
 

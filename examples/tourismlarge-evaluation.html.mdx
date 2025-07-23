@@ -25,6 +25,7 @@ We assume you have StatsForecast and HierarchicalForecast already
 installed, if not check this guide for instructions on how to install
 HierarchicalForecast.
 
+
 ```python
 !pip install hierarchicalforecast statsforecast datasetsforecast
 ```
@@ -51,6 +52,7 @@ from datasetsforecast.hierarchical import HierarchicalData, HierarchicalInfo
 ## 2. Preparing TourismL Dataset
 
 ### 2.1 Read Hierarchical Dataset
+
 
 ```python
 # ['Labour', 'Traffic', 'TourismSmall', 'TourismLarge', 'Wiki2']
@@ -84,6 +86,7 @@ TourismSmall
 Code block 'Read and Parse data   ' took:   0.00653 seconds
 ```
 
+
 ```python
 dataset_info.seasonality
 ```
@@ -92,12 +95,14 @@ dataset_info.seasonality
 4
 ```
 
+
 ```python
 hplot = HierarchicalPlot(S=S_df, tags=tags)
 hplot.plot_summing_matrix()
 ```
 
 ![](/hierarchicalforecast/examples/TourismLarge-Evaluation_files/figure-markdown_strict/cell-7-output-1.png)
+
 
 ```python
 Y_train_df
@@ -123,6 +128,7 @@ This cell computes the base predictions `Y_hat_df` for all the series in
 `Y_df` using StatsForecast’s `AutoARIMA`. Additionally we obtain
 insample predictions `Y_fitted_df` for the methods that require them.
 
+
 ```python
 with CodeTimer('Fit/Predict Model     ', verbose):
     # Read to avoid unnecesary AutoARIMA computation
@@ -147,6 +153,7 @@ with CodeTimer('Fit/Predict Model     ', verbose):
 ```
 
 ## 3. Reconcile Predictions
+
 
 ```python
 with CodeTimer('Reconcile Predictions ', verbose):
@@ -187,6 +194,7 @@ Code block 'Reconcile Predictions ' took:   7.49314 seconds
 
 Qualitative evaluation, of parsed quantiles
 
+
 ```python
 unique_id = "total"
 plot_df = Y_rec_df.query("unique_id == @unique_id").groupby(["unique_id", "ds"], as_index=False).mean()
@@ -200,6 +208,7 @@ plt.legend()
 ![](/hierarchicalforecast/examples/TourismLarge-Evaluation_files/figure-markdown_strict/cell-11-output-1.png)
 
 ## 4. Evaluation
+
 
 ```python
 from utilsforecast.losses import scaled_crps, msse

@@ -24,6 +24,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 
 ## 1. Libraries
 
+
 ```python
 !pip install hierarchicalforecast statsforecast datasetsforecast
 ```
@@ -34,6 +35,7 @@ In this example we will use the `TourismSmall` dataset. The following
 cell gets the time series for the different levels in the hierarchy, the
 summing matrix `S` which recovers the full dataset from the bottom level
 hierarchy and the indices of each hierarchy denoted by `tags`.
+
 
 ```python
 import numpy as np
@@ -68,6 +70,7 @@ S_df[:6, :6]
 | "oth" | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
 | "nsw-hol" | 1.0 | 1.0 | 0.0 | 0.0 | 0.0 |
 
+
 ```python
 tags
 ```
@@ -101,6 +104,7 @@ tags
 
 We split the dataframe in train/test splits.
 
+
 ```python
 Y_test_df = Y_df.group_by('unique_id').tail(group.horizon)
 Y_train_df = Y_df.filter(pl.col('ds') < Y_test_df['ds'].min())
@@ -111,6 +115,7 @@ Y_train_df = Y_df.filter(pl.col('ds') < Y_test_df['ds'].min())
 The following cell computes the *base forecast* for each time series
 using the `auto_arima` and `naive` models. Observe that `Y_hat_df`
 contains the forecasts but they are not coherent.
+
 
 ```python
 from statsforecast.core import StatsForecast
@@ -143,6 +148,7 @@ class. The used methods to make the forecasts coherent are:
 -   [`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#middleout):
     Anchors the base predictions in a middle level.
 
+
 ```python
 from hierarchicalforecast.core import HierarchicalReconciliation
 from hierarchicalforecast.methods import BottomUp, TopDown, MiddleOut
@@ -157,7 +163,7 @@ reconcilers = [
               top_down_method='forecast_proportions')
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
-Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_train_df, S=S_df, tags=tags)
+Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_train_df, S_df=S_df, tags=tags)
 ```
 
 ## 5. Evaluation
@@ -167,6 +173,7 @@ The `HierarchicalForecast` package includes the
 function to evaluate the different hierarchies and we can use
 utilsforecast to compute the mean absolute error relative to a baseline
 model.
+
 
 ```python
 from hierarchicalforecast.evaluation import evaluate

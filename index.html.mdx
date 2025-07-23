@@ -75,20 +75,32 @@ across the forecasting community.
 
 ### PyPI
 
-You can install the *released version* of `HierarchicalForecast` from
-the [Python package index](https://pypi.org) with:
+We recommend using `uv` as Python package manager, for which you can
+find installation instructions
+[here](https://docs.astral.sh/uv/getting-started/installation/).
+
+You can then install the *released version* of `HierachicalForecast`:
+
+
+```python
+uv pip install hierarchicalforecast
+```
+
+Alternatively, you can directly install from the [Python package
+index](https://pypi.org) with:
+
 
 ```python
 pip install hierarchicalforecast
 ```
 
-(Installing inside a python virtualenvironment or a conda environment is
-recommended.)
+(Installing inside a python virtualenvironment is recommended.)
 
 ### Conda
 
 Also you can install the *released version* of `HierarchicalForecast`
 from [conda](https://anaconda.org) with:
+
 
 ```python
 conda install -c conda-forge hierarchicalforecast
@@ -100,13 +112,8 @@ recommended.)
 ### Dev Mode
 
 If you want to make some modifications to the code and see the effects
-in real time (without reinstalling), follow the steps below:
-
-```bash
-git clone https://github.com/Nixtla/hierarchicalforecast.git
-cd hierarchicalforecast
-pip install -e .
-```
+in real time (without reinstalling), follow the steps
+[here](https://github.com/Nixtla/hierarchicalforecast/blob/main/CONTRIBUTING.md).
 
 ## 🧬 How to use
 
@@ -119,6 +126,7 @@ reconciled.
 
 You can open this example in Colab [![Open In
 Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nixtla/hierarchicalforecast/blob/main/nbs/examples/TourismSmall.ipynb)
+
 
 ```python
 import pandas as pd
@@ -137,9 +145,9 @@ from hierarchicalforecast.methods import BottomUp, TopDown, MiddleOut
 from utilsforecast.losses import mse
 
 # Load TourismSmall dataset
-Y_df, S, tags = HierarchicalData.load('./data', 'TourismSmall')
+Y_df, S_df, tags = HierarchicalData.load('./data', 'TourismSmall')
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
-S = S.reset_index(names="unique_id")
+S_df = S_df.reset_index(names="unique_id")
 
 #split train/test sets
 Y_test_df  = Y_df.groupby('unique_id').tail(4)
@@ -159,10 +167,11 @@ reconcilers = [
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_train_df,
-                          S=S, tags=tags)
+                          S_df=S_df, tags=tags)
 ```
 
 ### Evaluation
+
 
 ```python
 df = Y_rec_df.merge(Y_test_df, on=['unique_id', 'ds'], how='left')
@@ -174,6 +183,7 @@ evaluate(df=df, metrics=[mse],
 ## How to cite
 
 Here’s the complete [paper](https://arxiv.org/abs/2207.03517).
+
 
 ```bibtex
 @article{olivares2022hierarchicalforecast,

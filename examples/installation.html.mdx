@@ -5,14 +5,27 @@ title: Install
 ---
 
 
-You can install the *released version* of `HierachicalForecast` from the
-[Python package index](https://pypi.org) with:
+We recommend using `uv` as Python package manager, for which you can
+find installation instructions
+[here](https://docs.astral.sh/uv/getting-started/installation/).
+
+You can then install the *released version* of `HierachicalForecast`:
+
+
+```python
+uv pip install hierarchicalforecast
+```
+
+Alternatively, you can directly install from the [Python package
+index](https://pypi.org) with:
+
 
 ```python
 pip install hierarchicalforecast
 ```
 
-or
+or within a `conda` environment:
+
 
 ```python
 conda install -c conda-forge hierarchicalforecast
@@ -24,27 +37,47 @@ conda install -c conda-forge hierarchicalforecast
 > [conda
 > environment](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html).
 
-#### User our env (optional)
+#### Installing from source
 
-If you don’t have a Conda environment and need tools like Numba, Pandas,
-NumPy, Jupyter, StatsModels, and Nbdev you can use ours by following
-these steps:
+We recommend using `uv` as Python package manager, for which you can
+find installation instructions
+[here](https://docs.astral.sh/uv/getting-started/installation/).
 
 1.  Clone the HierachicalForecast repo:
+
 
 ```bash
 $ git clone https://github.com/Nixtla/hierachicalforecast.git && cd hierachicalforecast
 ```
 
-1.  Create the environment using the `environment.yml` file:
+1.  Create the environment:
+
 
 ```bash
-$ conda env create -f environment.yml
+$ uv venv --python 3.10
 ```
 
 1.  Activate the environment:
 
+-   on MacOS / Linux:
+
+
 ```bash
-$ conda activate statsforecast
+$ source .venv/bin/activate
+```
+
+-   on Windows:
+
+
+```bash
+$ .\.venv\Scripts\activate
+```
+
+1.  Install the dependencies and the library
+
+
+```bash
+uv pip install -r setup.py
+uv pip install .
 ```
 

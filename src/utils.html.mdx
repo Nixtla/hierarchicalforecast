@@ -190,12 +190,15 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*Summation Constraints plot
 
 This method simply plots the hierarchical aggregation constraints matrix
-$\mathbf{S}$.\*
+$\mathbf{S}$.
+
+**Returns:**<br/> `fig`: matplotlib.figure.Figure, figure object
+containing the plot of the summing matrix.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L630"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L633"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_series
@@ -221,13 +224,13 @@ serie.<br/> `time_col` : str=‘ds’, column that identifies each timestep,
 its values can be timestamps or integers.<br/> `target_col` : str=‘y’,
 column that contains the target.<br/>
 
-**Returns:**<br/> Single series plot with filtered models and prediction
-interval level.<br/><br/>\*
+**Returns:**<br/> `fig`: matplotlib.figure.Figure, figure object
+containing the plot of the single series.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L709"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L715"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchically_linked_series
@@ -255,14 +258,13 @@ serie.<br/> `time_col` : str=‘ds’, column that identifies each timestep,
 its values can be timestamps or integers.<br/> `target_col` : str=‘y’,
 column that contains the target.<br/>
 
-**Returns:**<br/> Collection of hierarchilly linked series plots
-associated with the `bottom_series` and filtered models and prediction
-interval level.<br/><br/>\*
+**Returns:**<br/> `fig`: matplotlib.figure.Figure, figure object
+containing the plots of the hierarchilly linked series.\*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L805"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L811"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### plot_hierarchical_predictions_gap
@@ -290,10 +292,10 @@ label.<br/> `ylabel`: str, string for the plot’s y axis label.<br/>
 can be timestamps or integers.<br/> `target_col` : str=‘y’, column that
 contains the target.<br/>
 
-**Returns:**<br/> Plots of aggregated predictions at different levels of
-the hierarchical structure. The aggregation is performed according to
-the tag levels see [aggregate
-function](https://nixtla.github.io/hierarchicalforecast/utils.html).<br/><br/>\*
+**Returns:**<br/> `fig`: matplotlib.figure.Figure, figure object
+containing the plot of the aggregated predictions at different levels of
+the hierarchical structure.\*
+
 
 ```python
 from statsforecast.core import StatsForecast
@@ -362,7 +364,7 @@ hplots.plot_hierarchical_predictions_gap(
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L924"
+href="https://github.com/Nixtla/hierarchicalforecast/blob/main/hierarchicalforecast/utils.py#L929"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### samples_to_quantiles_df

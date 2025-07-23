@@ -32,6 +32,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 
 ## 1. Installing packages
 
+
 ```python
 !pip install datasetsforecast hierarchicalforecast mlforecast neuralforecast
 ```
@@ -80,6 +81,7 @@ sources are available.
 | Regions | 76 | 304 | 380 |
 | Total | 111 | 444 | 555 |
 
+
 ```python
 Y_df, S_df, tags = HierarchicalData.load('./data', 'TourismLarge')
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
@@ -101,6 +103,7 @@ Y_df.head()
 
 Visualize the aggregation matrix.
 
+
 ```python
 hplot = HierarchicalPlot(S=S_df, tags=tags)
 hplot.plot_summing_matrix()
@@ -109,6 +112,7 @@ hplot.plot_summing_matrix()
 ![](/hierarchicalforecast/examples/MLFrameworksExample_files/figure-markdown_strict/cell-6-output-1.png)
 
 Split the dataframe in train/test splits.
+
 
 ```python
 horizon = 12
@@ -121,6 +125,7 @@ Y_train_df = Y_df.drop(Y_test_df.index)
 HierarchicalForecast is compatible with many different ML models. Here,
 we show two examples:<br/> 1. NBEATS, a MLP-based deep neural
 architecture.<br/> 2. XGBRegressor, a tree-based architecture.<br/>
+
 
 ```python
 level = np.arange(0, 100, 2)
@@ -168,6 +173,7 @@ Y_hat_nf
 | 6658 | TotalVis | 2016-11-01 | 8251.816406 | 6471.753906 | 6551.861328 | 6621.647461 | 6694.992188 | 6740.827148 | 6798.824707 | 6825.794434 | ... | 9519.825195 | 9557.507812 | 9624.822266 | 9720.269531 | 9811.011719 | 9907.259766 | 10132.628906 | 10362.583984 | 10896.478516 | 11394.652344 |
 | 6659 | TotalVis | 2016-12-01 | 9023.334961 | 6798.515625 | 6978.411621 | 7165.805176 | 7250.106934 | 7333.168457 | 7395.183594 | 7457.470215 | ... | 10221.937500 | 10290.527344 | 10334.883789 | 10399.726562 | 10553.360352 | 10645.852539 | 10806.295898 | 10992.416016 | 11328.151367 | 11933.357422 |
 
+
 ```python
 Y_hat_mf
 ```
@@ -191,6 +197,7 @@ Y_hat_mf
 With minimal parsing, we can reconcile the raw output predictions with
 different HierarchicalForecast reconciliation methods.
 
+
 ```python
 reconcilers = [
     ERM(method='closed'),
@@ -199,8 +206,8 @@ reconcilers = [
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 
-Y_rec_nf = hrec.reconcile(Y_hat_df=Y_hat_nf, Y_df=insample_nf, S=S_df, tags=tags, level=level)
-Y_rec_mf = hrec.reconcile(Y_hat_df=Y_hat_mf, Y_df=insample_mf, S=S_df, tags=tags, level=level)
+Y_rec_nf = hrec.reconcile(Y_hat_df=Y_hat_nf, Y_df=insample_nf, S_df=S_df, tags=tags, level=level)
+Y_rec_mf = hrec.reconcile(Y_hat_df=Y_hat_mf, Y_df=insample_mf, S_df=S_df, tags=tags, level=level)
 ```
 
 ## 5. Evaluation
@@ -220,6 +227,7 @@ $$
 We find that XGB with MinTrace(mint_shrink) reconciliation result in the
 lowest CRPS score on the test set, thus giving us the best probabilistic
 forecasts.
+
 
 ```python
 from utilsforecast.losses import scaled_crps
@@ -261,6 +269,7 @@ evaluation_nf.query("level == 'Overall'")
 |----|----|----|----|----|----|
 | 8 | Overall | scaled_crps | 2.523212 | 2.43205 | 2.645045 |
 
+
 ```python
 evaluation_mf.query("level == 'Overall'")
 ```
@@ -270,6 +279,7 @@ evaluation_mf.query("level == 'Overall'")
 | 8 | Overall | scaled_crps | 1.98255 | 1.44981 | 1.910014 |
 
 ## 6. Visualizations
+
 
 ```python
 plot_nf = Y_df.merge(Y_rec_nf, on=['unique_id', 'ds'], how="outer")
@@ -288,6 +298,7 @@ hplot.plot_series(
 ```
 
 ![](/hierarchicalforecast/examples/MLFrameworksExample_files/figure-markdown_strict/cell-18-output-1.png)
+
 
 ```python
 hplot.plot_series(

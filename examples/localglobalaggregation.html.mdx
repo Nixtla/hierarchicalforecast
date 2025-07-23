@@ -12,6 +12,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 
 <a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/LocalGlobalAggregation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
+
 ```python
 !pip install hierarchicalforecast utilsforecast
 ```
@@ -21,6 +22,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 In this example we will generate synthetic series to explain the
 difference between local- and global temporal aggregation. We will
 generate 2 series with a daily frequency.
+
 
 ```python
 from utilsforecast.data import generate_series
@@ -39,6 +41,7 @@ df = generate_series(n_series=n_series,
 
 Note that our two timeseries do not have the same number of timesteps:
 
+
 ```python
 df.groupby('unique_id', observed=True)["ds"].count()
 ```
@@ -52,6 +55,7 @@ Name: ds, dtype: int64
 
 We then define a spec for our temporal aggregations.
 
+
 ```python
 spec  = {"year": 365, "quarter": 91, "month": 30, "week": 7, "day": 1}
 ```
@@ -62,6 +66,7 @@ In local aggregation, we treat the timestamps of each timeseries
 individually. It means that the temporal aggregation is performed by
 only looking at the timestamps of each series, disregarding the
 timestamps of other series.
+
 
 ```python
 from hierarchicalforecast.utils import aggregate_temporal
@@ -78,6 +83,7 @@ both timeseries. This is because the series with `unique_id=1` is
 shorter and has its first datapoint in July 2000, in contrast to the
 series with `unique_id=0`, which is longer and has its first timestamp
 in March 2000.
+
 
 ```python
 Y_df_local.query("temporal_id == 'month-1'")
@@ -96,6 +102,7 @@ timestamps across all timeseries. We can specify the aggregation type by
 setting the `aggregation_type` attritbue in
 [`aggregate_temporal`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate_temporal).
 
+
 ```python
 Y_df_global, S_df_global, tags_globval = aggregate_temporal(df, spec, aggregation_type="global")
 ```
@@ -105,6 +112,7 @@ temporal aggregation `month-1` corresponds to the same (year,
 month)-combination for both timeseries. Since `month-1` isn’t present in
 the second timeseries (as it is shorter), we have only one record for
 the aggregation.
+
 
 ```python
 Y_df_global.query("temporal_id == 'month-1'")
@@ -116,6 +124,7 @@ Y_df_global.query("temporal_id == 'month-1'")
 
 For `month-5` however, we have a record for both timeseries, as the
 second series has its first datapoint in that month.
+
 
 ```python
 Y_df_global.query("temporal_id == 'month-5'")

@@ -28,6 +28,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 
 <a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourismTemporal.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
+
 ```python
 !pip install hierarchicalforecast statsforecast
 ```
@@ -40,6 +41,7 @@ In this example we will use the
 
 The dataset only contains the time series at the lowest level, so we
 need to create the time series for all hierarchies.
+
 
 ```python
 import numpy as np
@@ -69,6 +71,7 @@ Y_df.head()
 
 First, we add a `unique_id` to the data.
 
+
 ```python
 Y_df["unique_id"] = Y_df["Country"] + "/" + Y_df["State"] + "/" + Y_df["Region"] + "/" + Y_df["Purpose"]
 ```
@@ -77,6 +80,7 @@ Y_df["unique_id"] = Y_df["Country"] + "/" + Y_df["State"] + "/" + Y_df["Region"]
 
 We use the final two years (8 quarters) as test set. Consequently, our
 forecast horizon=8.
+
 
 ```python
 horizon = 8
@@ -101,6 +105,7 @@ In this example, we choose a temporal aggregation of `year`,
 `semiannual` and `quarter`. The bottom level timesteps have a quarterly
 frequency.
 
+
 ```python
 spec_temporal = {"year": 4, "semiannual": 2, "quarter": 1}
 ```
@@ -110,6 +115,7 @@ We next compute the temporally aggregated train- and test sets using the
 function. Note that we have different aggregation matrices `S` for the
 train- and test set, as the test set contains temporal hierarchies that
 are not included in the train set.
+
 
 ```python
 from hierarchicalforecast.utils import aggregate_temporal
@@ -164,6 +170,7 @@ tags_train
 Our aggregation matrices aggregate the lowest temporal granularity
 (quarters) up to years.
 
+
 ```python
 S_train_df.iloc[:5, :5]
 ```
@@ -175,6 +182,7 @@ S_train_df.iloc[:5, :5]
 | 2   | year-3      | 0.0       | 0.0       | 0.0       | 0.0       |
 | 3   | year-4      | 0.0       | 0.0       | 0.0       | 0.0       |
 | 4   | year-5      | 0.0       | 0.0       | 0.0       | 0.0       |
+
 
 ```python
 S_test_df.iloc[:5, :5]
@@ -195,6 +203,7 @@ they can be temporally aggregated. We can use the
 [`make_future_dataframe`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#make_future_dataframe)
 helper function for that.
 
+
 ```python
 from hierarchicalforecast.utils import make_future_dataframe
 ```
@@ -208,12 +217,14 @@ Y_test_df_new = make_future_dataframe(Y_train_df, freq="QS", h=horizon)
 [`aggregate_temporal`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate_temporal)
 to construct the temporally aggregated structures:
 
+
 ```python
 Y_test_df_new, S_test_df_new, tags_test_new = aggregate_temporal(df=Y_test_df_new,  spec=spec_temporal)
 ```
 
 And we can verify that we have the same temporally aggregated test set,
 except that `Y_test_df_new` doesn’t contain the ground truth values `y`.
+
 
 ```python
 S_test_df_new
@@ -236,6 +247,7 @@ S_test_df_new
 | 12 | quarter-7 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 1.0 | 0.0 |
 | 13 | quarter-8 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 1.0 |
 
+
 ```python
 Y_test_df
 ```
@@ -253,6 +265,7 @@ Y_test_df
 | 4253 | quarter-6 | Australia/Western Australia/Experience Perth/V... | 2017-04-01 | 302.296119 |
 | 4254 | quarter-7 | Australia/Western Australia/Experience Perth/V... | 2017-07-01 | 373.442070 |
 | 4255 | quarter-8 | Australia/Western Australia/Experience Perth/V... | 2017-10-01 | 455.316702 |
+
 
 ```python
 Y_test_df_new
@@ -286,6 +299,7 @@ aggregation thus has a yearly frequency with a horizon of `2`.
 
 It is of course possible to choose a different model for each level in
 the temporal aggregation - you can be as creative as you like!
+
 
 ```python
 from statsforecast.models import AutoETS
@@ -332,6 +346,7 @@ Note that we have to set `temporal=True` in the `reconcile` function.
 Note that temporal reconcilation currently isn’t supported for insample
 reconciliation methods, such as `MinTrace(method='mint_shrink')`.
 
+
 ```python
 from hierarchicalforecast.methods import BottomUp, MinTrace
 from hierarchicalforecast.core import HierarchicalReconciliation
@@ -345,7 +360,7 @@ reconcilers = [
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, 
-                          S=S_test_df, 
+                          S_df=S_test_df, 
                           tags=tags_test, 
                           temporal=True, 
                           level=[80, 90])
@@ -359,6 +374,7 @@ function to evaluate the different hierarchies.
 
 We evaluate the temporally aggregated forecasts *across all temporal
 aggregations*.
+
 
 ```python
 from hierarchicalforecast.evaluation import evaluate
@@ -403,6 +419,7 @@ the lowest, indicating that the uncertainty levels predicted with the
 
 ## Appendix: plotting the S matrix
 
+
 ```python
 from hierarchicalforecast.utils import HierarchicalPlot
 ```
@@ -416,6 +433,7 @@ obtained by summing the 4 quarters in 2017. \* The next 4 rows show how
 the semi-annual aggregations can be obtained. \* The final rows are the
 identity matrix for each quarter, denoting the bottom temporal level
 (each quarter).
+
 
 ```python
 hplot = HierarchicalPlot(S=S_test_df, tags=tags_test, S_id_col="temporal_id")

@@ -30,6 +30,7 @@ You can run these experiments using CPU or GPU with Google Colab.
 
 <a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourismCrossTemporal.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
+
 ```python
 !pip install hierarchicalforecast statsforecast
 ```
@@ -42,6 +43,7 @@ In this example we will use the
 
 The dataset only contains the time series at the lowest level, so we
 need to create the time series for all hierarchies.
+
 
 ```python
 import numpy as np
@@ -74,6 +76,7 @@ Y_df.head()
 The dataset can be grouped in the following non-strictly hierarchical
 structure.
 
+
 ```python
 spec = [
     ['Country'],
@@ -89,6 +92,7 @@ Using the
 [`aggregate`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate)
 function from `HierarchicalForecast` we can get the full set of time
 series.
+
 
 ```python
 from hierarchicalforecast.utils import aggregate
@@ -118,6 +122,7 @@ Y_df_cs
 | 33998 | Australia/Western Australia/Experience Perth/V... | 2017-07-01 | 373.442070 |
 | 33999 | Australia/Western Australia/Experience Perth/V... | 2017-10-01 | 455.316702 |
 
+
 ```python
 S_df_cs.iloc[:5, :5]
 ```
@@ -135,6 +140,7 @@ S_df_cs.iloc[:5, :5]
 We use the final two years (8 quarters) as test set. Consequently, our
 forecast horizon=8.
 
+
 ```python
 horizon = 8
 ```
@@ -150,6 +156,7 @@ Y_train_df_cs = Y_df_cs.drop(Y_test_df_cs.index)
 The following cell computes the **base forecasts** for each time series
 in `Y_df` using the `AutoETS` model. Observe that `Y_hat_df` contains
 the forecasts but they are not coherent.
+
 
 ```python
 from statsforecast.models import AutoETS
@@ -178,6 +185,7 @@ In this example we use
 and
 [`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#mintrace).
 
+
 ```python
 from hierarchicalforecast.methods import BottomUp, MinTrace
 from hierarchicalforecast.core import HierarchicalReconciliation
@@ -191,10 +199,11 @@ reconcilers = [
     MinTrace(method='ols')
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
-Y_rec_df_cs = hrec.reconcile(Y_hat_df=Y_hat_df_cs, Y_df=Y_fitted_df_cs, S=S_df_cs, tags=tags_cs)
+Y_rec_df_cs = hrec.reconcile(Y_hat_df=Y_hat_df_cs, Y_df=Y_fitted_df_cs, S_df=S_df_cs, tags=tags_cs)
 ```
 
 The dataframe `Y_rec_df` contains the reconciled forecasts.
+
 
 ```python
 Y_rec_df_cs.head()
@@ -225,6 +234,7 @@ In this example, we choose a temporal aggregation of `year`,
 `semiannual` and `quarter`. The bottom level timesteps have a quarterly
 frequency.
 
+
 ```python
 spec_temporal = {"year": 4, "semiannual": 2, "quarter": 1}
 ```
@@ -234,6 +244,7 @@ We next compute the temporally aggregated train- and test sets using the
 function. Note that we have different aggregation matrices `S` for the
 train- and test set, as the test set contains temporal hierarchies that
 are not included in the train set.
+
 
 ```python
 from hierarchicalforecast.utils import aggregate_temporal
@@ -258,6 +269,7 @@ S_train_df_te.iloc[:5, :5]
 | 3   | year-4      | 0.0       | 0.0       | 0.0       | 0.0       |
 | 4   | year-5      | 0.0       | 0.0       | 0.0       | 0.0       |
 
+
 ```python
 S_test_df_te.iloc[:5, :5]
 ```
@@ -277,6 +289,7 @@ they can be temporally aggregated. We can use the
 [`make_future_dataframe`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#make_future_dataframe)
 helper function for that.
 
+
 ```python
 from hierarchicalforecast.utils import make_future_dataframe
 ```
@@ -290,6 +303,7 @@ Y_test_df_te_new = make_future_dataframe(Y_train_df_te, freq="QS", h=horizon)
 [`aggregate_temporal`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate_temporal)
 to construct the temporally aggregated structures:
 
+
 ```python
 Y_test_df_te_new, S_test_df_te_new, tags_te_test_new = aggregate_temporal(df=Y_test_df_te_new, spec=spec_temporal)
 ```
@@ -297,6 +311,7 @@ Y_test_df_te_new, S_test_df_te_new, tags_te_test_new = aggregate_temporal(df=Y_t
 And we can verify that we have the same temporally aggregated test set,
 except that `Y_test_df_te_new` doesn’t contain the ground truth values
 `y`.
+
 
 ```python
 Y_test_df_te
@@ -315,6 +330,7 @@ Y_test_df_te
 | 5947 | quarter-6 | Australia/Western Australia/Visiting | 2017-04-01 | 642.516090 |
 | 5948 | quarter-7 | Australia/Western Australia/Visiting | 2017-07-01 | 646.521395 |
 | 5949 | quarter-8 | Australia/Western Australia/Visiting | 2017-10-01 | 813.184778 |
+
 
 ```python
 Y_test_df_te_new
@@ -348,6 +364,7 @@ aggregation thus has a yearly frequency with a horizon of `2`.
 
 It is of course possible to choose a different model for each level in
 the temporal aggregation - you can be as creative as you like!
+
 
 ```python
 Y_hat_dfs_te = []
@@ -388,13 +405,14 @@ Note that we have to set `temporal=True` in the `reconcile` function.
 Note that temporal reconcilation currently isn’t supported for insample
 reconciliation methods, such as `MinTrace(method='mint_shrink')`.
 
+
 ```python
 reconcilers = [
     BottomUp(),
     MinTrace(method='ols')
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
-Y_rec_df_te = hrec.reconcile(Y_hat_df=Y_hat_df_te, S=S_test_df_te, tags=tags_te_test, temporal=True)
+Y_rec_df_te = hrec.reconcile(Y_hat_df=Y_hat_df_te, S_df=S_test_df_te, tags=tags_te_test, temporal=True)
 ```
 
 ## 4. Evaluation
@@ -402,6 +420,7 @@ Y_rec_df_te = hrec.reconcile(Y_hat_df=Y_hat_df_te, S=S_test_df_te, tags=tags_te_
 The `HierarchicalForecast` package includes the
 [`evaluate`](https://Nixtla.github.io/hierarchicalforecast/src/evaluation.html#evaluate)
 function to evaluate the different hierarchies.
+
 
 ```python
 from hierarchicalforecast.evaluation import evaluate
@@ -412,6 +431,7 @@ from utilsforecast.losses import rmse
 
 We first evaluate the forecasts *across all cross-sectional
 aggregations*.
+
 
 ```python
 eval_tags = {}
@@ -452,6 +472,7 @@ across each cross-sectional aggregation.
 We then evaluate the temporally aggregated forecasts *across all
 temporal aggregations*.
 
+
 ```python
 evaluation = evaluate(df = Y_rec_df_te.drop(columns = 'unique_id'),
                       tags = tags_te_test,
@@ -487,6 +508,7 @@ we can use the
 [`get_cross_temporal_tags`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#get_cross_temporal_tags)
 helper function.
 
+
 ```python
 from hierarchicalforecast.utils import get_cross_temporal_tags
 ```
@@ -501,6 +523,7 @@ As we can see, we now have a tag `Country//year` that contains
 cross-sectional hierarchy `Australia` at the temporal hierarchies `2016`
 and `2017`.
 
+
 ```python
 tags_ct["Country//year"]
 ```
@@ -514,6 +537,7 @@ We now have our dataset and cross-temporal tags ready for evaluation.
 We define a set of eval_tags, and now we split each cross-sectional
 aggregation also by each temporal aggregation. Note that we skip the
 semiannual temporal aggregation in the below overview.
+
 
 ```python
 eval_tags = {}

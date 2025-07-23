@@ -12,6 +12,7 @@ has tools to create time series for all hierarchies and also allows you
 to calculate prediction intervals for all hierarchies. In this notebook
 we will see how to do it.
 
+
 ```python
 !pip install hierarchicalforecast statsforecast
 ```
@@ -38,6 +39,7 @@ In this example we will use the
 The dataset only contains the time series at the lowest level, so we
 need to create the time series for all hierarchies.
 
+
 ```python
 Y_df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
 Y_df = Y_df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
@@ -59,6 +61,7 @@ Y_df.head()
 The dataset can be grouped in the following non-strictly hierarchical
 structure.
 
+
 ```python
 spec = [
     ['Country'],
@@ -77,6 +80,7 @@ hierarchical structured series $\mathbf{y}_{[a,b]\tau}$ 2. `S_df`: the
 aggregation constraings dataframe with $S_{[a,b]}$ 3. `tags`: a list
 with the ‘unique_ids’ conforming each aggregation level.
 
+
 ```python
 Y_df, S_df, tags = aggregate(df=Y_df, spec=spec)
 ```
@@ -94,6 +98,7 @@ Y_df.head()
 | 3   | Australia | 1998-10-01 | 20830.129891 |
 | 4   | Australia | 1999-01-01 | 22087.353380 |
 
+
 ```python
 S_df.iloc[:5, :5]
 ```
@@ -105,6 +110,7 @@ S_df.iloc[:5, :5]
 | 2 | Australia/New South Wales | 0.0 | 0.0 | 0.0 | 0.0 |
 | 3 | Australia/Northern Territory | 0.0 | 0.0 | 0.0 | 0.0 |
 | 4 | Australia/Queensland | 0.0 | 0.0 | 0.0 | 0.0 |
+
 
 ```python
 tags['Country/Purpose']
@@ -119,6 +125,7 @@ We can visualize the `S` matrix and the data using the
 [`HierarchicalPlot`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#hierarchicalplot)
 class as follows.
 
+
 ```python
 hplot = HierarchicalPlot(S=S_df, tags=tags)
 ```
@@ -129,6 +136,7 @@ hplot.plot_summing_matrix()
 ```
 
 ![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-11-output-1.png)
+
 
 ```python
 hplot.plot_hierarchically_linked_series(
@@ -142,6 +150,7 @@ hplot.plot_hierarchically_linked_series(
 ### Split Train/Test sets
 
 We use the final two years (8 quarters) as test set.
+
 
 ```python
 Y_test_df = Y_df.groupby('unique_id', as_index=False).tail(8)
@@ -177,6 +186,7 @@ contains the forecasts but they are not coherent. To reconcile the
 prediction intervals we need to calculate the uncoherent intervals using
 the `level` argument of `StatsForecast`.
 
+
 ```python
 fcst = StatsForecast(models=[AutoARIMA(season_length=4)], 
                      freq='QS', n_jobs=-1)
@@ -200,6 +210,7 @@ and
 If you want to calculate prediction intervals, you have to use the
 `level` argument as follows.
 
+
 ```python
 reconcilers = [
     BottomUp(),
@@ -208,10 +219,11 @@ reconcilers = [
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_fitted_df, 
-                          S=S_df, tags=tags, level=[80, 90])
+                          S_df=S_df, tags=tags, level=[80, 90])
 ```
 
 The dataframe `Y_rec_df` contains the reconciled forecasts.
+
 
 ```python
 Y_rec_df.head()
@@ -230,11 +242,13 @@ Y_rec_df.head()
 Then we can plot the probabilistic forecasts using the following
 function.
 
+
 ```python
 plot_df = Y_df.merge(Y_rec_df, on=['unique_id', 'ds'], how="outer")
 ```
 
 ### Plot single time series
+
 
 ```python
 hplot.plot_series(
@@ -246,6 +260,7 @@ hplot.plot_series(
 ```
 
 ![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-19-output-1.png)
+
 
 ```python
 # Since we are plotting a bottom time series
@@ -263,6 +278,7 @@ hplot.plot_series(
 
 ### Plot hierarchichally linked time series
 
+
 ```python
 hplot.plot_hierarchically_linked_series(
     bottom_series='Australia/Western Australia/Experience Perth/Visiting',
@@ -273,6 +289,7 @@ hplot.plot_hierarchically_linked_series(
 ```
 
 ![](/hierarchicalforecast/examples/AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-21-output-1.png)
+
 
 ```python
 # ACT only has Canberra
