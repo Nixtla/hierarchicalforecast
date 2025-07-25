@@ -31,5 +31,5 @@ jobs:
         run: pip install uv pytest && uv pip install --system ".[dev]" fugue[dask,spark]>=0.8.1 "dask<=2024.12.1"
 
       - name: Run pytest
-        run: pytest tests --ignore tests/test_core.py
+        run: pytest tests
 
