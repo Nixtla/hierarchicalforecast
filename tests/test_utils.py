@@ -152,7 +152,7 @@ def test_foo(hiers_grouped, hiers_strictly):
 
     # test strict
     hier_df, S_df, tags = aggregate(df=df, spec=hiers_strictly)
-    assert len(hier_df), 6800
+    assert len(hier_df) == 6800
     assert hier_df["unique_id"].nunique(), 85
     assert S_df.shape, (85, 77)
     np.testing.assert_array_equal(hier_df["unique_id"].unique(), S_df["unique_id"])
@@ -162,11 +162,11 @@ def test_foo(hiers_grouped, hiers_strictly):
 
     # test grouped
     hier_df, S_df, tags = aggregate(df=df, spec=hiers_grouped)
-    assert len(hier_df), 34_000
+    assert len(hier_df) == 34_000
     assert hier_df["unique_id"].nunique(), 425
-    assert S_df.shape, (425, 305)
+    assert S_df.shape == (425, 305)
     np.testing.assert_array_equal(hier_df["unique_id"].unique(), S_df["unique_id"])
-    assert len(tags), len(hiers_grouped)
+    assert len(tags) == len(hiers_grouped)
     # polars
     test_eq_agg_dataframe(df, hiers_strictly)
     test_eq_agg_dataframe(df, hiers_grouped)
