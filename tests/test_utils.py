@@ -3,6 +3,7 @@ import pandas as pd
 import polars as pl
 import pytest
 from statsforecast.utils import generate_series
+from utilsforecast.data import generate_series as util_generate_series
 
 from hierarchicalforecast.utils import (
     CodeTimer,
@@ -144,12 +145,15 @@ def hiers_strictly():
     return hiers_strictly
 
 
-def test_foo(hiers_grouped, hiers_strictly):
+@pytest.fixture
+def tourism_df():
     df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
     df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
     df.insert(0, 'Country', 'Australia')
+    return df
 
-
+def test_tourism_df_non_null_grouped(tourism_df, hiers_grouped, hiers_strictly):
+    df = tourism_df
     # test strict
     hier_df, S_df, tags = aggregate(df=df, spec=hiers_strictly)
     assert len(hier_df) == 6800
@@ -157,7 +161,6 @@ def test_foo(hiers_grouped, hiers_strictly):
     assert S_df.shape, (85, 77)
     np.testing.assert_array_equal(hier_df["unique_id"].unique(), S_df["unique_id"])
     assert len(tags), len(hiers_strictly)
-
     
 
     # test grouped
@@ -171,11 +174,8 @@ def test_foo(hiers_grouped, hiers_strictly):
     test_eq_agg_dataframe(df, hiers_strictly)
     test_eq_agg_dataframe(df, hiers_grouped)
 
-def test_foo2(hiers_strictly):
-    df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
-    df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
-    df.insert(0, 'Country', 'Australia')
-
+def test_tourism_df_null_grouped(tourism_df, hiers_strictly):
+    df = tourism_df
     #Unit Test NaN Values
     df_nan = df.copy()
     df_nan.loc[0, 'Region'] = float('nan')
@@ -211,10 +211,8 @@ def test_foo2(hiers_strictly):
         df_none_pl, hiers_strictly,
     )
 
-def test_equality_sparse_non_sparse(hiers_strictly, hiers_grouped):
-    df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
-    df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
-    df.insert(0, 'Country', 'Australia')
+def test_equality_sparse_non_sparse(tourism_df, hiers_strictly, hiers_grouped):
+    df = tourism_df
     
     # Test equality of sparse and non-sparse aggregation
     with CodeTimer('strict non-sparse aggregate'):
@@ -412,7 +410,7 @@ def test_cross_temporal_tags():
 def test_temporal_agg():
     # Test temporal aggregation with synthetic series of varying length
     freq1 = "D"
-    df1 = generate_series(n_series=2, freq=freq1, min_length=2 * 365, max_length=4 * 365, static_as_categorical=False, equal_ends=True)
+    df1 = util_generate_series(n_series=2, freq=freq1, min_length=2 * 365, max_length=4 * 365, static_as_categorical=False, equal_ends=True)
 
     spec1  = {"year": 365, "quarter": 91, "month": 30, "week": 7, "day": 1}
 
@@ -421,7 +419,7 @@ def test_temporal_agg():
     assert Y_df1_te.isnull().sum().sum() == 0, "There are NaN values in the aggregated DataFrame"
 
     freq2 = "ME"
-    df2 = generate_series(n_series=2, freq=freq2, min_length=24, max_length=48, static_as_categorical=False, equal_ends=True)
+    df2 = util_generate_series(n_series=2, freq=freq2, min_length=24, max_length=48, static_as_categorical=False, equal_ends=True)
 
     spec2  = {"year": 12, "quarter": 4, "month": 1}
 
