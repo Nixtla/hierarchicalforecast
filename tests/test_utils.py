@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pytest
-
-# from fastcore.test import test_close, test_eq, test_fail
 from statsforecast.utils import generate_series
 
 from hierarchicalforecast.utils import (
@@ -23,10 +21,6 @@ from hierarchicalforecast.utils import (
 
 from .conftest import assert_raises_with_message
 
-NUMBA_NOGIL = True
-NUMBA_CACHE = True
-NUMBA_PARALLEL = True
-NUMBA_FASTMATH = True
 
 @pytest.fixture
 def df():
