@@ -410,7 +410,6 @@ def test_cross_temporal_tags():
 
 
 def test_temporal_agg():
-    from utilsforecast.data import generate_series
     # Test temporal aggregation with synthetic series of varying length
     freq1 = "D"
     df1 = generate_series(n_series=2, freq=freq1, min_length=2 * 365, max_length=4 * 365, static_as_categorical=False, equal_ends=True)
@@ -444,77 +443,25 @@ def test_temporal_agg():
     pd.testing.assert_frame_equal(Y_df2_te, Y_df2_te_pl_pd)
 
 
-# hplots = HierarchicalPlot(S=S_df, tags=tags)
-# hplots.plot_summing_matrix()
-# # polars
-# S_df_f = pl.from_pandas(S_df.reset_index())
-# hplots_f = HierarchicalPlot(S=S_df_f, tags=tags)
-# hplots_f.plot_summing_matrix()
-# hier_df['Model'] = hier_df['y'] * 1.1
-# hier_df['Model-lo-80'] = hier_df['Model'] - 0.1 * hier_df['Model']
-# hier_df['Model-hi-80'] = hier_df['Model'] + 0.1 * hier_df['Model']
-# hier_df['Model-lo-90'] = hier_df['Model'] - 0.2 * hier_df['Model']
-# hier_df['Model-hi-90'] = hier_df['Model'] + 0.2 * hier_df['Model']
-# hplots.plot_series(
-#     series='Australia',
-#     Y_df=hier_df,
-#     level=[80, 90]
-# )
-# # polars
-# hier_df_f = pl.from_pandas(hier_df)
+@pytest.mark.parametrize("levels, expected_quantiles, expected_names", [
+    ([80, 90], [0.5, 0.05, 0.1, 0.9, 0.95], ['-median', '-lo-90', '-lo-80', '-hi-80', '-hi-90']),
+    ([30], [0.5, 0.35, 0.65], ['-median', '-lo-30', '-hi-30'])
+])
+def test_level_to_outputs(levels, expected_quantiles, expected_names):
+    result_quantiles, result_names = level_to_outputs(levels)
+    np.testing.assert_array_equal(result_quantiles, expected_quantiles)
+    np.testing.assert_array_equal(result_names, expected_names)
 
-# hplots_f.plot_series(
-#     series='Australia',
-#     Y_df=hier_df_f,
-#     level=[80, 90]
-# )
-# hplots.plot_series(series='Australia',
-#                    Y_df=hier_df)
-# hplots.plot_hierarchically_linked_series(
-#     bottom_series='Australia/Western Australia/Experience Perth/Visiting',
-#     Y_df=hier_df,
-#     level=[80, 90]
-# )
-# # polars
-# hplots.plot_hierarchically_linked_series(
-#     bottom_series='Australia/Western Australia/Experience Perth/Visiting',
-#     Y_df=hier_df_f,
-#     level=[80, 90]
-# )
-# hplots.plot_hierarchically_linked_series(
-#     bottom_series='Australia/Western Australia/Experience Perth/Visiting',
-#     Y_df=hier_df,
-# )
-# # test series with just one value
-# hplots.plot_hierarchically_linked_series(
-#     bottom_series='Australia/Western Australia/Experience Perth/Visiting',
-#     Y_df=hier_df.groupby('unique_id').tail(1),
-# )
-# # polars
-# hplots_f.plot_hierarchically_linked_series(
-#     bottom_series='Australia/Western Australia/Experience Perth/Visiting',
-#     Y_df=pl.from_pandas(hier_df.groupby('unique_id').tail(1)),
-# )
-# hplots.plot_hierarchical_predictions_gap(Y_df=hier_df.drop(columns='y'), models=['Model'])
-# # polars
-# hplots_f.plot_hierarchical_predictions_gap(Y_df=pl.from_pandas(hier_df.drop(columns='y')), models=['Model'])
 
-def test_level_to_outputs():
-    #level_to_outputs unit tests
-    np.testing.assert_array_equal(level_to_outputs([80, 90]),
-        ([0.5 , 0.05, 0.1 , 0.9 , 0.95], ['-median', '-lo-90', '-lo-80', '-hi-80', '-hi-90'])
-    )
-    np.testing.assert_array_equal(level_to_outputs([30]),
-        ([0.5 , 0.35, 0.65], ['-median', '-lo-30', '-hi-30'])
-    )
-    #quantiles_to_outputs unit tests
-    np.testing.assert_array_equal(quantiles_to_outputs([0.2, 0.4, 0.6, 0.8]),
-        ([0.2,0.4,0.6, 0.8], ['-lo-60.0', '-lo-20.0', '-hi-20.0', '-hi-60.0'])
-    )
-    np.testing.assert_array_equal(quantiles_to_outputs([0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]),
-        ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-        ['-lo-80.0', '-lo-60.0', '-lo-40.0', '-lo-20.0', '-median', '-hi-20.0', '-hi-40.0', '-hi-60.0', '-hi-80.0'])
-    )
+@pytest.mark.parametrize("quantiles, expected_quantiles, expected_names", [
+    ([0.2, 0.4, 0.6, 0.8], [0.2, 0.4, 0.6, 0.8], ['-lo-60.0', '-lo-20.0', '-hi-20.0', '-hi-60.0']),
+    ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], ['-lo-80.0', '-lo-60.0', '-lo-40.0', '-lo-20.0', '-median', '-hi-20.0', '-hi-40.0', '-hi-60.0', '-hi-80.0'])
+])
+def test_quantiles_to_outputs(quantiles, expected_quantiles, expected_names):
+    result_quantiles, result_names = quantiles_to_outputs(quantiles)
+    np.testing.assert_array_equal(result_quantiles, expected_quantiles)
+    np.testing.assert_array_equal(result_names, expected_names)
+
 
 def test_samples_to_quantiles_df():
     #samples_to_quantiles_df unit tests
