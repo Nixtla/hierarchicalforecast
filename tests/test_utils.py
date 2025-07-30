@@ -302,27 +302,6 @@ def test_other_simple_case(df_for_other_cases):
     for k, actual in tags_te.items():
         np.testing.assert_array_equal(actual, expected_tags[k])
 
-# # Testing equivalence of other dataframe libs to pandas results.
-# # TODO: extend for other frameworks
-# def test_eq_agg_dataframe(df, spec, frameworks=["polars"]):
-#     for framework in frameworks:
-#         if framework == "polars":
-#             df_f = pl.from_pandas(df)
-#         else:
-#             raise ValueError(f"Framework {framework} not recognized")
-
-#         Y_df, S_df, tags = aggregate_temporal(df=df, spec=spec)
-#         Y_df_f, S_df_f, tags_f = aggregate_temporal(df=df_f, spec=spec)
-
-#         # Due to the way Polars and Pandas differently display datetime columns, we can't avoid a discrepancy in the temporal_id column, so it is omitted from the test
-#         pd.testing.assert_frame_equal(Y_df, Y_df_f.to_pandas())
-#         np.testing.assert_array_equal(S_df, S_df_f.to_pandas())
-
-#         # Hence we also can't test the tags
-#         for tag in tags:
-#             assert tags[tag], tags_f[tag])
-# # polars
-# test_eq_agg_dataframe(df, spec)
 
 def test_future_make_df(df_for_other_cases):
     df = df_for_other_cases
