@@ -123,26 +123,6 @@ def test_unbalanced_dataset():
     hier_df, S_df, tags = aggregate(df=df, spec=hier_levels)
     # polars
     test_eq_agg_dataframe(df, hier_levels)
-    
-@pytest.fixture
-def hiers_grouped():
-    # grouped structure
-    hiers_grouped = [['Country'],
-                    ['Country', 'State'],
-                    ['Country', 'Purpose'],
-                    ['Country', 'State', 'Region'],
-                    ['Country', 'State', 'Purpose'],
-                    ['Country', 'State', 'Region', 'Purpose'],
-                    ]
-    return hiers_grouped
-
-@pytest.fixture
-def hiers_strictly():
-    # strictly hierarchical structure
-    hiers_strictly = [['Country'],
-                    ['Country', 'State'],
-                    ['Country', 'State', 'Region']]
-    return hiers_strictly
 
 
 def test_tourism_df_non_null_grouped(tourism_df, hiers_grouped, hiers_strictly):
@@ -154,7 +134,7 @@ def test_tourism_df_non_null_grouped(tourism_df, hiers_grouped, hiers_strictly):
     assert S_df.shape, (85, 77)
     np.testing.assert_array_equal(hier_df["unique_id"].unique(), S_df["unique_id"])
     assert len(tags), len(hiers_strictly)
-    
+
 
     # test grouped
     hier_df, S_df, tags = aggregate(df=df, spec=hiers_grouped)
@@ -206,7 +186,7 @@ def test_tourism_df_null_grouped(tourism_df, hiers_strictly):
 
 def test_equality_sparse_non_sparse(tourism_df, hiers_strictly, hiers_grouped):
     df = tourism_df
-    
+
     # Test equality of sparse and non-sparse aggregation
     with CodeTimer('strict non-sparse aggregate'):
         Y_df, S_df, tags = aggregate(df=df, sparse_s=False, spec=hiers_strictly)

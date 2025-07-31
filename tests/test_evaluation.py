@@ -26,23 +26,8 @@ def mase(y, y_hat, y_insample, seasonality=4):
 
 
 @pytest.fixture
-def hierarchy_specs():
+def hierarchy_specs(hiers_grouped, hiers_strictly):
     """Fixture to provide hierarchy specifications."""
-    # non strictly hierarchical structure
-    hiers_grouped = [
-        ["Country"],
-        ["Country", "State"],
-        ["Country", "Purpose"],
-        ["Country", "State", "Region"],
-        ["Country", "State", "Purpose"],
-        ["Country", "State", "Region", "Purpose"],
-    ]
-    # strictly hierarchical structure
-    hiers_strictly = [
-        ["Country"],
-        ["Country", "State"],
-        ["Country", "State", "Region"],
-    ]
     return {"grouped": hiers_grouped, "strictly": hiers_strictly}
 
 
