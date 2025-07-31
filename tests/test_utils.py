@@ -145,13 +145,6 @@ def hiers_strictly():
     return hiers_strictly
 
 
-@pytest.fixture
-def tourism_df():
-    df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
-    df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
-    df.insert(0, 'Country', 'Australia')
-    return df
-
 def test_tourism_df_non_null_grouped(tourism_df, hiers_grouped, hiers_strictly):
     df = tourism_df
     # test strict

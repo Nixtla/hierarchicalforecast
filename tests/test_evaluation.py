@@ -24,16 +24,6 @@ def mase(y, y_hat, y_insample, seasonality=4):
     return np.mean(errors / scale)
 
 
-@pytest.fixture
-def base_tourism_data():
-    """Fixture to provide base tourism data."""
-    df = pd.read_csv(
-        "https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv"
-    )
-    df = df.rename({"Trips": "y", "Quarter": "ds"}, axis=1)
-    df.insert(0, "Country", "Australia")
-    return df
-
 
 @pytest.fixture
 def hierarchy_specs():
@@ -57,11 +47,11 @@ def hierarchy_specs():
 
 
 @pytest.fixture
-def grouped_data(base_tourism_data, hierarchy_specs):
+def grouped_data(tourism_df, hierarchy_specs):
     """Fixture to provide grouped hierarchical data."""
     # getting df
     hier_grouped_df, S_grouped, tags_grouped = aggregate(
-        base_tourism_data, hierarchy_specs["grouped"]
+        tourism_df, hierarchy_specs["grouped"]
     )
 
     # split train/test
@@ -235,13 +225,13 @@ def test_evaluation_h1_polars(reconciled_data, grouped_data):
 
 
 @pytest.fixture
-def statsforecast_data(base_tourism_data):
+def statsforecast_data(tourism_df):
     """Fixture to provide StatsForecast processed data."""
     from statsforecast.core import StatsForecast
     from statsforecast.models import AutoETS
 
     # Load TourismSmall dataset
-    df = base_tourism_data.copy()
+    df = tourism_df.copy()
     qs = df["ds"].str.replace(r"(\d+) (Q\d)", r"\1-\2", regex=True)
     df["ds"] = pd.PeriodIndex(qs, freq="Q").to_timestamp()
 

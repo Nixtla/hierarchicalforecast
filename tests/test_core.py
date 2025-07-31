@@ -1,4 +1,4 @@
-# test_hierarchical_reconciliation.py
+import copy
 
 import numpy as np
 import pandas as pd
@@ -17,11 +17,9 @@ from hierarchicalforecast.utils import aggregate
 #region: Fixtures
 
 @pytest.fixture(scope="module")
-def common_data():
+def common_data(tourism_df):
     """Prepares the base tourism dataframe and hierarchy specifications."""
-    df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
-    df = df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
-    df.insert(0, 'Country', 'Australia')
+    df = copy.deepcopy(tourism_df)
     df['ds'] = pd.to_datetime(df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True))
     
     # Hierarchy specifications
