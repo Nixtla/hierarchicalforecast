@@ -8,16 +8,17 @@ import copy
 import re
 import reprlib
 import time
-
-from .methods import HReconciler
 from inspect import signature
-from narwhals.typing import Frame, FrameT
-from scipy.stats import norm
-from scipy import sparse
 from typing import Optional
 
 import narwhals as nw
 import numpy as np
+from narwhals.typing import Frame, FrameT
+from scipy import sparse
+from scipy.stats import norm
+
+from .methods import HReconciler
+
 
 # %% ../nbs/src/core.ipynb 6
 def _build_fn_name(fn) -> str:
@@ -52,7 +53,8 @@ def _reverse_engineer_sigmah(
     target_col: str = "y",
     num_samples: int = 200,
 ) -> np.ndarray:
-    """
+    """Reverse engineer sigma_h from prediction intervals.
+    
     This function assumes that the model creates prediction intervals
     under a normality with the following the Equation:
     $\hat{y}_{t+h} + c \hat{sigma}_{h}$
@@ -98,11 +100,11 @@ class HierarchicalReconciliation:
     y column denotes the target time series variable. The `Y_h` dataframe stores the base predictions,
     example ([AutoARIMA](https://nixtla.github.io/statsforecast/models.html#autoarima), [ETS](https://nixtla.github.io/statsforecast/models.html#autoets), etc.).
 
-    **Parameters:**<br>
-    `reconcilers`: A list of instantiated classes of the [reconciliation methods](https://nixtla.github.io/hierarchicalforecast/methods.html) module .<br>
+    Args:
+        reconcilers: A list of instantiated classes of the [reconciliation methods](https://nixtla.github.io/hierarchicalforecast/methods.html) module.
 
-    **References:**<br>
-    [Rob J. Hyndman and George Athanasopoulos (2018). \"Forecasting principles and practice, Hierarchical and Grouped Series\".](https://otexts.com/fpp3/hierarchical.html)
+    References:
+        [Rob J. Hyndman and George Athanasopoulos (2018). \"Forecasting principles and practice, Hierarchical and Grouped Series\".](https://otexts.com/fpp3/hierarchical.html)
     """
 
     def __init__(self, reconcilers: list[HReconciler]):
@@ -123,9 +125,7 @@ class HierarchicalReconciliation:
         id_time_col: str = "temporal_id",
         temporal: bool = False,
     ) -> tuple[FrameT, FrameT, FrameT, list[str], str]:
-        """
-        Performs preliminary wrangling and protections
-        """
+        """Performs preliminary wrangling and protections."""
         Y_hat_nw_cols = Y_hat_nw.columns
         S_nw_cols = S_nw.columns
 
@@ -293,9 +293,7 @@ class HierarchicalReconciliation:
         time_col: str = "ds",
         target_col: str = "y",
     ) -> np.ndarray:
-        """
-        Prepare Y data.
-        """
+        """Prepare Y data."""
         if is_balanced:
             Y = Y_nw[target_col].to_numpy().reshape(len(S_nw), -1)
         else:
@@ -350,23 +348,23 @@ class HierarchicalReconciliation:
         reconciliation methods. The reconciled predictions are $\\tilde{\mathbf{y}}_{[a,b],\\tau}$, and the
         base predictions $\hat{\mathbf{y}}_{[a,b],\\tau}$.
 
-        **Parameters:**<br>
-        `Y_hat_df`: DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.<br>
-        `tags`: Each key is a level and its value contains tags associated to that level.<br>
-        `S_df`: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
-        `Y_df`: DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.<br>
-        If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.<br>
-        `level`: positive float list [0,100), confidence levels for prediction intervals.<br>
-        `intervals_method`: str, method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: int=-1, if positive return that many probabilistic coherent samples.
-        `seed`: int=0, random seed for numpy generator's replicability.<br>
-        `is_balanced`: bool=False, wether `Y_df` is balanced, set it to True to speed things up if `Y_df` is balanced.<br>
-        `id_col` : str='unique_id', column that identifies each serie.<br>
-        `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>
+        Args:
+            Y_hat_df: DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.
+            tags: Each key is a level and its value contains tags associated to that level.
+            S_df: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
+            Y_df: DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.
+                If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.
+            level: positive float list [0,100), confidence levels for prediction intervals.
+            intervals_method: str, method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: int=-1, if positive return that many probabilistic coherent samples.
+            seed: int=0, random seed for numpy generator's replicability.
+            is_balanced: bool=False, wether `Y_df` is balanced, set it to True to speed things up if `Y_df` is balanced.
+            id_col: str='unique_id', column that identifies each serie.
+            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
+            target_col: str='y', column that contains the target.
 
-        **Returns:**<br>
-        `Y_tilde_df`: DataFrame, with reconciled predictions.
+        Returns:
+            Y_tilde_df: DataFrame, with reconciled predictions.
         """
         # Handle deprecated S parameter
         if S is not None:
@@ -593,22 +591,22 @@ class HierarchicalReconciliation:
         Applies N times, based on different random seeds, the `reconcile` method
         for the different reconciliation techniques instantiated in the `reconcilers` list.
 
-        **Parameters:**<br>
-        `Y_hat_df`: DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.<br>
-        `S_df`: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
-        `tags`: Each key is a level and its value contains tags associated to that level.<br>
-        `Y_df`: DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.<br>
-        If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.<br>
-        `level`: positive float list [0,100), confidence levels for prediction intervals.<br>
-        `intervals_method`: str, method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: int=-1, if positive return that many probabilistic coherent samples.
-        `num_seeds`: int=1, random seed for numpy generator's replicability.<br>
-        `id_col` : str='unique_id', column that identifies each serie.<br>
-        `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>
+        Args:
+            Y_hat_df: DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.
+            S_df: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
+            tags: Each key is a level and its value contains tags associated to that level.
+            Y_df: DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.
+                If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns.
+            level: positive float list [0,100), confidence levels for prediction intervals.
+            intervals_method: str, method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: int=-1, if positive return that many probabilistic coherent samples.
+            num_seeds: int=1, random seed for numpy generator's replicability.
+            id_col: str='unique_id', column that identifies each serie.
+            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
+            target_col: str='y', column that contains the target.
 
-        **Returns:**<br>
-        `Y_bootstrap_df`: DataFrame, with bootstraped reconciled predictions.
+        Returns:
+            Y_bootstrap_df: DataFrame, with bootstraped reconciled predictions.
         """
         # Bootstrap reconciled predictions
         Y_tilde_list = []

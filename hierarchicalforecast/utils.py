@@ -8,6 +8,8 @@ import itertools
 import reprlib
 import sys
 import timeit
+from collections.abc import Sequence
+from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import narwhals as nw
@@ -15,13 +17,10 @@ import numpy as np
 import pandas as pd
 import utilsforecast.processing as ufp
 import utilsforecast.validation as ufv
-from scipy import sparse
-
-from collections.abc import Sequence
 from narwhals.typing import Frame, FrameT
 from numba import njit, prange
+from scipy import sparse
 from sklearn.preprocessing import OneHotEncoder
-from typing import Optional, Union
 
 # %% ../nbs/src/utils.ipynb 5
 # Global variables
@@ -595,12 +594,11 @@ class HierarchicalPlot:
     This class contains a collection of matplotlib visualization methods, suited for small
     to medium sized hierarchical series.
 
-    **Parameters:**<br>
-    `S`: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
-    `tags`: np.ndarray, with hierarchical aggregation indexes, where
-        each key is a level and its value contains tags associated to that level.<br>
-    `S_id_col` : str='unique_id', column that identifies each aggregation.<br>
-
+    Args:
+        S: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
+        tags: np.ndarray, with hierarchical aggregation indexes, where
+            each key is a level and its value contains tags associated to that level.
+        S_id_col: str='unique_id', column that identifies each aggregation.
     """
 
     def __init__(
@@ -622,8 +620,8 @@ class HierarchicalPlot:
         This method simply plots the hierarchical aggregation
         constraints matrix $\mathbf{S}$.
 
-        **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plot of the summing matrix.
+        Returns:
+            fig: matplotlib.figure.Figure, figure object containing the plot of the summing matrix.
         """
         fig = plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor="w")
         plt.spy(self.S[self.S_cols_ex_id_col].to_numpy())
@@ -642,18 +640,18 @@ class HierarchicalPlot:
     ):
         """Single Series plot
 
-        **Parameters:**<br>
-        `series`: str, string identifying the `'unique_id'` any-level series to plot.<br>
-        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
-                It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`.<br>
-        `models`: list[str], string identifying filtering model columns.<br>
-        `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
-        `id_col` : str='unique_id', column that identifies each serie.<br>
-        `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>
+        Args:
+            series: str, string identifying the `'unique_id'` any-level series to plot.
+            Y_df: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
+                    It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`.
+            models: list[str], string identifying filtering model columns.
+            level: float list 0-100, confidence levels for prediction intervals available in `Y_df`.
+            id_col: str='unique_id', column that identifies each serie.
+            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
+            target_col: str='y', column that contains the target.
 
-        **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plot of the single series.
+        Returns:
+            fig: matplotlib.figure.Figure, figure object containing the plot of the single series.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -724,18 +722,18 @@ class HierarchicalPlot:
     ):
         """Hierarchically Linked Series plot
 
-        **Parameters:**<br>
-        `bottom_series`: str, string identifying the `'unique_id'` bottom-level series to plot.<br>
-        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
-                It contains columns ['unique_id', 'ds', 'y'] and models. <br>
-        `models`: list[str], string identifying filtering model columns.<br>
-        `level`: float list 0-100, confidence levels for prediction intervals available in `Y_df`.<br>
-        `id_col` : str='unique_id', column that identifies each serie.<br>
-        `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>
+        Args:
+            bottom_series: str, string identifying the `'unique_id'` bottom-level series to plot.
+            Y_df: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
+                    It contains columns ['unique_id', 'ds', 'y'] and models.
+            models: list[str], string identifying filtering model columns.
+            level: float list 0-100, confidence levels for prediction intervals available in `Y_df`.
+            id_col: str='unique_id', column that identifies each serie.
+            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
+            target_col: str='y', column that contains the target.
 
-        **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plots of the hierarchilly linked series.
+        Returns:
+            fig: matplotlib.figure.Figure, figure object containing the plots of the hierarchilly linked series.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -820,18 +818,18 @@ class HierarchicalPlot:
     ):
         """Hierarchically Predictions Gap plot
 
-        **Parameters:**<br>
-        `Y_df`: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
-                It contains columns ['unique_id', 'ds', 'y'] and models. <br>
-        `models`: list[str], string identifying filtering model columns. <br>
-        `xlabel`: str, string for the plot's x axis label.<br>
-        `ylabel`: str, string for the plot's y axis label.<br>
-        `id_col` : str='unique_id', column that identifies each serie.<br>
-        `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>
+        Args:
+            Y_df: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
+                    It contains columns ['unique_id', 'ds', 'y'] and models.
+            models: list[str], string identifying filtering model columns.
+            xlabel: str, string for the plot's x axis label.
+            ylabel: str, string for the plot's y axis label.
+            id_col: str='unique_id', column that identifies each serie.
+            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
+            target_col: str='y', column that contains the target.
 
-        **Returns:**<br>
-        `fig`: matplotlib.figure.Figure, figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
+        Returns:
+            fig: matplotlib.figure.Figure, figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -883,11 +881,11 @@ class HierarchicalPlot:
 def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
 
-    **Parameters:**<br>
-    `level`: int list [0,100]. Probability levels for prediction intervals.<br>
+    Args:
+        level: int list [0,100]. Probability levels for prediction intervals.
 
-    **Returns:**<br>
-    `output_names`: str list. String list with output column names.
+    Returns:
+        output_names: str list. String list with output column names.
     """
     qs = sum([[50 - l / 2, 50 + l / 2] for l in level], [])
     output_names = sum([[f"-lo-{l}", f"-hi-{l}"] for l in level], [])
@@ -907,11 +905,11 @@ def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
 def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]]:
     """Converts list of quantiles into output names matching StatsForecast and NeuralForecast methods.
 
-    **Parameters:**<br>
-    `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
+    Args:
+        quantiles: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
 
-    **Returns:**<br>
-    `output_names`: str list. String list with output column names.
+    Returns:
+        output_names: str list. String list with output column names.
     """
     output_names = []
     for q in quantiles:
@@ -938,22 +936,23 @@ def samples_to_quantiles_df(
     backend: str = "pandas",
 ) -> tuple[list[float], FrameT]:
     """Transform Random Samples into HierarchicalForecast input.
+    
     Auxiliary function to create compatible HierarchicalForecast input `Y_hat_df` dataframe.
 
-    **Parameters:**<br>
-    `samples`: numpy array. Samples from forecast distribution of shape [n_series, n_samples, horizon].<br>
-    `unique_ids`: string list. Unique identifiers for each time series.<br>
-    `dates`: datetime list. list of forecast dates.<br>
-    `quantiles`: float list in [0., 1.]. Alternative to level, quantiles to estimate from y distribution.<br>
-    `level`: int list in [0,100]. Probability levels for prediction intervals.<br>
-    `model_name`: string. Name of forecasting model.<br>
-    `id_col` : str='unique_id', column that identifies each serie.<br>
-    `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-    `backend` : str='pandas', backend to use for the output dataframe, either 'pandas' or 'polars'.<br>
+    Args:
+        samples: numpy array. Samples from forecast distribution of shape [n_series, n_samples, horizon].
+        unique_ids: string list. Unique identifiers for each time series.
+        dates: datetime list. list of forecast dates.
+        quantiles: float list in [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
+        level: int list in [0,100]. Probability levels for prediction intervals.
+        model_name: string. Name of forecasting model.
+        id_col: str='unique_id', column that identifies each serie.
+        time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
+        backend: str='pandas', backend to use for the output dataframe, either 'pandas' or 'polars'.
 
-    **Returns:**<br>
-    `quantiles`: float list in [0., 1.]. quantiles to estimate from y distribution .<br>
-    `Y_hat_df`: DataFrame. With base quantile forecasts with columns ds and models to reconcile indexed by unique_id.
+    Returns:
+        quantiles: float list in [0., 1.]. quantiles to estimate from y distribution.
+        Y_hat_df: DataFrame. With base quantile forecasts with columns ds and models to reconcile indexed by unique_id.
     """
 
     # Get the shape of the array

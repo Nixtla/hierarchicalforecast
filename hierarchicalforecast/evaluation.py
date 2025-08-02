@@ -4,15 +4,16 @@
 __all__ = ['evaluate']
 
 # %% ../nbs/src/evaluation.ipynb 3
+import warnings
+from inspect import signature
+from typing import Callable, Optional, Union
+
 import narwhals as nw
 import numpy as np
 import utilsforecast.evaluation as ufe
-import warnings
-
-from inspect import signature
 from narwhals.typing import Frame, FrameT
 from scipy.stats import multivariate_normal
-from typing import Callable, Optional, Union
+
 
 # %% ../nbs/src/evaluation.ipynb 5
 def _loss_deprecation_notice(loss):
@@ -50,13 +51,13 @@ def mse(
 
     $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
 
-    **Parameters:**<br>
-    `y`: numpy array, Actual values.<br>
-    `y_hat`: numpy array, Predicted values.<br>
-    `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
+    Args:
+        y: numpy array, Actual values.
+        y_hat: numpy array, Predicted values.
+        mask: numpy array, Specifies date stamps per serie to consider in loss.
 
-    **Returns:**<br>
-    `mse`: numpy array, (single value).
+    Returns:
+        mse: numpy array, (single value).
     """
     _loss_deprecation_notice("mse")
     _metric_protections(y, y_hat, weights)
@@ -96,18 +97,18 @@ def mqloss(
 
     $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
 
-    **Parameters:**<br>
-    `y`: numpy array, Actual values.<br>
-    `y_hat`: numpy array, Predicted values.<br>
-    `quantiles`: numpy array. Quantiles between 0 and 1, to perform evaluation upon size (n_quantiles).<br>
-    `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
+    Args:
+        y: numpy array, Actual values.
+        y_hat: numpy array, Predicted values.
+        quantiles: numpy array. Quantiles between 0 and 1, to perform evaluation upon size (n_quantiles).
+        mask: numpy array, Specifies date stamps per serie to consider in loss.
 
-    **Returns:**<br>
-    `mqloss`: numpy array, (single value).
+    Returns:
+        mqloss: numpy array, (single value).
 
-    **References:**<br>
-    [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
-    [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
+    References:
+        [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
+        [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
     """
     _loss_deprecation_notice("mqloss")
     if weights is None:
@@ -142,21 +143,21 @@ def rel_mse(y, y_hat, y_train, mask=None):
     \\frac{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}})}{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}}^{naive1})}
     $$
 
-    **Parameters:**<br>
-    `y`: numpy array, Actual values of size (`n_series`, `horizon`).<br>
-    `y_hat`: numpy array, Predicted values (`n_series`, `horizon`).<br>
-    `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
+    Args:
+        y: numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat: numpy array, Predicted values (`n_series`, `horizon`).
+        mask: numpy array, Specifies date stamps per serie to consider in loss.
 
-    **Returns:**<br>
-    `loss`: float.
+    Returns:
+        loss: float.
 
-    **References:**<br>
-    - [Hyndman, R. J and Koehler, A. B. (2006).
-       "Another look at measures of forecast accuracy",
-       International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
-    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
-       "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures.
-       Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+    References:
+        - [Hyndman, R. J and Koehler, A. B. (2006).
+           "Another look at measures of forecast accuracy",
+           International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
+        - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
+           "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures.
+           Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
     _loss_deprecation_notice("rel_mse")
     if mask is None:
@@ -184,19 +185,19 @@ def msse(y, y_hat, y_train, mask=None):
 
     where $n$ ($n=$`n`) is the size of the training data, and $h$ is the forecasting horizon ($h=$`horizon`).
 
-    **Parameters:**<br>
-    `y`: numpy array, Actual values of size (`n_series`, `horizon`).<br>
-    `y_hat`: numpy array, Predicted values (`n_series`, `horizon`).<br>
-    `y_train`: numpy array, Predicted values (`n_series`, `n`).<br>
-    `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
+    Args:
+        y: numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat: numpy array, Predicted values (`n_series`, `horizon`).
+        y_train: numpy array, Predicted values (`n_series`, `n`).
+        mask: numpy array, Specifies date stamps per serie to consider in loss.
 
-    **Returns:**<br>
-    `loss`: float.
+    Returns:
+        loss: float.
 
-    **References:**<br>
-    - [Hyndman, R. J and Koehler, A. B. (2006).
-       "Another look at measures of forecast accuracy",
-       International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
+    References:
+        - [Hyndman, R. J and Koehler, A. B. (2006).
+           "Another look at measures of forecast accuracy",
+           International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
     """
     _loss_deprecation_notice("msse")
     if mask is None:
@@ -230,23 +231,23 @@ def scaled_crps(y, y_hat, quantiles):
     where $\hat{F}_{\\tau}$ is the an estimated multivariate distribution, and $y_{i,\\tau}$
     are its realizations.
 
-    **Parameters:**<br>
-    `y`: numpy array, Actual values of size (`n_series`, `horizon`).<br>
-    `y_hat`: numpy array, Predicted quantiles of size (`n_series`, `horizon`, `n_quantiles`).<br>
-    `quantiles`: numpy array,(`n_quantiles`). Quantiles to estimate from the distribution of y.<br>
+    Args:
+        y: numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat: numpy array, Predicted quantiles of size (`n_series`, `horizon`, `n_quantiles`).
+        quantiles: numpy array,(`n_quantiles`). Quantiles to estimate from the distribution of y.
 
-    **Returns:**<br>
-    `loss`: float.
+    Returns:
+        loss: float.
 
-    **References:**<br>
-    - [Gneiting, Tilmann. (2011). \"Quantiles as optimal point forecasts\".
-    International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063)<br>
-    - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022).
-    \"The M5 uncertainty competition: Results, findings and conclusions\".
-    International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722)<br>
-    - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021).
-    \"End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series\".
-    Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
+    References:
+        - [Gneiting, Tilmann. (2011). \"Quantiles as optimal point forecasts\".
+        International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063)
+        - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022).
+        \"The M5 uncertainty competition: Results, findings and conclusions\".
+        International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722)
+        - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021).
+        \"End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series\".
+        Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
     """
     _loss_deprecation_notice("scaled_crps")
     eps = np.finfo(float).eps
@@ -272,22 +273,22 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
 
     where $\\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}'$ are independent samples drawn from $\hat{P}$.
 
-    **Parameters:**<br>
-    `y`: numpy array, Actual values of size (`n_series`, `horizon`).<br>
-    `y_sample1`: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).<br>
-    `y_sample2`: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).<br>
-    `beta`: float in (0,2], defines the energy score's power for the euclidean metric.<br>
+    Args:
+        y: numpy array, Actual values of size (`n_series`, `horizon`).
+        y_sample1: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).
+        y_sample2: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).
+        beta: float in (0,2], defines the energy score's power for the euclidean metric.
 
-    **Returns:**<br>
-    `score`: float.
+    Returns:
+        score: float.
 
-    **References:**<br>
-    - [Gneiting, Tilmann, and Adrian E. Raftery. (2007).
-    \"Strictly proper scoring rules, prediction and estimation\".
-    Journal of the American Statistical Association.](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf)<br>
-    - [Anastasios Panagiotelis, Puwasala Gamakumara, George Athanasopoulos, Rob J. Hyndman. (2022).
-    \"Probabilistic forecast reconciliation: Properties, evaluation and score optimisation\".
-    European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+    References:
+        - [Gneiting, Tilmann, and Adrian E. Raftery. (2007).
+        \"Strictly proper scoring rules, prediction and estimation\".
+        Journal of the American Statistical Association.](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf)
+        - [Anastasios Panagiotelis, Puwasala Gamakumara, George Athanasopoulos, Rob J. Hyndman. (2022).
+        \"Probabilistic forecast reconciliation: Properties, evaluation and score optimisation\".
+        European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
     """
     _loss_deprecation_notice("energy_score")
     if beta > 2 or beta < 0:
@@ -329,14 +330,14 @@ def log_score(y, y_hat, cov, allow_singular=True):
     \\right)
     $$
 
-    **Parameters:**<br>
-    `y`: numpy array, Actual values of size (`n_series`, `horizon`).<br>
-    `y_hat`: numpy array, Predicted values (`n_series`, `horizon`).<br>
-    `cov`: numpy matrix, Predicted values covariance (`n_series`, `n_series`, `horizon`).<br>
-    `allow_singular`: bool=True, if true allows singular covariance.<br>
+    Args:
+        y: numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat: numpy array, Predicted values (`n_series`, `horizon`).
+        cov: numpy matrix, Predicted values covariance (`n_series`, `n_series`, `horizon`).
+        allow_singular: bool=True, if true allows singular covariance.
 
-    **Returns:**<br>
-    `score`: float.
+    Returns:
+        score: float.
     """
     _loss_deprecation_notice("log_score")
     scores = [
@@ -359,10 +360,10 @@ class HierarchicalEvaluation:
     This class facilitates measurements across the hierarchy, defined by the `tags` list.
     See also the [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
 
-    **Parameters:**<br>
-    `evaluators`: functions with arguments `y`, `y_hat` (numpy arrays).<br>
+    Args:
+        evaluators: functions with arguments `y`, `y_hat` (numpy arrays).
 
-    **References:**<br>
+    References:
     """
 
     def __init__(self, evaluators: list[Callable]):
@@ -385,18 +386,18 @@ class HierarchicalEvaluation:
     ) -> FrameT:
         """Hierarchical Evaluation Method.
 
-        **Parameters:**<br>
-        `Y_hat_df`: DataFrame, Forecasts with columns `'unique_id'`, `'ds'` and models to evaluate.<br>
-        `Y_test_df`:  DataFrame, Observed values with columns `['unique_id', 'ds', 'y']`.<br>
-        `tags`: np.array, each str key is a level and its value contains tags associated to that level.<br>
-        `Y_df`: DataFrame, Training set of base time series with columns `['unique_id', 'ds', 'y']`.<br>
-        `benchmark`: str, If passed, evaluators are scaled by the error of this benchark.<br>
-        `id_col` : str='unique_id', column that identifies each serie.<br>
-        `time_col` : str='ds', column that identifies each timestep, its values can be timestamps or integers.<br>
-        `target_col` : str='y', column that contains the target.<br>
+        Args:
+            Y_hat_df: DataFrame, Forecasts with columns `'unique_id'`, `'ds'` and models to evaluate.
+            Y_test_df: DataFrame, Observed values with columns `['unique_id', 'ds', 'y']`.
+            tags: np.array, each str key is a level and its value contains tags associated to that level.
+            Y_df: DataFrame, Training set of base time series with columns `['unique_id', 'ds', 'y']`.
+            benchmark: str, If passed, evaluators are scaled by the error of this benchark.
+            id_col: str='unique_id', column that identifies each serie.
+            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
+            target_col: str='y', column that contains the target.
 
-        **Returns:**<br>
-        `evaluation`: DataFrame with accuracy measurements across hierarchical levels.
+        Returns:
+            evaluation: DataFrame with accuracy measurements across hierarchical levels.
         """
         Y_hat_nw = nw.from_native(Y_hat_df)
         Y_test_nw = nw.from_native(Y_test_df)

@@ -14,6 +14,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 from .utils import is_strictly_hierarchical
 
+
 # %% ../nbs/src/probabilistic_methods.ipynb 6
 class Normality:
     """Normality Probabilistic Reconciliation Class.
@@ -32,18 +33,18 @@ class Normality:
     \mathbf{S}\mathbf{P}\hat{\mathbf{W}}_{h} \mathbf{P}^{\intercal} \mathbf{S}^{\intercal})
     $$
 
-    **Parameters:**<br>
-    `S`: np.array, summing matrix of size (`base`, `bottom`).<br>
-    `P`: np.array, reconciliation matrix of size (`bottom`, `base`).<br>
-    `y_hat`: Point forecasts values of size (`base`, `horizon`).<br>
-    `W`: np.array, hierarchical covariance matrix of size (`base`, `base`).<br>
-    `sigmah`: np.array, forecast standard dev. of size (`base`, `horizon`).<br>
-    `num_samples`: int, number of bootstraped samples generated.<br>
-    `seed`: int, random seed for numpy generator's replicability.<br>
+    Args:
+        S: np.array, summing matrix of size (`base`, `bottom`).
+        P: np.array, reconciliation matrix of size (`bottom`, `base`).
+        y_hat: Point forecasts values of size (`base`, `horizon`).
+        W: np.array, hierarchical covariance matrix of size (`base`, `base`).
+        sigmah: np.array, forecast standard dev. of size (`base`, `horizon`).
+        num_samples: int, number of bootstraped samples generated.
+        seed: int, random seed for numpy generator's replicability.
 
-    **References:**<br>
-    - [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022).
-    "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation". European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+    References:
+        - [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022).
+        "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation". European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
     """
 
     def __init__(
@@ -96,11 +97,11 @@ class Normality:
 
         Obtains coherent samples under the Normality assumptions.
 
-        **Parameters:**<br>
-        `num_samples`: int, number of samples generated from coherent distribution.<br>
+        Args:
+            num_samples: int, number of samples generated from coherent distribution.
 
-        **Returns:**<br>
-        `samples`: Coherent samples of size (`base`, `horizon`, `num_samples`).
+        Returns:
+            samples: Coherent samples of size (`base`, `horizon`, `num_samples`).
         """
         rng = np.random.default_rng(self.seed)
         n_series, n_horizon = self.y_hat.shape
@@ -157,20 +158,20 @@ class Bootstrap:
     The reconciled sample paths allow for reconciled distributional forecasts:
     $$(\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[1]}_{\\tau}, \dots ,\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[B]}_{\\tau})$$
 
-    **Parameters:**<br>
-    `S`: np.array, summing matrix of size (`base`, `bottom`).<br>
-    `P`: np.array, reconciliation matrix of size (`bottom`, `base`).<br>
-    `y_hat`: Point forecasts values of size (`base`, `horizon`).<br>
-    `y_insample`: Insample values of size (`base`, `insample_size`).<br>
-    `y_hat_insample`: Insample point forecasts of size (`base`, `insample_size`).<br>
-    `num_samples`: int, number of bootstraped samples generated.<br>
-    `seed`: int, random seed for numpy generator's replicability.<br>
+    Args:
+        S: np.array, summing matrix of size (`base`, `bottom`).
+        P: np.array, reconciliation matrix of size (`bottom`, `base`).
+        y_hat: Point forecasts values of size (`base`, `horizon`).
+        y_insample: Insample values of size (`base`, `insample_size`).
+        y_hat_insample: Insample point forecasts of size (`base`, `insample_size`).
+        num_samples: int, number of bootstraped samples generated.
+        seed: int, random seed for numpy generator's replicability.
 
-    **References:**<br>
-    - [Puwasala Gamakumara Ph. D. dissertation. Monash University, Econometrics and Business Statistics (2020).
-    "Probabilistic Forecast Reconciliation"](https://bridges.monash.edu/articles/thesis/Probabilistic_Forecast_Reconciliation_Theory_and_Applications/11869533)
-    - [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022).
-    "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation". European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+    References:
+        - [Puwasala Gamakumara Ph. D. dissertation. Monash University, Econometrics and Business Statistics (2020).
+        "Probabilistic Forecast Reconciliation"](https://bridges.monash.edu/articles/thesis/Probabilistic_Forecast_Reconciliation_Theory_and_Applications/11869533)
+        - [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022).
+        "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation". European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
     """
 
     def __init__(
@@ -199,11 +200,11 @@ class Bootstrap:
         Applies Bootstrap sample reconciliation method as defined by Gamakumara 2020.
         Generating independent sample paths and reconciling them with Bootstrap.
 
-        **Parameters:**<br>
-        `num_samples`: int, number of samples generated from coherent distribution.<br>
+        Args:
+            num_samples: int, number of samples generated from coherent distribution.
 
-        **Returns:**<br>
-        `samples`: Coherent samples of size (`base`, `horizon`, `num_samples`).
+        Returns:
+            samples: Coherent samples of size (`base`, `horizon`, `num_samples`).
         """
         residuals = self.y_insample - self.y_hat_insample
         h = self.y_hat.shape[1]
@@ -260,19 +261,19 @@ class PERMBU:
             3.2.   Obtain children's empirical joint using sample reordering copula.<br>
             3.2.   From the children's joint obtain the aggregate series's samples.
 
-    **Parameters:**<br>
-    `S`: np.array, summing matrix of size (`base`, `bottom`).<br>
-    `tags`: Each key is a level and each value its `S` indices.<br>
-    `y_insample`: Insample values of size (`base`, `insample_size`).<br>
-    `y_hat_insample`: Insample point forecasts of size (`base`, `insample_size`).<br>
-    `sigmah`: np.array, forecast standard dev. of size (`base`, `horizon`).<br>
-    `num_samples`: int, number of normal prediction samples generated.<br>
-    `seed`: int, random seed for numpy generator's replicability.<br>
+    Args:
+        S: np.array, summing matrix of size (`base`, `bottom`).
+        tags: Each key is a level and each value its `S` indices.
+        y_insample: Insample values of size (`base`, `insample_size`).
+        y_hat_insample: Insample point forecasts of size (`base`, `insample_size`).
+        sigmah: np.array, forecast standard dev. of size (`base`, `horizon`).
+        num_samples: int, number of normal prediction samples generated.
+        seed: int, random seed for numpy generator's replicability.
 
-    **References:**<br>
-    - [Taieb, Souhaib Ben and Taylor, James W and Hyndman, Rob J. (2017).
-    Coherent probabilistic forecasts for hierarchical time series.
-    International conference on machine learning ICML.](https://proceedings.mlr.press/v70/taieb17a.html)
+    References:
+        - [Taieb, Souhaib Ben and Taylor, James W and Hyndman, Rob J. (2017).
+        Coherent probabilistic forecasts for hierarchical time series.
+        International conference on machine learning ICML.](https://proceedings.mlr.press/v70/taieb17a.html)
     """
 
     def __init__(
@@ -384,11 +385,11 @@ class PERMBU:
         dependence using estimated copula with reordering and applying the BottomUp
         aggregation to the new samples.
 
-        **Parameters:**<br>
-        `num_samples`: int, number of samples generated from coherent distribution.<br>
+        Args:
+            num_samples: int, number of samples generated from coherent distribution.
 
-        **Returns:**<br>
-        `samples`: Coherent samples of size (`base`, `horizon`, `num_samples`).
+        Returns:
+            samples: Coherent samples of size (`base`, `horizon`, `num_samples`).
         """
         # Compute residuals and rank permutations
         residuals = self.y_insample - self.y_hat_insample

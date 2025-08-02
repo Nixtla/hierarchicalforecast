@@ -15,8 +15,6 @@ import numpy as np
 from quadprog import solve_qp
 from scipy import sparse
 
-# %% ../nbs/src/methods.ipynb 4
-from .probabilistic_methods import PERMBU, Bootstrap, Normality
 from hierarchicalforecast.utils import (
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
@@ -26,6 +24,10 @@ from hierarchicalforecast.utils import (
     _shrunk_covariance_schaferstrimmer_with_nans,
     is_strictly_hierarchical,
 )
+
+# %% ../nbs/src/methods.ipynb 4
+from .probabilistic_methods import PERMBU, Bootstrap, Normality
+
 
 # %% ../nbs/src/methods.ipynb 6
 class HReconciler:
@@ -109,13 +111,13 @@ class HReconciler:
 
         Predict using fitted mean and probabilistic reconcilers.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `level`: float list 0-100, confidence levels for prediction intervals.<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            level: float list 0-100, confidence levels for prediction intervals.
 
-        **Returns:**<br>
-        `y_tilde`: Reconciliated predictions.
+        Returns:
+            y_tilde: Reconciliated predictions.
         """
         if not self.fitted:
             raise Exception("This model instance is not fitted yet, Call fit method.")
@@ -132,11 +134,11 @@ class HReconciler:
         the `intervals_method` selected during the reconciler's
         instantiation. Currently available: `normality`, `bootstrap`, `permbu`.
 
-        **Parameters:**<br>
-        `num_samples`: int, number of samples generated from coherent distribution.<br>
+        Args:
+            num_samples: int, number of samples generated from coherent distribution.
 
-        **Returns:**<br>
-        `samples`: Coherent samples of size (`num_series`, `horizon`, `num_samples`).
+        Returns:
+            samples: Coherent samples of size (`num_series`, `horizon`, `num_samples`).
         """
         if not self.fitted:
             raise Exception("This model instance is not fitted yet, Call fit method.")
@@ -161,17 +163,18 @@ class HReconciler:
 # %% ../nbs/src/methods.ipynb 8
 class BottomUp(HReconciler):
     """Bottom Up Reconciliation Class.
+    
     The most basic hierarchical reconciliation is performed using an Bottom-Up strategy. It was proposed for
     the first time by Orcutt in 1968.
     The corresponding hierarchical \"projection\" matrix is defined as:
     $$\mathbf{P}_{\\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
 
-    **Parameters:**<br>
-    None
+    Args:
+        None
 
-    **References:**<br>
-    - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). \"Data aggregation and information loss\". The American
-    Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
+    References:
+        - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). \"Data aggregation and information loss\". The American
+        Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
     """
 
     insample = False
@@ -200,20 +203,20 @@ class BottomUp(HReconciler):
     ):
         """Bottom Up Fit Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
-        `y_insample`: In-sample values of size (`base`, `horizon`).<br>
-        `y_hat_insample`: In-sample forecast values of size (`base`, `horizon`).<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
+            y_insample: In-sample values of size (`base`, `horizon`).
+            y_hat_insample: In-sample forecast values of size (`base`, `horizon`).
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            **sampler_kwargs: Coherent sampler instantiation arguments.
 
-        **Returns:**<br>
-        `self`: object, fitted reconciler.
+        Returns:
+            self: object, fitted reconciler.
         """
         self.intervals_method = intervals_method
         self.P, self.W = self._get_PW_matrices(S=S, idx_bottom=idx_bottom)
@@ -249,21 +252,21 @@ class BottomUp(HReconciler):
     ):
         """BottomUp Reconciliation Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
-        `y_insample`: In-sample values of size (`base`, `insample_size`).<br>
-        `y_hat_insample`: In-sample forecast values of size (`base`, `insample_size`).<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `**sampler_kwargs`: Coherent sampler instantiation arguments.<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
+            y_insample: In-sample values of size (`base`, `insample_size`).
+            y_hat_insample: In-sample forecast values of size (`base`, `insample_size`).
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            level: float list 0-100, confidence levels for prediction intervals.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            **sampler_kwargs: Coherent sampler instantiation arguments.
 
-        **Returns:**<br>
-        `y_tilde`: Reconciliated y_hat using the Bottom Up approach.
+        Returns:
+            y_tilde: Reconciliated y_hat using the Bottom Up approach.
         """
         # Fit creates P, W and sampler attributes
         self.fit(
@@ -367,15 +370,16 @@ class TopDown(HReconciler):
     or estimated.
 
     $$\mathbf{P}=[\mathbf{p}_{\mathrm{[b]}}\;|\;\mathbf{0}_{\mathrm{[b][a,b\;-1]}}]$$
-    **Parameters:**<br>
-    `method`: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.<br>
+    
+    Args:
+        method: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.
 
-    **References:**<br>
-    - [CW. Gross (1990). \"Disaggregation methods to expedite product line forecasting\". Journal of Forecasting, 9 , 233–254.
-    doi:10.1002/for.3980090304](https://onlinelibrary.wiley.com/doi/abs/10.1002/for.3980090304).<br>
-    - [G. Fliedner (1999). \"An investigation of aggregate variable time series forecast strategies with specific subaggregate
-    time series statistical correlation\". Computers and Operations Research, 26 , 1133–1149.
-    doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9).
+    References:
+        - [CW. Gross (1990). \"Disaggregation methods to expedite product line forecasting\". Journal of Forecasting, 9 , 233–254.
+        doi:10.1002/for.3980090304](https://onlinelibrary.wiley.com/doi/abs/10.1002/for.3980090304).
+        - [G. Fliedner (1999). \"An investigation of aggregate variable time series forecast strategies with specific subaggregate
+        time series statistical correlation\". Computers and Operations Research, 26 , 1133–1149.
+        doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9).
     """
 
     is_strictly_hierarchical = False
@@ -459,20 +463,20 @@ class TopDown(HReconciler):
     ):
         """TopDown Fit Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `y_insample`: Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.<br>
-        `y_hat_insample`: Insample forecast values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `interval_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            y_insample: Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.
+            y_hat_insample: Insample forecast values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            interval_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            tags: Each key is a level and each value its `S` indices.
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
 
-        **Returns:**<br>
-        `self`: object, fitted reconciler.
+        Returns:
+            self: object, fitted reconciler.
         """
         self.intervals_method = intervals_method
         self.P, self.W = self._get_PW_matrices(
@@ -510,21 +514,21 @@ class TopDown(HReconciler):
     ):
         """Top Down Reconciliation Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
-        `y_insample`: Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.<br>
-        `y_hat_insample`: Insample forecast values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            tags: Each key is a level and each value its `S` indices.
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
+            y_insample: Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.
+            y_hat_insample: Insample forecast values of size (`base`, `insample_size`). Optional for `forecast_proportions` method.
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            level: float list 0-100, confidence levels for prediction intervals.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
 
-        **Returns:**<br>
-        `y_tilde`: Reconciliated y_hat using the Top Down approach.
+        Returns:
+            y_tilde: Reconciliated y_hat using the Top Down approach.
         """
         if self.method == "forecast_proportions":
             if not self.is_strictly_hierarchical:
@@ -732,15 +736,14 @@ class MiddleOut(HReconciler):
     in a middle level. The levels above the base predictions use the Bottom-Up approach, while the levels
     below use a Top-Down.
 
-    **Parameters:**<br>
-    `middle_level`: Middle level.<br>
-    `top_down_method`: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.<br>
+    Args:
+        middle_level: Middle level.
+        top_down_method: One of `forecast_proportions`, `average_proportions` and `proportion_averages`.
 
-    **References:**<br>
-    - [Hyndman, R.J., & Athanasopoulos, G. (2021). \"Forecasting: principles and practice, 3rd edition:
-    Chapter 11: Forecasting hierarchical and grouped series.\". OTexts: Melbourne, Australia. OTexts.com/fpp3
-    Accessed on July 2022.](https://otexts.com/fpp3/hierarchical.html)
-
+    References:
+        - [Hyndman, R.J., & Athanasopoulos, G. (2021). \"Forecasting: principles and practice, 3rd edition:
+        Chapter 11: Forecasting hierarchical and grouped series.\". OTexts: Melbourne, Australia. OTexts.com/fpp3
+        Accessed on July 2022.](https://otexts.com/fpp3/hierarchical.html)
     """
 
     def __init__(self, middle_level: str, top_down_method: str):
@@ -783,20 +786,20 @@ class MiddleOut(HReconciler):
     ):
         """Middle Out Reconciliation Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
-        `y_insample`: Insample values of size (`base`, `insample_size`). Only used for `forecast_proportions`<br>
-        `y_hat_insample`: In-sample forecast values of size (`base`, `insample_size`).<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            tags: Each key is a level and each value its `S` indices.
+            y_insample: Insample values of size (`base`, `insample_size`). Only used for `forecast_proportions`
+            y_hat_insample: In-sample forecast values of size (`base`, `insample_size`).
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            level: float list 0-100, confidence levels for prediction intervals.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
 
-        **Returns:**<br>
-        `y_tilde`: Reconciliated y_hat using the Middle Out approach.
+        Returns:
+            y_tilde: Reconciliated y_hat using the Middle Out approach.
         """
         if not is_strictly_hierarchical(S, tags):
             raise ValueError(
@@ -1060,19 +1063,19 @@ class MinTrace(HReconciler):
     \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}
     $$
 
-    **Parameters:**<br>
-    `method`: str, one of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`.<br>
-    `nonnegative`: bool, reconciled forecasts should be nonnegative?<br>
-    `mint_shr_ridge`: float=2e-8, ridge numeric protection to MinTrace-shr covariance estimator.<br>
-    `num_threads`: int=1, number of threads to use for solving the optimization problems (when nonnegative=True).
+    Args:
+        method: str, one of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`.
+        nonnegative: bool, reconciled forecasts should be nonnegative?
+        mint_shr_ridge: float=2e-8, ridge numeric protection to MinTrace-shr covariance estimator.
+        num_threads: int=1, number of threads to use for solving the optimization problems (when nonnegative=True).
 
-    **References:**<br>
-    - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). \"Optimal forecast reconciliation for
-    hierarchical and grouped time series through trace minimization\". Journal of the American Statistical Association,
-    114 , 804–819. doi:10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/).
-    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
-    forecast reconciliation". Stat Comput 30, 1167–1182,
-    https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+    References:
+        - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). \"Optimal forecast reconciliation for
+        hierarchical and grouped time series through trace minimization\". Journal of the American Statistical Association,
+        114 , 804–819. doi:10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/).
+        - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
+        forecast reconciliation". Stat Comput 30, 1167–1182,
+        https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
     """
 
     def __init__(
@@ -1212,20 +1215,20 @@ class MinTrace(HReconciler):
     ):
         """MinTrace Fit Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `y_insample`: Insample values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink".<br>
-        `y_hat_insample`: Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink"<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            y_insample: Insample values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink".
+            y_hat_insample: Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink"
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            tags: Each key is a level and each value its `S` indices.
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
 
-        **Returns:**<br>
-        `self`: object, fitted reconciler.
+        Returns:
+            self: object, fitted reconciler.
         """
         self.y_hat = y_hat
         self.P, self.W = self._get_PW_matrices(
@@ -1319,21 +1322,21 @@ class MinTrace(HReconciler):
     ):
         """MinTrace Reconciliation Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
-        `y_insample`: Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink`<br>
-        `y_hat_insample`: Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink`<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
+            y_insample: Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink`
+            y_hat_insample: Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink`
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            level: float list 0-100, confidence levels for prediction intervals.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            tags: Each key is a level and each value its `S` indices.
 
-        **Returns:**<br>
-        `y_tilde`: Reconciliated y_hat using the MinTrace approach.
+        Returns:
+            y_tilde: Reconciliated y_hat using the MinTrace approach.
         """
         if self.nonnegative:
             if (level is not None) and intervals_method in ["bootstrap", "permbu"]:
@@ -1502,20 +1505,20 @@ class MinTraceSparse(MinTrace):
     ) -> "MinTraceSparse":
         """MinTraceSparse Fit Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `y_insample`: Insample values of size (`base`, `insample_size`). Only used with "wls_var".<br>
-        `y_hat_insample`: Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var"<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            y_insample: Insample values of size (`base`, `insample_size`). Only used with "wls_var".
+            y_hat_insample: Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var"
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            tags: Each key is a level and each value its `S` indices.
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
 
-        **Returns:**<br>
-        `self`: object, fitted reconciler.
+        Returns:
+            self: object, fitted reconciler.
         """
         if self.nonnegative:
             # Clip the base forecasts to align them with their use in practice.
@@ -1703,18 +1706,18 @@ class OptimalCombination(MinTrace):
     where $\Sigma_{h}^{\dagger}$ denotes the variance pseudo-inverse. The method was later proven equivalent to
     `MinTrace` variants.
 
-    **Parameters:**<br>
-    `method`: str, allowed optimal combination methods: 'ols', 'wls_struct'.<br>
-    `nonnegative`: bool, reconciled forecasts should be nonnegative?<br>
+    Args:
+        method: str, allowed optimal combination methods: 'ols', 'wls_struct'.
+        nonnegative: bool, reconciled forecasts should be nonnegative?
 
-    **References:**<br>
-    - [Rob J. Hyndman, Roman A. Ahmed, George Athanasopoulos, Han Lin Shang (2010). \"Optimal Combination Forecasts for
-    Hierarchical Time Series\".](https://robjhyndman.com/papers/Hierarchical6.pdf).<br>
-    - [Shanika L. Wickramasuriya, George Athanasopoulos and Rob J. Hyndman (2010). \"Optimal Combination Forecasts for
-    Hierarchical Time Series\".](https://robjhyndman.com/papers/MinT.pdf).
-    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
-    forecast reconciliation". Stat Comput 30, 1167–1182,
-    https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+    References:
+        - [Rob J. Hyndman, Roman A. Ahmed, George Athanasopoulos, Han Lin Shang (2010). \"Optimal Combination Forecasts for
+        Hierarchical Time Series\".](https://robjhyndman.com/papers/Hierarchical6.pdf).
+        - [Shanika L. Wickramasuriya, George Athanasopoulos and Rob J. Hyndman (2010). \"Optimal Combination Forecasts for
+        Hierarchical Time Series\".](https://robjhyndman.com/papers/MinT.pdf).
+        - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
+        forecast reconciliation". Stat Comput 30, 1167–1182,
+        https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
     """
 
     def __init__(self, method: str, nonnegative: bool = False, num_threads: int = 1):
@@ -1742,14 +1745,14 @@ class ERM(HReconciler):
     of validation data is limited or the exact solution has low numerical stability.
     $$\mathbf{P}^{*} = \\text{argmin}_{\mathbf{P}} ||\mathbf{Y}-\mathbf{S} \mathbf{P} \hat{Y} ||^{2}_{2} + \lambda ||\mathbf{P}-\mathbf{P}_{\\text{BU}}||_{1}$$
 
-    **Parameters:**<br>
-    `method`: str, one of `closed`, `reg` and `reg_bu`.<br>
-    `lambda_reg`: float, l1 regularizer for `reg` and `reg_bu`.<br>
+    Args:
+        method: str, one of `closed`, `reg` and `reg_bu`.
+        lambda_reg: float, l1 regularizer for `reg` and `reg_bu`.
 
-    **References:**<br>
-    - [Ben Taieb, S., & Koo, B. (2019). Regularized regression for hierarchical forecasting without
-    unbiasedness conditions. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge
-    Discovery & Data Mining KDD '19 (p. 1337-1347). New York, NY, USA: Association for Computing Machinery.](https://doi.org/10.1145/3292500.3330976).<br>
+    References:
+        - [Ben Taieb, S., & Koo, B. (2019). Regularized regression for hierarchical forecasting without
+        unbiasedness conditions. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge
+        Discovery & Data Mining KDD ’19 (p. 1337-1347). New York, NY, USA: Association for Computing Machinery.](https://doi.org/10.1145/3292500.3330976).
     """
 
     def __init__(self, method: str, lambda_reg: float = 1e-2):
@@ -1837,20 +1840,20 @@ class ERM(HReconciler):
     ):
         """ERM Fit Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `y_insample`: Train values of size (`base`, `insample_size`).<br>
-        `y_hat_insample`: Insample train predictions of size (`base`, `insample_size`).<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            y_insample: Train values of size (`base`, `insample_size`).
+            y_hat_insample: Insample train predictions of size (`base`, `insample_size`).
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            tags: Each key is a level and each value its `S` indices.
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
 
-        **Returns:**<br>
-        `self`: object, fitted reconciler.
+        Returns:
+            self: object, fitted reconciler.
         """
         self.P, self.W = self._get_PW_matrices(
             S=S,
@@ -1891,21 +1894,21 @@ class ERM(HReconciler):
     ):
         """ERM Reconciliation Method.
 
-        **Parameters:**<br>
-        `S`: Summing matrix of size (`base`, `bottom`).<br>
-        `y_hat`: Forecast values of size (`base`, `horizon`).<br>
-        `idx_bottom`: Indices corresponding to the bottom level of `S`, size (`bottom`).<br>
-        `y_insample`: Train values of size (`base`, `insample_size`).<br>
-        `y_hat_insample`: Insample train predictions of size (`base`, `insample_size`).<br>
-        `sigmah`: Estimated standard deviation of the conditional marginal distribution.<br>
-        `level`: float list 0-100, confidence levels for prediction intervals.<br>
-        `intervals_method`: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.<br>
-        `num_samples`: Number of samples for probabilistic coherent distribution.<br>
-        `seed`: Seed for reproducibility.<br>
-        `tags`: Each key is a level and each value its `S` indices.<br>
+        Args:
+            S: Summing matrix of size (`base`, `bottom`).
+            y_hat: Forecast values of size (`base`, `horizon`).
+            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
+            y_insample: Train values of size (`base`, `insample_size`).
+            y_hat_insample: Insample train predictions of size (`base`, `insample_size`).
+            sigmah: Estimated standard deviation of the conditional marginal distribution.
+            level: float list 0-100, confidence levels for prediction intervals.
+            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
+            num_samples: Number of samples for probabilistic coherent distribution.
+            seed: Seed for reproducibility.
+            tags: Each key is a level and each value its `S` indices.
 
-        **Returns:**<br>
-        `y_tilde`: Reconciliated y_hat using the ERM approach.
+        Returns:
+            y_tilde: Reconciliated y_hat using the ERM approach.
         """
         # Fit creates P, W and sampler attributes
         self.fit(
