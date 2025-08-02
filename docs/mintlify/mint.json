@@ -17,7 +17,7 @@
   },
   "topbarCtaButton": {
     "type": "github",
-    "url": "https://github.com/Nixtla/utilsforecast"
+    "url": "https://github.com/Nixtla/hierarchicalforecast"
   },
   "navigation": [
     {
@@ -27,12 +27,11 @@
     {
       "group": "API Reference",
       "pages": [
-        "preprocessing",
-        "feature_engineering",
+        "core",
+        "methods",
+        "probabilistic_methods",
         "evaluation",
-        "losses",
-        "plotting",
-        "data"
+        "utils"
       ]
     }
   ]
