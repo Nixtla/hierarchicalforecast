@@ -17,25 +17,15 @@ from hierarchicalforecast.utils import aggregate
 #region: Fixtures
 
 @pytest.fixture(scope="module")
-def common_data(tourism_df):
+def common_data(tourism_df, hiers_grouped, hiers_strictly):
     """Prepares the base tourism dataframe and hierarchy specifications."""
     df = copy.deepcopy(tourism_df)
     df['ds'] = pd.to_datetime(df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True))
-    
-    # Hierarchy specifications
-    hier_grouped_spec = [
-        ['Country'], ['Country', 'State'], ['Country', 'Purpose'], 
-        ['Country', 'State', 'Region'], ['Country', 'State', 'Purpose'], 
-        ['Country', 'State', 'Region', 'Purpose']
-    ]
-    hier_strict_spec = [
-        ['Country'], ['Country', 'State'], ['Country', 'State', 'Region']
-    ]
-    
+
     return {
         "df": df,
-        "grouped_spec": hier_grouped_spec,
-        "strict_spec": hier_strict_spec
+        "grouped_spec": hiers_grouped,
+        "strict_spec": hiers_strictly
     }
 
 @pytest.fixture(scope="module")
