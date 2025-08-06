@@ -88,9 +88,7 @@ def assert_eq_agg_dataframe(df, spec, frameworks=["polars"]):
         pd.testing.assert_frame_equal(S_df, S_df_f.to_pandas())
         for tag in tags:
             np.testing.assert_equal(tags[tag], tags_f[tag])
-# polars
-def test_eq_agg_dataframe(df, spec):
-    assert_eq_agg_dataframe(df, spec)
+
 
 def test_unbalanced_dataset():
     # test unbalanced dataset
@@ -119,10 +117,7 @@ def test_unbalanced_dataset():
         ['pen'],
         ['pen', 'ult'],
     ]
-
-    hier_df, S_df, tags = aggregate(df=df, spec=hier_levels)
-    # polars
-    test_eq_agg_dataframe(df, hier_levels)
+    assert_eq_agg_dataframe(df, hier_levels)
 
 
 def test_tourism_df_non_null_grouped(tourism_df, hiers_grouped, hiers_strictly):
@@ -144,8 +139,8 @@ def test_tourism_df_non_null_grouped(tourism_df, hiers_grouped, hiers_strictly):
     np.testing.assert_array_equal(hier_df["unique_id"].unique(), S_df["unique_id"])
     assert len(tags) == len(hiers_grouped)
     # polars
-    test_eq_agg_dataframe(df, hiers_strictly)
-    test_eq_agg_dataframe(df, hiers_grouped)
+    assert_eq_agg_dataframe(df, hiers_strictly)
+    assert_eq_agg_dataframe(df, hiers_grouped)
 
 def test_tourism_df_null_grouped(tourism_df, hiers_strictly):
     df = tourism_df
