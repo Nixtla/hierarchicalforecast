@@ -5,6 +5,8 @@ import pandas as pd
 import polars as pl
 import pytest
 import utilsforecast.losses as ufl
+from statsforecast.core import StatsForecast
+from statsforecast.models import AutoETS
 
 from hierarchicalforecast.core import HierarchicalReconciliation
 from hierarchicalforecast.evaluation import HierarchicalEvaluation, evaluate, mse
@@ -210,10 +212,8 @@ def test_evaluation_h1_polars(reconciled_data, grouped_data):
 
 
 @pytest.fixture
-def statsforecast_data(tourism_df):
+def statsforecast_data(tourism_df, hiers_grouped):
     """Fixture to provide StatsForecast processed data."""
-    from statsforecast.core import StatsForecast
-    from statsforecast.models import AutoETS
 
     # Load TourismSmall dataset
     df = tourism_df.copy()
@@ -222,16 +222,8 @@ def statsforecast_data(tourism_df):
 
     # Create hierarchical seires based on geographic levels and purpose
     # And Convert quarterly ds string to pd.datetime format
-    hierarchy_levels = [
-        ["Country"],
-        ["Country", "State"],
-        ["Country", "Purpose"],
-        ["Country", "State", "Region"],
-        ["Country", "State", "Purpose"],
-        ["Country", "State", "Region", "Purpose"],
-    ]
 
-    Y_df, S_df, tags = aggregate(df=df, spec=hierarchy_levels)
+    Y_df, S_df, tags = aggregate(df=df, spec=hiers_grouped)
 
     # Split train/test sets
     Y_test_df = Y_df.groupby("unique_id").tail(8)
@@ -270,7 +262,7 @@ def statsforecast_data(tourism_df):
         "Y_fitted_df": Y_fitted_df,
         "S_df": S_df,
         "tags": tags,
-        "hierarchy_levels": hierarchy_levels,
+        "hierarchy_levels": hiers_grouped,
         "df": df,
     }
 
@@ -358,8 +350,6 @@ def test_statsforecast_evaluate_function(statsforecast_data):
 
 def test_polars_statsforecast_evaluation(statsforecast_data):
     """Test if polars gives equal results to pandas for StatsForecast evaluation."""
-    from statsforecast.core import StatsForecast
-    from statsforecast.models import AutoETS
 
     # Test if polars gives equal results to pandas
     df_pl = pl.from_pandas(statsforecast_data["df"])
