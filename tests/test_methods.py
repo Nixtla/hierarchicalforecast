@@ -21,11 +21,6 @@ from hierarchicalforecast.methods import (
 from hierarchicalforecast.utils import _construct_adjacency_matrix
 
 
-def assert_close(actual, expected, tolerance=1e-7):
-    """Helper function to replace fastcore's test_close"""
-    np.testing.assert_allclose(actual, expected, atol=tolerance)
-
-
 @dataclass
 class HierarchicalTestData:
     """Test data for hierarchical forecasting methods."""
@@ -128,17 +123,16 @@ def test_not_fitted(hierarchical_data):
 
 @pytest.fixture
 def tags_non_hier():
-    tags_non_hier = {
+    return {
         "Country": np.array([0]),
         "Country/City": np.array([2, 1]),
         "Country/Transgender": np.array([3, 4]),
         "Country-City-Transgender": np.array([5, 6, 7, 8]),
     }
-    return tags_non_hier
 
 @pytest.fixture
 def S_non_hier():
-    S_non_hier = np.array(
+    return np.array(
             [
                 [1.0, 1.0, 1.0, 1.0],  # total
                 [1.0, 1.0, 0.0, 0.0],  # city 1
@@ -151,7 +145,6 @@ def S_non_hier():
                 [0.0, 0.0, 0.0, 1.0],  # city 2 - no transgender
             ]
         )
-    return S_non_hier
 
 
 def test_is_strictly_hierarchical(hierarchical_data, S_non_hier, tags_non_hier):
@@ -198,7 +191,7 @@ def test_top_down_forecast_recovery(hierarchical_data, method):
     else:
         result = cls_top_down(S=data.S, y_hat=data.S @ data.y_hat_bottom, tags=data.tags)["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 def test_top_down_sparse_hierarchical_error(S_non_hier, tags_non_hier):
@@ -225,7 +218,7 @@ def test_top_down_sparse_forecast_recovery(hierarchical_data, method):
     else:
         result = cls_top_down(S=sparse.csr_matrix(data.S), y_hat=data.S @ data.y_hat_bottom, tags=data.tags)["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 @pytest.mark.parametrize("method", ["forecast_proportions", "average_proportions", "proportion_averages"])
@@ -258,7 +251,7 @@ def test_top_down_vs_sparse_equivalence(hierarchical_data, method):
         )["mean"]
         tolerance = 1e-9
 
-    assert_close(result_dense, result_sparse, tolerance)
+    np.testing.assert_allclose(result_dense, result_sparse, tolerance)
 
 
 @pytest.mark.parametrize("method", ["average_proportions", "proportion_averages"])
@@ -282,7 +275,7 @@ def test_top_down_nan_handling(hierarchical_data, method):
         S=data.S, y_hat=data.S @ data.y_hat_bottom, y_insample=y_insample_nan, tags=data.tags
     )["mean"]
 
-    assert_close(result_orig, result_nan)
+    np.testing.assert_allclose(result_orig, result_nan)
 
 
 
@@ -303,7 +296,7 @@ def test_middle_out_forecast_recovery(hierarchical_data, method):
     else:
         result = cls_middle_out(S=data.S, y_hat=data.S @ data.y_hat_bottom, tags=data.tags)["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 @pytest.mark.parametrize("method", ["forecast_proportions", "average_proportions", "proportion_averages"])
@@ -323,7 +316,7 @@ def test_middle_out_sparse_forecast_recovery(hierarchical_data, method):
     else:
         result = cls_middle_out(S=data.S, y_hat=data.S @ data.y_hat_bottom, tags=data.tags)["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 @pytest.mark.parametrize("method", ["forecast_proportions", "average_proportions", "proportion_averages"])
@@ -359,7 +352,7 @@ def test_middle_out_vs_sparse_equivalence(hierarchical_data, method):
         )["mean"]
         tolerance = np.finfo(np.float64).eps
 
-    assert_close(result_dense, result_sparse, tolerance)
+    np.testing.assert_allclose(result_dense, result_sparse, tolerance)
 
 
 @pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "mint_shrink"])
@@ -387,7 +380,7 @@ def test_min_trace_forecast_recovery(hierarchical_data, method, nonnegative):
             idx_bottom=data.idx_bottom if nonnegative else None,
         )["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 def test_min_trace_threading(hierarchical_data):
@@ -457,7 +450,7 @@ def test_min_trace_levels(hierarchical_data, method, nonnegative):
         idx_bottom=data.idx_bottom if nonnegative else None,
     )["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 @pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var"])
@@ -475,7 +468,7 @@ def test_min_trace_sparse_functionality(hierarchical_data, method, nonnegative, 
         idx_bottom=data.idx_bottom,
     )["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 @pytest.mark.parametrize("method", ["ols", "wls_struct"])
@@ -487,7 +480,7 @@ def test_optimal_combination_methods(hierarchical_data, method, nonnegative):
     cls_optimal_combination = OptimalCombination(
         method=method, nonnegative=nonnegative
     )
-    assert_close(
+    np.testing.assert_allclose(
         cls_optimal_combination(
             S=hierarchical_data.S,
             y_hat=hierarchical_data.S @ hierarchical_data.y_hat_bottom,
@@ -511,7 +504,7 @@ def test_erm_forecast_recovery(hierarchical_data):
         idx_bottom=data.idx_bottom,
     )["mean"]
 
-    assert_close(result, data.S @ data.y_hat_bottom)
+    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 @pytest.fixture
