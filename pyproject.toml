@@ -42,7 +42,6 @@ dev = [
     "datasetsforecast",
     "fire",
     "ipython<=8.32.0",
-    "nbdev",
     "statsforecast>=1.0.0",
     "requests",
     "scipy",
@@ -52,10 +51,9 @@ dev = [
     "pytest",
     "pytest-benchmark",
     "pytest-cov",
-    "polars[numpy]"
 ]
 polars = [
-    "polars[numpy]"
+    "polars[numpy]<=1.32.0"
 ]
 
 [project.urls]
@@ -76,4 +74,13 @@ include = ["hierarchicalforecast*"]
 [tool.ruff.lint]
 select = [
     "F",  # pyflakes
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=hierarchicalforecast",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-fail-under=70", #TODO: Update tests to increase coverage to 80
 ]
