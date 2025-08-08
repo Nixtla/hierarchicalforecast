@@ -1,9 +1,8 @@
 ---
-description: Hierarchical Forecast's reconciliation and evaluation.
-output-file: tourismlarge-evaluation.html
 title: Probabilistic Forecast Evaluation
 ---
 
+> Hierarchical Forecast’s reconciliation and evaluation.
 
 This notebook offers a step to step guide to create a hierarchical
 forecasting pipeline.
@@ -25,8 +24,8 @@ We assume you have StatsForecast and HierarchicalForecast already
 installed, if not check this guide for instructions on how to install
 HierarchicalForecast.
 
-
 ```python
+%%capture
 !pip install hierarchicalforecast statsforecast datasetsforecast
 ```
 
@@ -52,7 +51,6 @@ from datasetsforecast.hierarchical import HierarchicalData, HierarchicalInfo
 ## 2. Preparing TourismL Dataset
 
 ### 2.1 Read Hierarchical Dataset
-
 
 ```python
 # ['Labour', 'Traffic', 'TourismSmall', 'TourismLarge', 'Wiki2']
@@ -86,7 +84,6 @@ TourismSmall
 Code block 'Read and Parse data   ' took:   0.00653 seconds
 ```
 
-
 ```python
 dataset_info.seasonality
 ```
@@ -95,14 +92,12 @@ dataset_info.seasonality
 4
 ```
 
-
 ```python
 hplot = HierarchicalPlot(S=S_df, tags=tags)
 hplot.plot_summing_matrix()
 ```
 
-![](/hierarchicalforecast/examples/TourismLarge-Evaluation_files/figure-markdown_strict/cell-7-output-1.png)
-
+![](TourismLarge-Evaluation_files/figure-markdown_strict/cell-7-output-1.png)
 
 ```python
 Y_train_df
@@ -128,8 +123,8 @@ This cell computes the base predictions `Y_hat_df` for all the series in
 `Y_df` using StatsForecast’s `AutoARIMA`. Additionally we obtain
 insample predictions `Y_fitted_df` for the methods that require them.
 
-
 ```python
+%%capture
 with CodeTimer('Fit/Predict Model     ', verbose):
     # Read to avoid unnecesary AutoARIMA computation
     yhat_file = f'./data/{dataset}/Y_hat.csv'
@@ -153,7 +148,6 @@ with CodeTimer('Fit/Predict Model     ', verbose):
 ```
 
 ## 3. Reconcile Predictions
-
 
 ```python
 with CodeTimer('Reconcile Predictions ', verbose):
@@ -194,7 +188,6 @@ Code block 'Reconcile Predictions ' took:   7.49314 seconds
 
 Qualitative evaluation, of parsed quantiles
 
-
 ```python
 unique_id = "total"
 plot_df = Y_rec_df.query("unique_id == @unique_id").groupby(["unique_id", "ds"], as_index=False).mean()
@@ -205,10 +198,9 @@ plt.title(f"AutoARIMA/BottomUp - {unique_id}")
 plt.legend()
 ```
 
-![](/hierarchicalforecast/examples/TourismLarge-Evaluation_files/figure-markdown_strict/cell-11-output-1.png)
+![](TourismLarge-Evaluation_files/figure-markdown_strict/cell-11-output-1.png)
 
 ## 4. Evaluation
-
 
 ```python
 from utilsforecast.losses import scaled_crps, msse
@@ -248,18 +240,18 @@ results.sort_values(by=["metric", "level"])
 Code block 'Evaluate Models CRPS and MSSE ' took:   4.25192 seconds
 ```
 
-|  | level | metric | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-average_proportions | AutoARIMA/TopDown_method-proportion_averages | AutoARIMA/MinTrace_method-ols | AutoARIMA/MinTrace_method-wls_var | AutoARIMA/MinTrace_method-mint_shrink | AutoARIMA/ERM_method-closed_lambda_reg-0.01 |
-|----|----|----|----|----|----|----|----|----|----|
-| 0 | Country | msse | 1.777±0.0 | 2.488±0.0 | 2.488±0.0 | 2.752±0.0 | 2.569±0.0 | 2.775±0.0 | 3.427±0.0 |
-| 2 | Country/Purpose | msse | 1.726±0.0 | 3.181±0.0 | 3.169±0.0 | 2.184±0.0 | 1.876±0.0 | 1.96±0.0 | 3.067±0.0 |
-| 4 | Country/Purpose/State | msse | 0.881±0.0 | 1.657±0.0 | 1.652±0.0 | 0.98±0.0 | 0.857±0.0 | 0.867±0.0 | 1.559±0.0 |
-| 6 | Country/Purpose/State/CityNonCity | msse | 0.95±0.0 | 1.271±0.0 | 1.269±0.0 | 1.033±0.0 | 0.903±0.0 | 0.912±0.0 | 1.635±0.0 |
-| 8 | Overall | msse | 0.973±0.0 | 1.492±0.0 | 1.488±0.0 | 1.087±0.0 | 0.951±0.0 | 0.966±0.0 | 1.695±0.0 |
-| 1 | Country | scaled_crps | 0.043±0.0009 | 0.048±0.0006 | 0.048±0.0006 | 0.05±0.0006 | 0.051±0.0006 | 0.053±0.0006 | 0.054±0.0009 |
-| 3 | Country/Purpose | scaled_crps | 0.077±0.001 | 0.114±0.0003 | 0.112±0.0004 | 0.09±0.0013 | 0.087±0.0009 | 0.089±0.0009 | 0.106±0.0013 |
-| 5 | Country/Purpose/State | scaled_crps | 0.165±0.0009 | 0.249±0.0004 | 0.247±0.0004 | 0.18±0.0018 | 0.169±0.0009 | 0.169±0.0008 | 0.231±0.0021 |
-| 7 | Country/Purpose/State/CityNonCity | scaled_crps | 0.218±0.0013 | 0.289±0.0004 | 0.286±0.0004 | 0.228±0.0018 | 0.217±0.0013 | 0.218±0.0011 | 0.302±0.0033 |
-| 9 | Overall | scaled_crps | 0.193±0.0011 | 0.266±0.0004 | 0.263±0.0004 | 0.205±0.0017 | 0.194±0.0011 | 0.195±0.0009 | 0.268±0.0027 |
+|     | level                             | metric      | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-average_proportions | AutoARIMA/TopDown_method-proportion_averages | AutoARIMA/MinTrace_method-ols | AutoARIMA/MinTrace_method-wls_var | AutoARIMA/MinTrace_method-mint_shrink | AutoARIMA/ERM_method-closed_lambda_reg-0.01 |
+|-----|-----------------------------------|-------------|--------------------|----------------------------------------------|----------------------------------------------|-------------------------------|-----------------------------------|---------------------------------------|---------------------------------------------|
+| 0   | Country                           | msse        | 1.777±0.0          | 2.488±0.0                                    | 2.488±0.0                                    | 2.752±0.0                     | 2.569±0.0                         | 2.775±0.0                             | 3.427±0.0                                   |
+| 2   | Country/Purpose                   | msse        | 1.726±0.0          | 3.181±0.0                                    | 3.169±0.0                                    | 2.184±0.0                     | 1.876±0.0                         | 1.96±0.0                              | 3.067±0.0                                   |
+| 4   | Country/Purpose/State             | msse        | 0.881±0.0          | 1.657±0.0                                    | 1.652±0.0                                    | 0.98±0.0                      | 0.857±0.0                         | 0.867±0.0                             | 1.559±0.0                                   |
+| 6   | Country/Purpose/State/CityNonCity | msse        | 0.95±0.0           | 1.271±0.0                                    | 1.269±0.0                                    | 1.033±0.0                     | 0.903±0.0                         | 0.912±0.0                             | 1.635±0.0                                   |
+| 8   | Overall                           | msse        | 0.973±0.0          | 1.492±0.0                                    | 1.488±0.0                                    | 1.087±0.0                     | 0.951±0.0                         | 0.966±0.0                             | 1.695±0.0                                   |
+| 1   | Country                           | scaled_crps | 0.043±0.0009       | 0.048±0.0006                                 | 0.048±0.0006                                 | 0.05±0.0006                   | 0.051±0.0006                      | 0.053±0.0006                          | 0.054±0.0009                                |
+| 3   | Country/Purpose                   | scaled_crps | 0.077±0.001        | 0.114±0.0003                                 | 0.112±0.0004                                 | 0.09±0.0013                   | 0.087±0.0009                      | 0.089±0.0009                          | 0.106±0.0013                                |
+| 5   | Country/Purpose/State             | scaled_crps | 0.165±0.0009       | 0.249±0.0004                                 | 0.247±0.0004                                 | 0.18±0.0018                   | 0.169±0.0009                      | 0.169±0.0008                          | 0.231±0.0021                                |
+| 7   | Country/Purpose/State/CityNonCity | scaled_crps | 0.218±0.0013       | 0.289±0.0004                                 | 0.286±0.0004                                 | 0.228±0.0018                  | 0.217±0.0013                      | 0.218±0.0011                          | 0.302±0.0033                                |
+| 9   | Overall                           | scaled_crps | 0.193±0.0011       | 0.266±0.0004                                 | 0.263±0.0004                                 | 0.205±0.0017                  | 0.194±0.0011                      | 0.195±0.0009                          | 0.268±0.0027                                |
 
 ## References
 

@@ -1,9 +1,8 @@
 ---
-description: Introduction to Hierarchial Forecasting using `HierarchialForecast`
-output-file: introduction.html
 title: Introduction
 ---
 
+> Introduction to Hierarchial Forecasting using `HierarchialForecast`
 
 You can run these experiments using CPU or GPU with Google Colab.
 
@@ -27,19 +26,17 @@ four bottom-level series, two middle-level series, and the top level
 representing the total aggregation. Its hierarchical aggregations or
 coherency constraints are:
 
-$$
-y_{\mathrm{Total},\tau} = y_{\beta_{1},\tau}+y_{\beta_{2},\tau}+y_{\beta_{3},\tau}+y_{\beta_{4},\tau} 
-        \qquad \qquad \qquad \qquad \qquad \\
-        \mathbf{y}_{[a],\tau}=\left[y_{\mathrm{Total},\tau},\; y_{\beta_{1},\tau}+y_{\beta_{2},\tau},\;y_{\beta_{3},\tau}+y_{\beta_{4},\tau}\right]^{\intercal} 
-        \qquad
-        \mathbf{y}_{[b],\tau}=\left[ y_{\beta_{1},\tau},\; y_{\beta_{2},\tau},\; y_{\beta_{3},\tau},\; y_{\beta_{4},\tau} \right]^{\intercal}
-$$
+\$\$
+
+y\_{,} = y\_{*{1},}+y*{*{2},}+y*{*{3},}+y*{*{4},} \\ *{\[a\],}=^{}
+\_{\[b\],}=^{}
+
+\$\$
 
 Luckily these constraints can be compactly expressed with the following
 matrices:
 
 $$
-
 \mathbf{S}_{[a,b][b]}
 =
 \begin{bmatrix}
@@ -59,7 +56,6 @@ $$
 0 & 0 & 1 & 0 \\
 0 & 0 & 0 & 1 \\
 \end{bmatrix}
-
 $$
 
 where $\mathbf{A}_{[a,b][b]}$ aggregates the bottom series to the upper
@@ -67,9 +63,7 @@ levels, and $\mathbf{I}_{\mathrm{[b][b]}}$ is an identity matrix. The
 representation of the hierarchical series is then:
 
 $$
-
 \mathbf{y}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{y}_{[b],\tau}
-
 $$
 
 To visualize an example, in Figure 2, one can think of the hierarchical
@@ -98,26 +92,18 @@ $$\tilde{\mathbf{y}}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{P}_{[b][a,b]} 
 
 The HierarchicalForecast library offers a Python collection of
 reconciliation methods, datasets, evaluation and visualization tools for
-the task. Among its available reconciliation methods we have
-[`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#bottomup),
-[`TopDown`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#topdown),
-[`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#middleout),
-[`MinTrace`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#mintrace),
-[`ERM`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#erm).
-Among its probabilistic coherent methods we have
-[`Normality`](https://Nixtla.github.io/hierarchicalforecast/src/probabilistic_methods.html#normality),
-[`Bootstrap`](https://Nixtla.github.io/hierarchicalforecast/src/probabilistic_methods.html#bootstrap),
-[`PERMBU`](https://Nixtla.github.io/hierarchicalforecast/src/probabilistic_methods.html#permbu).
+the task. Among its available reconciliation methods we have `BottomUp`,
+`TopDown`, `MiddleOut`, `MinTrace`, `ERM`. Among its probabilistic
+coherent methods we have `Normality`, `Bootstrap`, `PERMBU`.
 
 ## 3. Minimal Example
 
-
 ```python
+%%capture
 !pip install hierarchicalforecast statsforecast datasetsforecast
 ```
 
 ### Wrangling Data
-
 
 ```python
 import numpy as np
@@ -129,7 +115,6 @@ time series structure like the one in Figure 1.
 
 We will create a two level structure with four bottom series where
 aggregations of the series are self evident.
-
 
 ```python
 # Create Figure 1. synthetic bottom data
@@ -177,7 +162,6 @@ Finally the `tags` contains a list within `Y_hier_df` composing each
 hierarchical level, for example the `tags['top_level']` contains
 `Australia`’s aggregated series index.
 
-
 ```python
 from hierarchicalforecast.utils import aggregate
 ```
@@ -200,7 +184,6 @@ Y_hier_df.shape (56, 3)
 tags['top_level'] ['Australia']
 ```
 
-
 ```python
 Y_hier_df.groupby('unique_id').head(2)
 ```
@@ -222,20 +205,19 @@ Y_hier_df.groupby('unique_id').head(2)
 | 48  | Australia/State2/r4 | 2000-01-01 | 100 |
 | 49  | Australia/State2/r4 | 2000-02-01 | 200 |
 
-
 ```python
 S_df
 ```
 
-|  | unique_id | Australia/State1/r1 | Australia/State1/r2 | Australia/State2/r3 | Australia/State2/r4 |
-|----|----|----|----|----|----|
-| 0 | Australia | 1.0 | 1.0 | 1.0 | 1.0 |
-| 1 | Australia/State1 | 1.0 | 1.0 | 0.0 | 0.0 |
-| 2 | Australia/State2 | 0.0 | 0.0 | 1.0 | 1.0 |
-| 3 | Australia/State1/r1 | 1.0 | 0.0 | 0.0 | 0.0 |
-| 4 | Australia/State1/r2 | 0.0 | 1.0 | 0.0 | 0.0 |
-| 5 | Australia/State2/r3 | 0.0 | 0.0 | 1.0 | 0.0 |
-| 6 | Australia/State2/r4 | 0.0 | 0.0 | 0.0 | 1.0 |
+|     | unique_id           | Australia/State1/r1 | Australia/State1/r2 | Australia/State2/r3 | Australia/State2/r4 |
+|-----|---------------------|---------------------|---------------------|---------------------|---------------------|
+| 0   | Australia           | 1.0                 | 1.0                 | 1.0                 | 1.0                 |
+| 1   | Australia/State1    | 1.0                 | 1.0                 | 0.0                 | 0.0                 |
+| 2   | Australia/State2    | 0.0                 | 0.0                 | 1.0                 | 1.0                 |
+| 3   | Australia/State1/r1 | 1.0                 | 0.0                 | 0.0                 | 0.0                 |
+| 4   | Australia/State1/r2 | 0.0                 | 1.0                 | 0.0                 | 0.0                 |
+| 5   | Australia/State2/r3 | 0.0                 | 0.0                 | 1.0                 | 0.0                 |
+| 6   | Australia/State2/r4 | 0.0                 | 0.0                 | 0.0                 | 1.0                 |
 
 ### Base Predictions
 
@@ -243,8 +225,8 @@ Next, we compute the *base forecast* for each time series using the
 `naive` model. Observe that `Y_hat_df` contains the forecasts but they
 are not coherent.
 
-
 ```python
+%%capture
 from statsforecast.models import Naive
 from statsforecast.core import StatsForecast
 ```
@@ -264,7 +246,6 @@ Y_fitted_df = fcst.forecast_fitted_values()
 ```
 
 ### Reconciliation
-
 
 ```python
 from hierarchicalforecast.methods import BottomUp

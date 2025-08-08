@@ -1,9 +1,8 @@
 ---
-description: Minimal Example of Hierarchical Reconciliation
-output-file: tourismsmall.html
 title: Quick Start
 ---
 
+> Minimal Example of Hierarchical Reconciliation
 
 Large collections of time series organized into structures at different
 aggregation levels often require their forecasts to follow their
@@ -24,8 +23,8 @@ You can run these experiments using CPU or GPU with Google Colab.
 
 ## 1. Libraries
 
-
 ```python
+%%capture
 !pip install hierarchicalforecast statsforecast datasetsforecast
 ```
 
@@ -35,7 +34,6 @@ In this example we will use the `TourismSmall` dataset. The following
 cell gets the time series for the different levels in the hierarchy, the
 summing matrix `S` which recovers the full dataset from the bottom level
 hierarchy and the indices of each hierarchy denoted by `tags`.
-
 
 ```python
 import pandas as pd
@@ -57,15 +55,14 @@ Y_df['ds'] = pd.to_datetime(Y_df['ds'])
 S_df.iloc[:6, :6]
 ```
 
-|  | unique_id | nsw-hol-city | nsw-hol-noncity | vic-hol-city | vic-hol-noncity | qld-hol-city |
-|----|----|----|----|----|----|----|
-| 0 | total | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
-| 1 | hol | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
-| 2 | vfr | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| 3 | bus | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| 4 | oth | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
-| 5 | nsw-hol | 1.0 | 1.0 | 0.0 | 0.0 | 0.0 |
-
+|     | unique_id | nsw-hol-city | nsw-hol-noncity | vic-hol-city | vic-hol-noncity | qld-hol-city |
+|-----|-----------|--------------|-----------------|--------------|-----------------|--------------|
+| 0   | total     | 1.0          | 1.0             | 1.0          | 1.0             | 1.0          |
+| 1   | hol       | 1.0          | 1.0             | 1.0          | 1.0             | 1.0          |
+| 2   | vfr       | 0.0          | 0.0             | 0.0          | 0.0             | 0.0          |
+| 3   | bus       | 0.0          | 0.0             | 0.0          | 0.0             | 0.0          |
+| 4   | oth       | 0.0          | 0.0             | 0.0          | 0.0             | 0.0          |
+| 5   | nsw-hol   | 1.0          | 1.0             | 0.0          | 0.0             | 0.0          |
 
 ```python
 tags
@@ -100,7 +97,6 @@ tags
 
 We split the dataframe in train/test splits.
 
-
 ```python
 Y_test_df = Y_df.groupby('unique_id').tail(group.horizon)
 Y_train_df = Y_df.drop(Y_test_df.index)
@@ -111,7 +107,6 @@ Y_train_df = Y_df.drop(Y_test_df.index)
 The following cell computes the *base forecast* for each time series
 using the `auto_arima` and `naive` models. Observe that `Y_hat_df`
 contains the forecasts but they are not coherent.
-
 
 ```python
 from statsforecast.core import StatsForecast
@@ -131,19 +126,15 @@ Y_hat_df = fcst.forecast(df=Y_train_df, h=group.horizon)
 ## 4. Hierarchical reconciliation
 
 The following cell makes the previous forecasts coherent using the
-[`HierarchicalReconciliation`](https://Nixtla.github.io/hierarchicalforecast/src/core.html#hierarchicalreconciliation)
-class. The used methods to make the forecasts coherent are:
+`HierarchicalReconciliation` class. The used methods to make the
+forecasts coherent are:
 
--   [`BottomUp`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#bottomup):
-    The reconciliation of the method is a simple addition to the upper
-    levels.
--   [`TopDown`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#topdown):
-    The second method constrains the base-level predictions to the
-    top-most aggregate-level serie and then distributes it to the
+-   `BottomUp`: The reconciliation of the method is a simple addition to
+    the upper levels.
+-   `TopDown`: The second method constrains the base-level predictions
+    to the top-most aggregate-level serie and then distributes it to the
     disaggregate series through the use of proportions.
--   [`MiddleOut`](https://Nixtla.github.io/hierarchicalforecast/src/methods.html#middleout):
-    Anchors the base predictions in a middle level.
-
+-   `MiddleOut`: Anchors the base predictions in a middle level.
 
 ```python
 from hierarchicalforecast.core import HierarchicalReconciliation
@@ -164,12 +155,9 @@ Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_train_df, S_df=S_df, tags=ta
 
 ## 5. Evaluation
 
-The `HierarchicalForecast` package includes the
-[`evaluate`](https://Nixtla.github.io/hierarchicalforecast/src/evaluation.html#evaluate)
-function to evaluate the different hierarchies and we can use
-utilsforecast to compute the mean absolute error relative to a baseline
-model.
-
+The `HierarchicalForecast` package includes the `evaluate` function to
+evaluate the different hierarchies and we can use utilsforecast to
+compute the mean absolute error relative to a baseline model.
 
 ```python
 from hierarchicalforecast.evaluation import evaluate
@@ -188,14 +176,14 @@ evaluation = evaluate(df = df,
 evaluation.set_index(["level", "metric"]).filter(like="ARIMA", axis=1)
 ```
 
-|  |  | AutoARIMA | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-forecast_proportions | AutoARIMA/TopDown_method-proportion_averages | AutoARIMA/MiddleOut_middle_level-Country/Purpose/State_top_down_method-proportion_averages |
-|----|----|----|----|----|----|----|
-| level | metric |  |  |  |  |  |
-| Country | mse-scaled | 0.317897 | 0.367078 | 0.317897 | 0.317897 | 0.305053 |
-| Country/Purpose | mse-scaled | 0.318950 | 0.233606 | 0.262216 | 0.320225 | 0.196062 |
-| Country/Purpose/State | mse-scaled | 0.268057 | 0.281189 | 0.320349 | 0.511356 | 0.268057 |
-| Country/Purpose/State/CityNonCity | mse-scaled | 0.292136 | 0.292136 | 0.323261 | 0.509784 | 0.280599 |
-| Overall | mse-scaled | 0.308942 | 0.295690 | 0.297072 | 0.364775 | 0.255038 |
+|                                   |            | AutoARIMA | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-forecast_proportions | AutoARIMA/TopDown_method-proportion_averages | AutoARIMA/MiddleOut_middle_level-Country/Purpose/State_top_down_method-proportion_averages |
+|-----------------------------------|------------|-----------|--------------------|-----------------------------------------------|----------------------------------------------|--------------------------------------------------------------------------------------------|
+| level                             | metric     |           |                    |                                               |                                              |                                                                                            |
+| Country                           | mse-scaled | 0.317897  | 0.367078           | 0.317897                                      | 0.317897                                     | 0.305053                                                                                   |
+| Country/Purpose                   | mse-scaled | 0.318950  | 0.233606           | 0.262216                                      | 0.320225                                     | 0.196062                                                                                   |
+| Country/Purpose/State             | mse-scaled | 0.268057  | 0.281189           | 0.320349                                      | 0.511356                                     | 0.268057                                                                                   |
+| Country/Purpose/State/CityNonCity | mse-scaled | 0.292136  | 0.292136           | 0.323261                                      | 0.509784                                     | 0.280599                                                                                   |
+| Overall                           | mse-scaled | 0.308942  | 0.295690           | 0.297072                                      | 0.364775                                     | 0.255038                                                                                   |
 
 ### References
 
