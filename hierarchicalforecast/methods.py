@@ -107,12 +107,12 @@ class HReconciler:
         Predict using fitted mean and probabilistic reconcilers.
 
         Args:
-            S: Summing matrix of size (`base`, `bottom`).
-            y_hat: Forecast values of size (`base`, `horizon`).
-            level: float list 0-100, confidence levels for prediction intervals.
+            S (np.ndarray): Summing matrix of size (`base`, `bottom`).
+            y_hat (np.ndarray): Forecast values of size (`base`, `horizon`).
+            level (Optional[list[int]], optional): float list 0-100, confidence levels for prediction intervals. Default is None.
 
         Returns:
-            y_tilde: Reconciliated predictions.
+            dict: y_tilde: Reconciliated predictions.
         """
         if not self.fitted:
             raise Exception("This model instance is not fitted yet, Call fit method.")
@@ -130,10 +130,10 @@ class HReconciler:
         instantiation. Currently available: `normality`, `bootstrap`, `permbu`.
 
         Args:
-            num_samples: int, number of samples generated from coherent distribution.
+            num_samples (int): number of samples generated from coherent distribution.
 
         Returns:
-            samples: Coherent samples of size (`num_series`, `horizon`, `num_samples`).
+            np.ndarray: samples: Coherent samples of size (`num_series`, `horizon`, `num_samples`).
         """
         if not self.fitted:
             raise Exception("This model instance is not fitted yet, Call fit method.")
@@ -199,19 +199,19 @@ class BottomUp(HReconciler):
         """Bottom Up Fit Method.
 
         Args:
-            S: Summing matrix of size (`base`, `bottom`).
-            y_hat: Forecast values of size (`base`, `horizon`).
-            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
-            y_insample: In-sample values of size (`base`, `horizon`).
-            y_hat_insample: In-sample forecast values of size (`base`, `horizon`).
-            sigmah: Estimated standard deviation of the conditional marginal distribution.
-            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
-            num_samples: Number of samples for probabilistic coherent distribution.
-            seed: Seed for reproducibility.
-            **sampler_kwargs: Coherent sampler instantiation arguments.
+            S (np.ndarray): Summing matrix of size (`base`, `bottom`).
+            y_hat (np.ndarray): Forecast values of size (`base`, `horizon`).
+            idx_bottom (np.ndarray): Indices corresponding to the bottom level of `S`, size (`bottom`).
+            y_insample (Optional[np.ndarray], optional): In-sample values of size (`base`, `horizon`). Default is None.
+            y_hat_insample (Optional[np.ndarray], optional): In-sample forecast values of size (`base`, `horizon`). Default is None.
+            sigmah (Optional[np.ndarray], optional): Estimated standard deviation of the conditional marginal distribution. Default is None.
+            intervals_method (Optional[str], optional): Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is None.
+            num_samples (Optional[int], optional): Number of samples for probabilistic coherent distribution. Default is None.
+            seed (Optional[int], optional): Seed for reproducibility. Default is None.
+            tags (Optional[dict[str, np.ndarray]], optional): Tags for hierarchical structure. Default is None.
 
         Returns:
-            self: object, fitted reconciler.
+            BottomUp: object, fitted reconciler.
         """
         self.intervals_method = intervals_method
         self.P, self.W = self._get_PW_matrices(S=S, idx_bottom=idx_bottom)
@@ -248,20 +248,20 @@ class BottomUp(HReconciler):
         """BottomUp Reconciliation Method.
 
         Args:
-            S: Summing matrix of size (`base`, `bottom`).
-            y_hat: Forecast values of size (`base`, `horizon`).
-            idx_bottom: Indices corresponding to the bottom level of `S`, size (`bottom`).
-            y_insample: In-sample values of size (`base`, `insample_size`).
-            y_hat_insample: In-sample forecast values of size (`base`, `insample_size`).
-            sigmah: Estimated standard deviation of the conditional marginal distribution.
-            level: float list 0-100, confidence levels for prediction intervals.
-            intervals_method: Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`.
-            num_samples: Number of samples for probabilistic coherent distribution.
-            seed: Seed for reproducibility.
-            **sampler_kwargs: Coherent sampler instantiation arguments.
+            S (np.ndarray): Summing matrix of size (`base`, `bottom`).
+            y_hat (np.ndarray): Forecast values of size (`base`, `horizon`).
+            idx_bottom (np.ndarray): Indices corresponding to the bottom level of `S`, size (`bottom`).
+            y_insample (Optional[np.ndarray], optional): In-sample values of size (`base`, `insample_size`). Default is None.
+            y_hat_insample (Optional[np.ndarray], optional): In-sample forecast values of size (`base`, `insample_size`). Default is None.
+            sigmah (Optional[np.ndarray], optional): Estimated standard deviation of the conditional marginal distribution. Default is None.
+            level (Optional[list[int]], optional): float list 0-100, confidence levels for prediction intervals. Default is None.
+            intervals_method (Optional[str], optional): Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is None.
+            num_samples (Optional[int], optional): Number of samples for probabilistic coherent distribution. Default is None.
+            seed (Optional[int], optional): Seed for reproducibility. Default is None.
+            tags (Optional[dict[str, np.ndarray]], optional): Tags for hierarchical structure. Default is None.
 
         Returns:
-            y_tilde: Reconciliated y_hat using the Bottom Up approach.
+            dict: y_tilde: Reconciliated y_hat using the Bottom Up approach.
         """
         # Fit creates P, W and sampler attributes
         self.fit(

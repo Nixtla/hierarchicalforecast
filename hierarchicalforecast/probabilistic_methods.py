@@ -30,13 +30,12 @@ class Normality:
     $$
 
     Args:
-        S: np.array, summing matrix of size (`base`, `bottom`).
-        P: np.array, reconciliation matrix of size (`bottom`, `base`).
-        y_hat: Point forecasts values of size (`base`, `horizon`).
-        W: np.array, hierarchical covariance matrix of size (`base`, `base`).
-        sigmah: np.array, forecast standard dev. of size (`base`, `horizon`).
-        num_samples: int, number of bootstraped samples generated.
-        seed: int, random seed for numpy generator's replicability.
+        S (Union[np.ndarray, sp.spmatrix]): np.array, summing matrix of size (`base`, `bottom`).
+        P (Union[np.ndarray, sp.spmatrix]): np.array, reconciliation matrix of size (`bottom`, `base`).
+        y_hat (np.ndarray): Point forecasts values of size (`base`, `horizon`).
+        W (Union[np.ndarray, sp.spmatrix]): np.array, hierarchical covariance matrix of size (`base`, `base`).
+        sigmah (np.ndarray): np.array, forecast standard dev. of size (`base`, `horizon`).
+        seed (int, optional): int, random seed for numpy generator's replicability. Default is 0.
 
     References:
         - [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022).
@@ -94,10 +93,10 @@ class Normality:
         Obtains coherent samples under the Normality assumptions.
 
         Args:
-            num_samples: int, number of samples generated from coherent distribution.
+            num_samples (int): number of samples generated from coherent distribution.
 
         Returns:
-            samples: Coherent samples of size (`base`, `horizon`, `num_samples`).
+            np.ndarray: samples: Coherent samples of size (`base`, `horizon`, `num_samples`).
         """
         rng = np.random.default_rng(self.seed)
         n_series, n_horizon = self.y_hat.shape
@@ -118,7 +117,15 @@ class Normality:
         return samples
 
     def get_prediction_levels(self, res, level):
-        """Adds reconciled forecast levels to results dictionary"""
+        """Adds reconciled forecast levels to results dictionary
+
+        Args:
+            res (dict): Results dictionary to update.
+            level (list): Confidence levels.
+
+        Returns:
+            dict: Updated results dictionary.
+        """
         res["sigmah"] = self.sigmah_rec
         level = np.asarray(level)
         z = norm.ppf(0.5 + level / 200)
@@ -128,7 +135,15 @@ class Normality:
         return res
 
     def get_prediction_quantiles(self, res, quantiles):
-        """Adds reconciled forecast quantiles to results dictionary"""
+        """Adds reconciled forecast quantiles to results dictionary
+
+        Args:
+            res (dict): Results dictionary to update.
+            quantiles (np.ndarray): Quantiles to compute.
+
+        Returns:
+            dict: Updated results dictionary.
+        """
         # [N,H,None] + [None None,Q] * [N,H,None] -> [N,H,Q]
         z = norm.ppf(quantiles)
         res["sigmah"] = self.sigmah_rec

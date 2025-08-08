@@ -48,12 +48,13 @@ def mse(
     $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
 
     Args:
-        y: numpy array, Actual values.
-        y_hat: numpy array, Predicted values.
-        mask: numpy array, Specifies date stamps per serie to consider in loss.
+        y (np.ndarray): numpy array, Actual values.
+        y_hat (np.ndarray): numpy array, Predicted values.
+        weights (Optional[np.ndarray], optional): numpy array, Specifies date stamps per serie to consider in loss. Default is None.
+        axis (Optional[int], optional): Axis along which to compute the metric. Default is None.
 
     Returns:
-        mse: numpy array, (single value).
+        Union[float, np.ndarray]: numpy array, (single value).
     """
     _loss_deprecation_notice("mse")
     _metric_protections(y, y_hat, weights)
@@ -94,13 +95,14 @@ def mqloss(
     $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
 
     Args:
-        y: numpy array, Actual values.
-        y_hat: numpy array, Predicted values.
-        quantiles: numpy array. Quantiles between 0 and 1, to perform evaluation upon size (n_quantiles).
-        mask: numpy array, Specifies date stamps per serie to consider in loss.
+        y (np.ndarray): numpy array, Actual values.
+        y_hat (np.ndarray): numpy array, Predicted values.
+        quantiles (np.ndarray): numpy array. Quantiles between 0 and 1, to perform evaluation upon size (n_quantiles).
+        weights (Optional[np.ndarray], optional): numpy array, Specifies date stamps per serie to consider in loss. Default is None.
+        axis (Optional[int], optional): Axis along which to compute the metric. Default is None.
 
     Returns:
-        mqloss: numpy array, (single value).
+        Union[float, np.ndarray]: numpy array, (single value).
 
     References:
         [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
@@ -140,12 +142,13 @@ def rel_mse(y, y_hat, y_train, mask=None):
     $$
 
     Args:
-        y: numpy array, Actual values of size (`n_series`, `horizon`).
-        y_hat: numpy array, Predicted values (`n_series`, `horizon`).
-        mask: numpy array, Specifies date stamps per serie to consider in loss.
+        y (np.ndarray): numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat (np.ndarray): numpy array, Predicted values (`n_series`, `horizon`).
+        y_train (np.ndarray): numpy array, Training values.
+        mask (Optional[np.ndarray], optional): numpy array, Specifies date stamps per serie to consider in loss. Default is None.
 
     Returns:
-        loss: float.
+        float: loss.
 
     References:
         - [Hyndman, R. J and Koehler, A. B. (2006).
@@ -182,13 +185,13 @@ def msse(y, y_hat, y_train, mask=None):
     where $n$ ($n=$`n`) is the size of the training data, and $h$ is the forecasting horizon ($h=$`horizon`).
 
     Args:
-        y: numpy array, Actual values of size (`n_series`, `horizon`).
-        y_hat: numpy array, Predicted values (`n_series`, `horizon`).
-        y_train: numpy array, Predicted values (`n_series`, `n`).
-        mask: numpy array, Specifies date stamps per serie to consider in loss.
+        y (np.ndarray): numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat (np.ndarray): numpy array, Predicted values (`n_series`, `horizon`).
+        y_train (np.ndarray): numpy array, Predicted values (`n_series`, `n`).
+        mask (Optional[np.ndarray], optional): numpy array, Specifies date stamps per serie to consider in loss. Default is None.
 
     Returns:
-        loss: float.
+        float: loss.
 
     References:
         - [Hyndman, R. J and Koehler, A. B. (2006).
@@ -228,12 +231,12 @@ def scaled_crps(y, y_hat, quantiles):
     are its realizations.
 
     Args:
-        y: numpy array, Actual values of size (`n_series`, `horizon`).
-        y_hat: numpy array, Predicted quantiles of size (`n_series`, `horizon`, `n_quantiles`).
-        quantiles: numpy array,(`n_quantiles`). Quantiles to estimate from the distribution of y.
+        y (np.ndarray): numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat (np.ndarray): numpy array, Predicted quantiles of size (`n_series`, `horizon`, `n_quantiles`).
+        quantiles (np.ndarray): numpy array,(`n_quantiles`). Quantiles to estimate from the distribution of y.
 
     Returns:
-        loss: float.
+        float: loss.
 
     References:
         - [Gneiting, Tilmann. (2011). \"Quantiles as optimal point forecasts\".
@@ -270,13 +273,13 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
     where $\\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}'$ are independent samples drawn from $\hat{P}$.
 
     Args:
-        y: numpy array, Actual values of size (`n_series`, `horizon`).
-        y_sample1: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).
-        y_sample2: numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).
-        beta: float in (0,2], defines the energy score's power for the euclidean metric.
+        y (np.ndarray): numpy array, Actual values of size (`n_series`, `horizon`).
+        y_sample1 (np.ndarray): numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).
+        y_sample2 (np.ndarray): numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`).
+        beta (float, optional): float in (0,2], defines the energy score's power for the euclidean metric. Default is 2.
 
     Returns:
-        score: float.
+        float: score.
 
     References:
         - [Gneiting, Tilmann, and Adrian E. Raftery. (2007).
@@ -327,13 +330,13 @@ def log_score(y, y_hat, cov, allow_singular=True):
     $$
 
     Args:
-        y: numpy array, Actual values of size (`n_series`, `horizon`).
-        y_hat: numpy array, Predicted values (`n_series`, `horizon`).
-        cov: numpy matrix, Predicted values covariance (`n_series`, `n_series`, `horizon`).
-        allow_singular: bool=True, if true allows singular covariance.
+        y (np.ndarray): numpy array, Actual values of size (`n_series`, `horizon`).
+        y_hat (np.ndarray): numpy array, Predicted values (`n_series`, `horizon`).
+        cov (np.ndarray): numpy matrix, Predicted values covariance (`n_series`, `n_series`, `horizon`).
+        allow_singular (bool, optional): if true allows singular covariance. Default is True.
 
     Returns:
-        score: float.
+        float: score.
     """
     _loss_deprecation_notice("log_score")
     scores = [
@@ -357,7 +360,7 @@ class HierarchicalEvaluation:
     See also the [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
 
     Args:
-        evaluators: functions with arguments `y`, `y_hat` (numpy arrays).
+        evaluators (list[Callable]): functions with arguments `y`, `y_hat` (numpy arrays).
 
     References:
     """
@@ -383,17 +386,17 @@ class HierarchicalEvaluation:
         """Hierarchical Evaluation Method.
 
         Args:
-            Y_hat_df: DataFrame, Forecasts with columns `'unique_id'`, `'ds'` and models to evaluate.
-            Y_test_df: DataFrame, Observed values with columns `['unique_id', 'ds', 'y']`.
-            tags: np.array, each str key is a level and its value contains tags associated to that level.
-            Y_df: DataFrame, Training set of base time series with columns `['unique_id', 'ds', 'y']`.
-            benchmark: str, If passed, evaluators are scaled by the error of this benchark.
-            id_col: str='unique_id', column that identifies each serie.
-            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
-            target_col: str='y', column that contains the target.
+            Y_hat_df (Frame): DataFrame, Forecasts with columns `'unique_id'`, `'ds'` and models to evaluate.
+            Y_test_df (Frame): DataFrame, Observed values with columns `['unique_id', 'ds', 'y']`.
+            tags (dict[str, np.ndarray]): np.array, each str key is a level and its value contains tags associated to that level.
+            Y_df (Optional[Frame], optional): DataFrame, Training set of base time series with columns `['unique_id', 'ds', 'y']`. Default is None.
+            benchmark (Optional[str], optional): str, If passed, evaluators are scaled by the error of this benchark. Default is None.
+            id_col (str, optional): str='unique_id', column that identifies each serie. Default is "unique_id".
+            time_col (str, optional): str='ds', column that identifies each timestep, its values can be timestamps or integers. Default is "ds".
+            target_col (str, optional): str='y', column that contains the target. Default is "y".
 
         Returns:
-            evaluation: DataFrame with accuracy measurements across hierarchical levels.
+            FrameT: evaluation: DataFrame with accuracy measurements across hierarchical levels.
         """
         Y_hat_nw = nw.from_native(Y_hat_df)
         Y_test_nw = nw.from_native(Y_test_df)
