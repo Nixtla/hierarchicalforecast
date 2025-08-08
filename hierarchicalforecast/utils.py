@@ -50,18 +50,12 @@ def _construct_adjacency_matrix(
 ) -> sparse.csr_matrix:
     """Construct a disaggregation adjacency matrix.
 
-    Parameters
-    ----------
-    S : sparse.csr_matrix
-        A summing matrix for hierarchical or grouped time series.
-    tags : dict[str, np.ndarray]
-        A mapping of level name to node indices.
+    Args:
+        S (sparse.csr_matrix): A summing matrix for hierarchical or grouped time series.
+        tags (dict[str, np.ndarray]): A mapping of level name to node indices.
 
-    Returns
-    -------
-    sparse.csr_matrix
-        The disaggregation adjacency matrix for the structure.
-
+    Returns:
+        sparse.csr_matrix: The disaggregation adjacency matrix for the structure.
     """
     # Get the nodes in each level.
     l = sorted(tags.values(), key=lambda x: len(x))
@@ -109,18 +103,12 @@ def _is_strictly_hierarchical(
     The nodes in a strictly hierarchical disaggregation structure, except for
     the root node(s), should have exactly one incoming edge.
 
-    Parameters
-    ----------
-    A: sparse.csr_matrix
-        A disaggregation adjacency matrix.
-    tags : dict[str, np.ndarray]
-        A mapping of level name to node indices.
+    Args:
+        A (sparse.csr_matrix): A disaggregation adjacency matrix.
+        tags (dict[str, np.ndarray]): A mapping of level name to node indices.
 
-    Returns
-    -------
-    bool
-        `True` if strictly hierarchical, otherwise `False`.
-
+    Returns:
+        bool: `True` if strictly hierarchical, otherwise `False`.
     """
     return np.all(A.sum(axis=0).A1[len(next(iter(tags.values()))) :] == 1)
 
@@ -149,36 +137,26 @@ def aggregate(
     target_cols: Sequence[str] = ("y",),
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function.
+    
     Aggregates bottom level series contained in the DataFrame `df` according
     to levels defined in the `spec` list.
 
-    Parameters
-    ----------
-    df : DataFrame
-        Dataframe with columns `[time_col, *target_cols]`, columns to aggregate and optionally exog_vars.
-    spec : list of list of str
-        list of levels. Each element of the list should contain a list of columns of `df` to aggregate.
-    exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
-        keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance
-    sparse_s : bool (default=False)
-        Return `S_df` as a sparse Pandas dataframe.
-    id_col : str (default='unique_id')
-        Column that will identify each serie after aggregation.
-    time_col : str (default='ds')
-        Column that identifies each timestep, its values can be timestamps or integers.
-    id_time_col : str (default=None)
-        Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally.
-    target_cols : (default=['y'])
-        list of columns that contains the targets to aggregate.
+    Args:
+        df (Frame): Dataframe with columns `[time_col, *target_cols]`, columns to aggregate and optionally exog_vars.
+        spec (list[list[str]]): list of levels. Each element of the list should contain a list of columns of `df` to aggregate.
+        exog_vars (Optional[dict[str, Union[str, list[str]]]], optional): dictionary of string keys & values that can either be a list of strings or a single string
+            keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None.
+        sparse_s (bool, optional): Return `S_df` as a sparse Pandas dataframe. Default is False.
+        id_col (str, optional): Column that will identify each serie after aggregation. Default is "unique_id".
+        time_col (str, optional): Column that identifies each timestep, its values can be timestamps or integers. Default is "ds".
+        id_time_col (Optional[str], optional): Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally. Default is None.
+        target_cols (Sequence[str], optional): list of columns that contains the targets to aggregate. Default is ("y",).
 
-    Returns
-    -------
-    Y_df : DataFrame
-        Hierarchically structured series.
-    S_df : DataFrame
-        Summing dataframe.
-    tags : dict
-        Aggregation indices.
+    Returns:
+        tuple[FrameT, FrameT, dict]: Y_df, S_df, tags
+            Y_df: Hierarchically structured series.
+            S_df: Summing dataframe.
+            tags: Aggregation indices.
     """
     # To Narwhals
     target_cols = list(target_cols)
@@ -367,38 +345,27 @@ def aggregate_temporal(
     aggregation_type: str = "local",
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function for Temporal aggregations.
+    
     Aggregates bottom level timesteps contained in the DataFrame `df` according
     to temporal levels defined in the `spec` list.
 
-    Parameters
-    ----------
-    df : DataFrame
-        Dataframe with columns `[time_col, target_cols]` and columns to aggregate.
-    spec : dict
-        Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation.
-    exog_vars: dictionary of string keys & values that can either be a list of strings or a single string
-        keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance
-    sparse_s : bool (default=False)
-        Return `S_df` as a sparse Pandas dataframe.
-    id_col : str (default='unique_id')
-        Column that will identify each serie after aggregation.
-    time_col : str (default='ds')
-        Column that identifies each timestep, its values can be timestamps or integers.
-    id_time_col : str (default='temporal_id')
-        Column that will identify each timestep after aggregation.
-    target_cols : (default=['y'])
-        List of columns that contain the targets to aggregate.
-    aggregation_type : str (default='local')
-        If 'local' the aggregation will be performed on the timestamps of each timeseries independently. If 'global' the aggregation will be performed on the unique timestamps of all timeseries.
+    Args:
+        df (Frame): Dataframe with columns `[time_col, target_cols]` and columns to aggregate.
+        spec (dict[str, int]): Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation.
+        exog_vars (Optional[dict[str, Union[str, list[str]]]], optional): dictionary of string keys & values that can either be a list of strings or a single string
+            keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None.
+        sparse_s (bool, optional): Return `S_df` as a sparse Pandas dataframe. Default is False.
+        id_col (str, optional): Column that will identify each serie after aggregation. Default is 'unique_id'.
+        time_col (str, optional): Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
+        id_time_col (str, optional): Column that will identify each timestep after aggregation. Default is 'temporal_id'.
+        target_cols (Sequence[str], optional): List of columns that contain the targets to aggregate. Default is ('y',).
+        aggregation_type (str, optional): If 'local' the aggregation will be performed on the timestamps of each timeseries independently. If 'global' the aggregation will be performed on the unique timestamps of all timeseries. Default is 'local'.
 
-    Returns
-    -------
-    Y_df : DataFrame
-        Temporally hierarchically structured series.
-    S_df : DataFrame
-        Temporal summing dataframe.
-    tags : dict
-        Temporal aggregation indices.
+    Returns:
+        tuple[FrameT, FrameT, dict]: Y_df, S_df, tags
+            Y_df: Temporally hierarchically structured series.
+            S_df: Temporal summing dataframe.
+            tags: Temporal aggregation indices.
     """
     # Check if ds column is a timestamp or integer, if not raise an error
     target_cols = list(target_cols)
@@ -494,23 +461,15 @@ def make_future_dataframe(
 ) -> FrameT:
     """Create future dataframe for forecasting.
 
-    Parameters
-    ----------
-    df : pandas or polars DataFrame
-        Dataframe with ids, times and values for the exogenous regressors.
-    freq : str or int
-        Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
-    h : int
-        Forecast horizon.
-    id_col : str (default='unique_id')
-        Column that identifies each serie.
-    time_col : str (default='ds')
-        Column that identifies each timestep, its values can be timestamps or integers.
+    Args:
+        df (Frame): Dataframe with ids, times and values for the exogenous regressors.
+        freq (Union[str, int]): Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
+        h (int): Forecast horizon.
+        id_col (str, optional): Column that identifies each serie. Default is 'unique_id'.
+        time_col (str, optional): Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
 
-    Returns
-    -------
-    future_df : pandas or polars DataFrame
-        DataFrame with future values
+    Returns:
+        FrameT: DataFrame with future values.
     """
     times_by_id = ufp.group_by_agg(df, id_col, {time_col: "max"}, maintain_order=True)
     times_by_id = ufp.sort(times_by_id, id_col)
@@ -536,29 +495,19 @@ def get_cross_temporal_tags(
 ) -> tuple[FrameT, dict[str, np.ndarray]]:
     """Get cross-temporal tags.
 
-    Parameters
-    ----------
-    df : DataFrame
-        DataFrame with temporal ids.
-    tags_cs : dict
-        Tags for the cross-sectional hierarchies
-    tags_te : dict
-        Tags for the temporal hierarchies
-    sep : str (default="//")
-        Separator for the cross-temporal tags.
-    id_col : str (default='unique_id')
-        Column that identifies each serie.
-    id_time_col : str (default='temporal_id')
-        Column that identifies each (aggregated) timestep.
-    cross_temporal_id_col : str (default='cross_temporal_id')
-        Column that will identify each cross-temporal aggregation.
+    Args:
+        df (Frame): DataFrame with temporal ids.
+        tags_cs (dict[str, np.ndarray]): Tags for the cross-sectional hierarchies.
+        tags_te (dict[str, np.ndarray]): Tags for the temporal hierarchies.
+        sep (str, optional): Separator for the cross-temporal tags. Default is "//".
+        id_col (str, optional): Column that identifies each serie. Default is 'unique_id'.
+        id_time_col (str, optional): Column that identifies each (aggregated) timestep. Default is 'temporal_id'.
+        cross_temporal_id_col (str, optional): Column that will identify each cross-temporal aggregation. Default is 'cross_temporal_id'.
 
-    Returns
-    -------
-    df: DataFrame
-        DataFrame with cross-temporal ids.
-    tags_ct : dict
-        Tags for the cross-temporal hierarchies
+    Returns:
+        tuple[FrameT, dict[str, np.ndarray]]: df, tags_ct
+            df: DataFrame with cross-temporal ids.
+            tags_ct: Tags for the cross-temporal hierarchies.
     """
     df_nw = nw.from_native(df)
 
@@ -591,10 +540,10 @@ class HierarchicalPlot:
     to medium sized hierarchical series.
 
     Args:
-        S: DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
-        tags: np.ndarray, with hierarchical aggregation indexes, where
+        S (Frame): DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
+        tags (dict[str, np.ndarray]): hierarchical aggregation indexes, where
             each key is a level and its value contains tags associated to that level.
-        S_id_col: str='unique_id', column that identifies each aggregation.
+        S_id_col (str, optional): column that identifies each aggregation. Default is 'unique_id'.
     """
 
     def __init__(
@@ -617,7 +566,7 @@ class HierarchicalPlot:
         constraints matrix $\mathbf{S}$.
 
         Returns:
-            fig: matplotlib.figure.Figure, figure object containing the plot of the summing matrix.
+            matplotlib.figure.Figure: figure object containing the plot of the summing matrix.
         """
         fig = plt.figure(num=1, figsize=(4, 6), dpi=80, facecolor="w")
         plt.spy(self.S[self.S_cols_ex_id_col].to_numpy())
@@ -637,17 +586,17 @@ class HierarchicalPlot:
         """Single Series plot
 
         Args:
-            series: str, string identifying the `'unique_id'` any-level series to plot.
-            Y_df: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
+            series (str): string identifying the `'unique_id'` any-level series to plot.
+            Y_df (Frame): hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                     It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`.
-            models: list[str], string identifying filtering model columns.
-            level: float list 0-100, confidence levels for prediction intervals available in `Y_df`.
-            id_col: str='unique_id', column that identifies each serie.
-            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
-            target_col: str='y', column that contains the target.
+            models (Optional[list[str]], optional): string identifying filtering model columns. Default is None.
+            level (Optional[list[int]], optional): confidence levels for prediction intervals available in `Y_df`. Default is None.
+            id_col (str, optional): column that identifies each serie. Default is 'unique_id'.
+            time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
+            target_col (str, optional): column that contains the target. Default is 'y'.
 
         Returns:
-            fig: matplotlib.figure.Figure, figure object containing the plot of the single series.
+            matplotlib.figure.Figure: figure object containing the plot of the single series.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -719,17 +668,17 @@ class HierarchicalPlot:
         """Hierarchically Linked Series plot
 
         Args:
-            bottom_series: str, string identifying the `'unique_id'` bottom-level series to plot.
-            Y_df: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
+            bottom_series (str): string identifying the `'unique_id'` bottom-level series to plot.
+            Y_df (Frame): hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                     It contains columns ['unique_id', 'ds', 'y'] and models.
-            models: list[str], string identifying filtering model columns.
-            level: float list 0-100, confidence levels for prediction intervals available in `Y_df`.
-            id_col: str='unique_id', column that identifies each serie.
-            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
-            target_col: str='y', column that contains the target.
+            models (Optional[list[str]], optional): string identifying filtering model columns. Default is None.
+            level (Optional[list[int]], optional): confidence levels for prediction intervals available in `Y_df`. Default is None.
+            id_col (str, optional): column that identifies each serie. Default is 'unique_id'.
+            time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
+            target_col (str, optional): column that contains the target. Default is 'y'.
 
         Returns:
-            fig: matplotlib.figure.Figure, figure object containing the plots of the hierarchilly linked series.
+            matplotlib.figure.Figure: figure object containing the plots of the hierarchilly linked series.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -815,17 +764,17 @@ class HierarchicalPlot:
         """Hierarchically Predictions Gap plot
 
         Args:
-            Y_df: DataFrame, hierarchically structured series ($\mathbf{y}_{[a,b]}$).
+            Y_df (Frame): hierarchically structured series ($\mathbf{y}_{[a,b]}$).
                     It contains columns ['unique_id', 'ds', 'y'] and models.
-            models: list[str], string identifying filtering model columns.
-            xlabel: str, string for the plot's x axis label.
-            ylabel: str, string for the plot's y axis label.
-            id_col: str='unique_id', column that identifies each serie.
-            time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
-            target_col: str='y', column that contains the target.
+            models (Optional[list[str]], optional): string identifying filtering model columns. Default is None.
+            xlabel (Optional[str], optional): string for the plot's x axis label. Default is None.
+            ylabel (Optional[str], optional): string for the plot's y axis label. Default is None.
+            id_col (str, optional): column that identifies each serie. Default is 'unique_id'.
+            time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
+            target_col (str, optional): column that contains the target. Default is 'y'.
 
         Returns:
-            fig: matplotlib.figure.Figure, figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
+            matplotlib.figure.Figure: figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -878,10 +827,12 @@ def level_to_outputs(level: list[int]) -> tuple[list[float], list[str]]:
     """Converts list of levels into output names matching StatsForecast and NeuralForecast methods.
 
     Args:
-        level: int list [0,100]. Probability levels for prediction intervals.
+        level (list[int]): Probability levels for prediction intervals [0,100].
 
     Returns:
-        output_names: str list. String list with output column names.
+        tuple[list[float], list[str]]: quantiles and output_names
+            quantiles: quantiles derived from levels.
+            output_names: String list with output column names.
     """
     qs = sum([[50 - l / 2, 50 + l / 2] for l in level], [])
     output_names = sum([[f"-lo-{l}", f"-hi-{l}"] for l in level], [])
@@ -902,10 +853,12 @@ def quantiles_to_outputs(quantiles: list[float]) -> tuple[list[float], list[str]
     """Converts list of quantiles into output names matching StatsForecast and NeuralForecast methods.
 
     Args:
-        quantiles: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
+        quantiles (list[float]): Alternative to level, quantiles to estimate from y distribution [0., 1.].
 
     Returns:
-        output_names: str list. String list with output column names.
+        tuple[list[float], list[str]]: quantiles and output_names
+            quantiles: quantiles to estimate from y distribution.
+            output_names: String list with output column names.
     """
     output_names = []
     for q in quantiles:
@@ -936,19 +889,20 @@ def samples_to_quantiles_df(
     Auxiliary function to create compatible HierarchicalForecast input `Y_hat_df` dataframe.
 
     Args:
-        samples: numpy array. Samples from forecast distribution of shape [n_series, n_samples, horizon].
-        unique_ids: string list. Unique identifiers for each time series.
-        dates: datetime list. list of forecast dates.
-        quantiles: float list in [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
-        level: int list in [0,100]. Probability levels for prediction intervals.
-        model_name: string. Name of forecasting model.
-        id_col: str='unique_id', column that identifies each serie.
-        time_col: str='ds', column that identifies each timestep, its values can be timestamps or integers.
-        backend: str='pandas', backend to use for the output dataframe, either 'pandas' or 'polars'.
+        samples (np.ndarray): Samples from forecast distribution of shape [n_series, n_samples, horizon].
+        unique_ids (Sequence[str]): Unique identifiers for each time series.
+        dates (list[str]): list of forecast dates.
+        quantiles (Optional[list[float]], optional): Alternative to level, quantiles to estimate from y distribution [0., 1.]. Default is None.
+        level (Optional[list[int]], optional): Probability levels for prediction intervals [0,100]. Default is None.
+        model_name (str, optional): Name of forecasting model. Default is "model".
+        id_col (str, optional): column that identifies each serie. Default is 'unique_id'.
+        time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
+        backend (str, optional): backend to use for the output dataframe, either 'pandas' or 'polars'. Default is 'pandas'.
 
     Returns:
-        quantiles: float list in [0., 1.]. quantiles to estimate from y distribution.
-        Y_hat_df: DataFrame. With base quantile forecasts with columns ds and models to reconcile indexed by unique_id.
+        tuple[list[float], FrameT]: quantiles and Y_hat_df
+            quantiles: quantiles to estimate from y distribution [0., 1.].
+            Y_hat_df: DataFrame with base quantile forecasts with columns ds and models to reconcile indexed by unique_id.
     """
 
     # Get the shape of the array
