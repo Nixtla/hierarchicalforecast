@@ -17,11 +17,17 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Build docs
+      - name: Install dependencies
         run: |
           pip install . lazydocs
-          lazydocs .hierarchicalforecast
-          python docs/to_mdx.py
+
+      # setup quarto for rendering example/tutorial nbs
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.4.515
+
+      - name: Build Docs
+        run: make all_docs
 
       - name: Deploy
         if: github.event_name == 'push'
