@@ -25,6 +25,47 @@
       "pages": ["index"]
     },
     {
+      "group": "Getting Started",
+      "pages": [
+        "examples/Installation",
+        "examples/TourismSmall",
+        "examples/TourismSmallPolars",
+        "examples/Introduction"
+      ]
+    },
+    {
+      "group": "Tutorials",
+      "pages": [
+        {
+          "group": "Point Reconciliation",
+          "pages": [
+            "examples/AustralianDomesticTourism",
+            "examples/AustralianPrisonPopulation",
+            "examples/NonNegativeReconciliation"
+          ]
+        },
+        {
+          "group": "Probabilistic Reconciliation",
+          "pages": [
+            "examples/AustralianDomesticTourism-Intervals",
+            "examples/AustralianDomesticTourism-Bootstraped-Intervals",
+            "examples/AustralianDomesticTourism-Permbu-Intervals",
+            "examples/TourismLarge-Evaluation"
+          ]
+        },
+        {
+          "group": "Temporal Reconciliation",
+          "pages": [
+            "examples/AustralianDomesticTourismTemporal",
+            "examples/AustralianDomesticTourismCrossTemporal",
+            "examples/M3withThief",
+            "examples/LocalGlobalAggregation"
+          ]
+        },
+        "examples/MLFrameworksExample"
+      ]
+    },
+    {
       "group": "API Reference",
       "pages": [
         "core",
