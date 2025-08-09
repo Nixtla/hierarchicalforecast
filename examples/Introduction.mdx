@@ -19,19 +19,20 @@ for all disaggregate and aggregate series. A natural desire is for those
 predictions to be **“coherent”**, that is, for the bottom series to add
 up precisely to the forecasts of the aggregated series.
 
-<img src="https://github.com/Nixtla/docs/raw/docs/hierarchicalforecast/examples/imgs/hierarchical_motivation1.png?raw=true" />
+<img src="https://raw.githubusercontent.com/Nixtla/hierarchicalforecast/refs/heads/main/nbs/examples/imgs/hierarchical_motivation1.png" />
 
 The above figure shows a simple hierarchical structure where we have
 four bottom-level series, two middle-level series, and the top level
 representing the total aggregation. Its hierarchical aggregations or
 coherency constraints are:
 
-\$\$
-
-y\_{,} = y\_{*{1},}+y*{*{2},}+y*{*{3},}+y*{*{4},} \\ *{\[a\],}=^{}
-\_{\[b\],}=^{}
-
-\$\$
+$$
+y_{\mathrm{Total},\tau} = y_{\beta_{1},\tau}+y_{\beta_{2},\tau}+y_{\beta_{3},\tau}+y_{\beta_{4},\tau} 
+        \qquad \qquad \qquad \qquad \qquad \\
+        \mathbf{y}_{[a],\tau}=\left[y_{\mathrm{Total},\tau},\; y_{\beta_{1},\tau}+y_{\beta_{2},\tau},\;y_{\beta_{3},\tau}+y_{\beta_{4},\tau}\right]^{\intercal} 
+        \qquad
+        \mathbf{y}_{[b],\tau}=\left[ y_{\beta_{1},\tau},\; y_{\beta_{2},\tau},\; y_{\beta_{3},\tau},\; y_{\beta_{4},\tau} \right]^{\intercal}
+$$
 
 Luckily these constraints can be compactly expressed with the following
 matrices:
@@ -72,7 +73,7 @@ aggregations. For example, in Figure 2, the top level is the total
 aggregation of series within a country, the middle level being its
 states and the bottom level its regions.
 
-<img src="https://github.com/Nixtla/docs/raw/docs/hierarchicalforecast/examples/imgs/hierarchical_motivation2.png?raw=true" />
+<img src="https://raw.githubusercontent.com/Nixtla/hierarchicalforecast/refs/heads/main/nbs/examples/imgs/hierarchical_motivation2.png" />
 
 ## 2. Hierarchical Forecast
 
@@ -88,7 +89,9 @@ $\mathbf{\hat{y}}_{[a,b],\tau}$
 Most hierarchical reconciliation methods can be expressed by the
 following transformations:
 
-$$\tilde{\mathbf{y}}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{P}_{[b][a,b]} \hat{\mathbf{y}}_{[a,b],\tau}$$
+$$
+\tilde{\mathbf{y}}_{[a,b],\tau} = \mathbf{S}_{[a,b][b]} \mathbf{P}_{[b][a,b]} \hat{\mathbf{y}}_{[a,b],\tau}
+$$
 
 The HierarchicalForecast library offers a Python collection of
 reconciliation methods, datasets, evaluation and visualization tools for
@@ -118,8 +121,8 @@ aggregations of the series are self evident.
 
 ```python
 # Create Figure 1. synthetic bottom data
-ds = pd.date_range(start='2000-01-01', end='2000-08-01', freq='MS')
-y_base = np.arange(1,9)
+ds = pd.date_range(start="2000-01-01", end="2000-08-01", freq="MS")
+y_base = np.arange(1, 9)
 r1 = y_base * (10**1)
 r2 = y_base * (10**1)
 r3 = y_base * (10**2)
@@ -127,18 +130,20 @@ r4 = y_base * (10**2)
 
 ys = np.concatenate([r1, r2, r3, r4])
 ds = np.tile(ds, 4)
-unique_ids = ['r1'] * 8 + ['r2'] * 8 + ['r3'] * 8 + ['r4'] * 8
-top_level = 'Australia'
-middle_level = ['State1'] * 16 + ['State2'] * 16
+unique_ids = ["r1"] * 8 + ["r2"] * 8 + ["r3"] * 8 + ["r4"] * 8
+top_level = "Australia"
+middle_level = ["State1"] * 16 + ["State2"] * 16
 bottom_level = unique_ids
 
-bottom_df = dict(ds=ds,
-                 top_level=top_level, 
-                 middle_level=middle_level, 
-                 bottom_level=bottom_level,
-                 y=ys)
+bottom_df = dict(
+    ds=ds,
+    top_level=top_level,
+    middle_level=middle_level,
+    bottom_level=bottom_level,
+    y=ys,
+)
 bottom_df = pd.DataFrame(bottom_df)
-bottom_df.groupby('bottom_level').head(2)
+bottom_df.groupby("bottom_level").head(2)
 ```
 
 |     | ds         | top_level | middle_level | bottom_level | y   |
@@ -169,13 +174,15 @@ from hierarchicalforecast.utils import aggregate
 
 ```python
 # Create hierarchical structure and constraints
-hierarchy_levels = [['top_level'],
-                    ['top_level', 'middle_level'],
-                    ['top_level', 'middle_level', 'bottom_level']]
+hierarchy_levels = [
+    ["top_level"],
+    ["top_level", "middle_level"],
+    ["top_level", "middle_level", "bottom_level"],
+]
 Y_hier_df, S_df, tags = aggregate(df=bottom_df, spec=hierarchy_levels)
-print('S_df.shape', S_df.shape)
-print('Y_hier_df.shape', Y_hier_df.shape)
-print("tags['top_level']", tags['top_level'])
+print("S_df.shape", S_df.shape)
+print("Y_hier_df.shape", Y_hier_df.shape)
+print("tags['top_level']", tags["top_level"])
 ```
 
 ``` text
@@ -185,7 +192,7 @@ tags['top_level'] ['Australia']
 ```
 
 ```python
-Y_hier_df.groupby('unique_id').head(2)
+Y_hier_df.groupby("unique_id").head(2)
 ```
 
 |     | unique_id           | ds         | y   |
@@ -234,13 +241,12 @@ from statsforecast.core import StatsForecast
 
 ```python
 # Split train/test sets
-Y_test_df  = Y_hier_df.groupby('unique_id', as_index=False).tail(4)
+Y_test_df = Y_hier_df.groupby("unique_id", as_index=False).tail(4)
 Y_train_df = Y_hier_df.drop(Y_test_df.index)
 
 # Compute base Naive predictions
 # Careful identifying correct data freq, this data monthly 'M'
-fcst = StatsForecast(models=[Naive()],
-                     freq='MS', n_jobs=-1)
+fcst = StatsForecast(models=[Naive()], freq="MS", n_jobs=-1)
 Y_hat_df = fcst.forecast(df=Y_train_df, h=4, fitted=True)
 Y_fitted_df = fcst.forecast_fitted_values()
 ```
@@ -255,13 +261,11 @@ from hierarchicalforecast.core import HierarchicalReconciliation
 
 ```python
 # You can select a reconciler from our collection
-reconcilers = [BottomUp()] # MinTrace(method='mint_shrink')
+reconcilers = [BottomUp()]  # MinTrace(method='mint_shrink')
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 
-Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, 
-                          Y_df=Y_fitted_df,
-                          S_df=S_df, tags=tags)
-Y_rec_df.groupby('unique_id').head(2)
+Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_fitted_df, S_df=S_df, tags=tags)
+Y_rec_df.groupby("unique_id").head(2)
 ```
 
 |     | unique_id           | ds         | Naive | Naive/BottomUp |
