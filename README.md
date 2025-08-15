@@ -1,7 +1,7 @@
 # Nixtla &nbsp;[![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlacommunity/shared_invite/zt-1pmhan9j5-F54XR20edHk0UtYAPcW4KQ)
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/imgs_indx/logo_mid.png">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/imgs_indx/logo_mid.png" />
 <h1 align="center">Hierarchical Forecast 👑</h1>
 <h3 align="center">Probabilistic hierarchical forecasting with statistical and econometric methods</h3>
     
@@ -123,7 +123,7 @@ evaluation = evaluate(df = df,
 Here is a link to the [documentation](https://nixtlaverse.nixtla.io/hierarchicalforecast/index.html).
 
 ## 📃 License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE) file for details.
+This project is licensed under the Apache 2.0 License - see the [LICENSE](https://github.com/Nixtla/hierarchicalforecast/blob/main/LICENSE) file for details.
 
 ## 🏟 HTS projects
 In the R ecosystem, we recommend checking out [fable](http://fable.tidyverts.org/), and the now-retired [hts](https://github.com/earowang/hts).
