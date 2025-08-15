@@ -45,7 +45,8 @@
           "pages": [
             "examples/australiandomestictourism.html",
             "examples/australianprisonpopulation.html",
-            "examples/nonnegativereconciliation.html"
+            "examples/nonnegativereconciliation.html",
+            "examples/australiandomestictourism-multimodel.html"
           ]
         },
         {
