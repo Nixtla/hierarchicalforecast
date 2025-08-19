@@ -111,7 +111,7 @@ Generates n samples from a probabilistic coherent distribution. The method uses 
 ## <kbd>class</kbd> `BottomUp`
 Bottom Up Reconciliation Class. 
 
-The most basic hierarchical reconciliation is performed using an Bottom-Up strategy. It was proposed for the first time by Orcutt in 1968. The corresponding hierarchical "projection" matrix is defined as: $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$ 
+The most basic hierarchical reconciliation is performed using an Bottom-Up strategy. It was proposed for the first time by Orcutt in 1968. The corresponding hierarchical "projection" matrix is defined as: $$ \mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}] $$ 
 
 
 
@@ -119,8 +119,7 @@ The most basic hierarchical reconciliation is performed using an Bottom-Up strat
   None 
 
 References: 
-    - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). "Data aggregation and information loss". The American 
- - <b>`Economic Review, 58 , 773(787)](http`</b>: //www.jstor.org/stable/1815532). 
+    - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). "Data aggregation and information loss". The American Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532). 
 
 
 
@@ -447,10 +446,8 @@ $$\mathbf{P}=[\mathbf{p}_{\mathrm{[b]}}\;|\;\mathbf{0}_{\mathrm{[b][a,b\;-1]}}]$
  - <b>`method`</b>:  One of `forecast_proportions`, `average_proportions` and `proportion_averages`. 
 
 References: 
-    - [CW. Gross (1990). "Disaggregation methods to expedite product line forecasting". Journal of Forecasting, 9 , 233–254. 
- - <b>`doi`</b>: 10.1002/for.3980090304](https://onlinelibrary.wiley.com/doi/abs/10.1002/for.3980090304). 
-    - [G. Fliedner (1999). "An investigation of aggregate variable time series forecast strategies with specific subaggregate time series statistical correlation". Computers and Operations Research, 26 , 1133–1149. 
- - <b>`doi`</b>: 10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9). 
+    - [CW. Gross (1990). "Disaggregation methods to expedite product line forecasting". Journal of Forecasting, 9 , 233-254. doi:10.1002/for.3980090304](https://onlinelibrary.wiley.com/doi/abs/10.1002/for.3980090304). 
+    - [G. Fliedner (1999). "An investigation of aggregate variable time series forecast strategies with specific subaggregate time series statistical correlation". Computers and Operations Research, 26 , 1133-1149. doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9). 
 
 
 
@@ -780,9 +777,7 @@ This method is only available for **strictly hierarchical structures**. It ancho
  - <b>`top_down_method`</b>:  One of `forecast_proportions`, `average_proportions` and `proportion_averages`. 
 
 References: 
-    - [Hyndman, R.J., & Athanasopoulos, G. (2021). "Forecasting: principles and practice, 3rd edition: 
- - <b>`Chapter 11`</b>:  Forecasting hierarchical and grouped series.". OTexts: Melbourne, Australia. OTexts.com/fpp3 
- - <b>`Accessed on July 2022.](https`</b>: //otexts.com/fpp3/hierarchical.html) 
+    - [Hyndman, R.J., & Athanasopoulos, G. (2021). "Forecasting: principles and practice, 3rd edition: Chapter 11: Forecasting hierarchical and grouped series". OTexts: Melbourne, Australia. OTexts.com/fpp3. Accessed on July 2022.](https://otexts.com/fpp3/hierarchical.html) 
 
 
 
@@ -1025,10 +1020,8 @@ $$ \mathbf{P}_{\text{MinT}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}
  - <b>`num_threads`</b>:  int=1, number of threads to use for solving the optimization problems (when nonnegative=True). 
 
 References: 
-    - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). "Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization". Journal of the American Statistical Association, 
- - <b>`114 , 804–819. doi`</b>: 10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/). 
-    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167–1182, 
- - <b>`https`</b>: //doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/). 
+    - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). "Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization". Journal of the American Statistical Association, 114 , 804-819. doi:10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/). 
+    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182. https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/). 
 
 
 
@@ -1202,11 +1195,18 @@ Generates n samples from a probabilistic coherent distribution. The method uses 
 ## <kbd>class</kbd> `MinTraceSparse`
 MinTraceSparse Reconciliation Class. 
 
-This is the implementation of OLS and WLS estimators using sparse matrices. It is not guaranteed to give identical results to the non-sparse version, but works much more efficiently on data sets with many time series.<br/> 
+This is the implementation of OLS and WLS estimators using sparse matrices. It is not guaranteed to give identical results to the non-sparse version, but works much more efficiently on data sets with many time series. 
 
-See the parent class for more details.<br/> 
+See the parent class for more details. 
 
-**Parameters:**<br/> `method`: str, one of `ols`, `wls_struct`, or `wls_var`.<br/> `nonnegative`: bool, return non-negative reconciled forecasts.<br/> `num_threads`: int, number of threads to execute non-negative quadratic programming calls.<br/> `qp`: bool, implement non-negativity constraint with a quadratic programming approach. Setting this to True generally gives better results, but at the expense of higher cost to compute. <br/> 
+
+
+**Args:**
+ 
+ - <b>`method`</b> (str):  One of `ols`, `wls_struct`, or `wls_var`. 
+ - <b>`nonnegative`</b> (bool):  Return non-negative reconciled forecasts. 
+ - <b>`num_threads`</b> (int):  Number of threads to execute non-negative quadratic programming calls. 
+ - <b>`qp`</b> (bool):  Implement non-negativity constraint with a quadratic programming approach. Setting this to True generally gives better results, but at the expense of higher cost to compute. 
 
 
 
@@ -1390,12 +1390,9 @@ This reconciliation algorithm was proposed by Hyndman et al. 2011, the method us
  - <b>`nonnegative`</b>:  bool, reconciled forecasts should be nonnegative? 
 
 References: 
-    - [Rob J. Hyndman, Roman A. Ahmed, George Athanasopoulos, Han Lin Shang (2010). "Optimal Combination Forecasts for 
- - <b>`Hierarchical Time Series".](https`</b>: //robjhyndman.com/papers/Hierarchical6.pdf). 
-    - [Shanika L. Wickramasuriya, George Athanasopoulos and Rob J. Hyndman (2010). "Optimal Combination Forecasts for 
- - <b>`Hierarchical Time Series".](https`</b>: //robjhyndman.com/papers/MinT.pdf). 
-    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167–1182, 
- - <b>`https`</b>: //doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/). 
+    - [Rob J. Hyndman, Roman A. Ahmed, George Athanasopoulos, Han Lin Shang (2010). "Optimal Combination Forecasts for Hierarchical Time Series".](https://robjhyndman.com/papers/Hierarchical6.pdf). 
+    - [Shanika L. Wickramasuriya, George Athanasopoulos and Rob J. Hyndman (2010). "Optimal Combination Forecasts for Hierarchical Time Series".](https://robjhyndman.com/papers/MinT.pdf). 
+    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182. https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/). 
 
 
 
@@ -1578,8 +1575,7 @@ The alternative Lasso regularized $\mathbf{P}$ solution (`method='reg_bu'`) is u
  - <b>`lambda_reg`</b>:  float, l1 regularizer for `reg` and `reg_bu`. 
 
 References: 
-    - [Ben Taieb, S., & Koo, B. (2019). Regularized regression for hierarchical forecasting without unbiasedness conditions. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge 
- - <b>`Discovery & Data Mining KDD ’19 (p. 1337-1347). New York, NY, USA`</b>:  Association for Computing Machinery.](https://doi.org/10.1145/3292500.3330976). 
+    - [Ben Taieb, S., & Koo, B. (2019). Regularized regression for hierarchical forecasting without unbiasedness conditions. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining KDD '19 (p. 1337-1347). New York, NY, USA: Association for Computing Machinery.](https://doi.org/10.1145/3292500.3330976). 
 
 
 
