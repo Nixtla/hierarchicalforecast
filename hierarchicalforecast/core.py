@@ -101,6 +101,7 @@ class HierarchicalReconciliation:
 
     References:
         - [Rob J. Hyndman and George Athanasopoulos (2018). "Forecasting principles and practice, Hierarchical and Grouped Series"](https://otexts.com/fpp3/hierarchical.html).
+
     """
 
     def __init__(self, reconcilers: list[HReconciler]):
