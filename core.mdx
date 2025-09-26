@@ -16,16 +16,16 @@
 ## <kbd>class</kbd> `HierarchicalReconciliation`
 Hierarchical Reconciliation Class. 
 
-The `core.HierarchicalReconciliation` class allows you to efficiently fit multiple HierarchicaForecast methods for a collection of time series and base predictions stored in pandas DataFrames. The `Y_df` dataframe identifies series and datestamps with the unique_id and ds columns while the y column denotes the target time series variable. The `Y_h` dataframe stores the base predictions, example ([AutoARIMA](https://nixtlaverse.nixtla.io/statsforecast/docs/models/AutoARIMA#autoarima-model), [ETS](https://nixtlaverse.nixtla.io/statsforecast/docs/models/AutoETS#autoets-model), etc.). 
+The `core.HierarchicalReconciliation` class allows you to efficiently fit multiple HierarchicaForecast methods for a collection of time series and base predictions stored in pandas DataFrames. The `Y_df` dataframe identifies series and datestamps with the unique_id and ds columns while the y column denotes the target time series variable. The `Y_h` dataframe stores the base predictions, example ([AutoARIMA](../../../statsforecast/docs/models/AutoARIMA#autoarima-model), [ETS](../../../statsforecast/docs/models/AutoETS#autoets-model), etc.). 
 
 
 
 **Args:**
  
- - <b>`reconcilers`</b> (list[HReconciler]):  A list of instantiated classes of the [reconciliation methods](https://nixtlaverse.nixtla.io/hierarchicalforecast/docs/methods) module. 
+    - reconcilers (list[HReconciler]): A list of instantiated classes of the [reconciliation methods](./methods) module. 
 
 References: 
- - <b>`[Rob J. Hyndman and George Athanasopoulos (2018). "Forecasting principles and practice, Hierarchical and Grouped Series".](https`</b>: //otexts.com/fpp3/hierarchical.html) 
+    - [Rob J. Hyndman and George Athanasopoulos (2018). "Forecasting principles and practice, Hierarchical and Grouped Series"](https://otexts.com/fpp3/hierarchical.html). 
 
 
 
@@ -73,7 +73,7 @@ Applies N times, based on different random seeds, the `reconcile` method for the
 **Args:**
  
  - <b>`Y_hat_df`</b> (Frame):  DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. 
- - <b>`S_df`</b> (Frame):  DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtlaverse.nixtla.io/hierarchicalforecast/utils#function-aggregate). 
+ - <b>`S_df`</b> (Frame):  DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). 
  - <b>`tags`</b> (dict[str, np.ndarray]):  Each key is a level and its value contains tags associated to that level. 
  - <b>`Y_df`</b> (Optional[Frame], optional):  DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.  If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. 
  - <b>`level`</b> (Optional[list[int]], optional):  positive float list [0,100), confidence levels for prediction intervals. Default is None. 
@@ -132,7 +132,7 @@ where $a, b$ represent the aggregate and bottom levels, $\mathbf{S}_{[a,b][b]}$ 
  
  - <b>`Y_hat_df`</b> (Frame):  DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. 
  - <b>`tags`</b> (dict[str, np.ndarray]):  Each key is a level and its value contains tags associated to that level. 
- - <b>`S_df`</b> (Frame, optional):  DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](https://nixtlaverse.nixtla.io/hierarchicalforecast/utils#function-aggregate). Default is None. 
+ - <b>`S_df`</b> (Frame, optional):  DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). Default is None. 
  - <b>`Y_df`</b> (Optional[Frame], optional):  DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.  If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. 
  - <b>`level`</b> (Optional[list[int]], optional):  positive float list [0,100), confidence levels for prediction intervals. Default is None. 
  - <b>`intervals_method`</b> (str, optional):  method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". 
