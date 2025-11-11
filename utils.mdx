@@ -1,0 +1,498 @@
+
+
+
+
+# <kbd>module</kbd> `hierarchicalforecast.utils`
+
+
+
+
+**Global Variables**
+---------------
+- **NUMBA_NOGIL**
+- **NUMBA_CACHE**
+- **NUMBA_PARALLEL**
+- **NUMBA_FASTMATH**
+
+---
+
+
+
+## <kbd>function</kbd> `is_strictly_hierarchical`
+
+```python
+is_strictly_hierarchical(S: ndarray, tags: dict[str, ndarray]) → bool
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `aggregate`
+
+```python
+aggregate(
+    df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    spec: list[list[str]],
+    exog_vars: Optional[dict[str, Union[str, list[str]]]] = None,
+    sparse_s: bool = False,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    id_time_col: Optional[str] = None,
+    target_cols: Sequence[str] = ('y',)
+) → tuple[~FrameT, ~FrameT, dict]
+```
+
+Utils Aggregation Function. 
+
+Aggregates bottom level series contained in the DataFrame `df` according to levels defined in the `spec` list. 
+
+
+
+**Args:**
+ 
+ - <b>`df`</b> (Frame):  Dataframe with columns `[time_col, *target_cols]`, columns to aggregate and optionally exog_vars. 
+ - <b>`spec`</b> (list[list[str]]):  list of levels. Each element of the list should contain a list of columns of `df` to aggregate. 
+ - <b>`exog_vars`</b> (Optional[dict[str, Union[str, list[str]]]], optional):  dictionary of string keys & values that can either be a list of strings or a single string  keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. 
+ - <b>`sparse_s`</b> (bool, optional):  Return `S_df` as a sparse Pandas dataframe. Default is False. 
+ - <b>`id_col`</b> (str, optional):  Column that will identify each serie after aggregation. Default is "unique_id". 
+ - <b>`time_col`</b> (str, optional):  Column that identifies each timestep, its values can be timestamps or integers. Default is "ds". 
+ - <b>`id_time_col`</b> (Optional[str], optional):  Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally. Default is None. 
+ - <b>`target_cols`</b> (Sequence[str], optional):  list of columns that contains the targets to aggregate. Default is ("y",). 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple[FrameT, FrameT, dict]`</b>:  Y_df, S_df, tags 
+ - <b>`Y_df`</b>:  Hierarchically structured series. 
+ - <b>`S_df`</b>:  Summing dataframe. 
+ - <b>`tags`</b>:  Aggregation indices. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `aggregate_temporal`
+
+```python
+aggregate_temporal(
+    df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    spec: dict[str, int],
+    exog_vars: Optional[dict[str, Union[str, list[str]]]] = None,
+    sparse_s: bool = False,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    id_time_col: str = 'temporal_id',
+    target_cols: Sequence[str] = ('y',),
+    aggregation_type: str = 'local'
+) → tuple[~FrameT, ~FrameT, dict]
+```
+
+Utils Aggregation Function for Temporal aggregations. 
+
+Aggregates bottom level timesteps contained in the DataFrame `df` according to temporal levels defined in the `spec` list. 
+
+
+
+**Args:**
+ 
+ - <b>`df`</b> (Frame):  Dataframe with columns `[time_col, target_cols]` and columns to aggregate. 
+ - <b>`spec`</b> (dict[str, int]):  Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation. 
+ - <b>`exog_vars`</b> (Optional[dict[str, Union[str, list[str]]]], optional):  dictionary of string keys & values that can either be a list of strings or a single string  keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. 
+ - <b>`sparse_s`</b> (bool, optional):  Return `S_df` as a sparse Pandas dataframe. Default is False. 
+ - <b>`id_col`</b> (str, optional):  Column that will identify each serie after aggregation. Default is 'unique_id'. 
+ - <b>`time_col`</b> (str, optional):  Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. 
+ - <b>`id_time_col`</b> (str, optional):  Column that will identify each timestep after aggregation. Default is 'temporal_id'. 
+ - <b>`target_cols`</b> (Sequence[str], optional):  List of columns that contain the targets to aggregate. Default is ('y',). 
+ - <b>`aggregation_type`</b> (str, optional):  If 'local' the aggregation will be performed on the timestamps of each timeseries independently. If 'global' the aggregation will be performed on the unique timestamps of all timeseries. Default is 'local'. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple[FrameT, FrameT, dict]`</b>:  Y_df, S_df, tags 
+ - <b>`Y_df`</b>:  Temporally hierarchically structured series. 
+ - <b>`S_df`</b>:  Temporal summing dataframe. 
+ - <b>`tags`</b>:  Temporal aggregation indices. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `make_future_dataframe`
+
+```python
+make_future_dataframe(
+    df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    freq: Union[str, int],
+    h: int,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds'
+) → ~FrameT
+```
+
+Create future dataframe for forecasting. 
+
+
+
+**Args:**
+ 
+ - <b>`df`</b> (Frame):  Dataframe with ids, times and values for the exogenous regressors. 
+ - <b>`freq`</b> (Union[str, int]):  Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. 
+ - <b>`h`</b> (int):  Forecast horizon. 
+ - <b>`id_col`</b> (str, optional):  Column that identifies each serie. Default is 'unique_id'. 
+ - <b>`time_col`</b> (str, optional):  Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. 
+
+
+
+**Returns:**
+ 
+ - <b>`FrameT`</b>:  DataFrame with future values. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_cross_temporal_tags`
+
+```python
+get_cross_temporal_tags(
+    df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    tags_cs: dict[str, ndarray],
+    tags_te: dict[str, ndarray],
+    sep: str = '//',
+    id_col: str = 'unique_id',
+    id_time_col: str = 'temporal_id',
+    cross_temporal_id_col: str = 'cross_temporal_id'
+) → tuple[~FrameT, dict[str, ndarray]]
+```
+
+Get cross-temporal tags. 
+
+
+
+**Args:**
+ 
+ - <b>`df`</b> (Frame):  DataFrame with temporal ids. 
+ - <b>`tags_cs`</b> (dict[str, np.ndarray]):  Tags for the cross-sectional hierarchies. 
+ - <b>`tags_te`</b> (dict[str, np.ndarray]):  Tags for the temporal hierarchies. 
+ - <b>`sep`</b> (str, optional):  Separator for the cross-temporal tags. Default is "//". 
+ - <b>`id_col`</b> (str, optional):  Column that identifies each serie. Default is 'unique_id'. 
+ - <b>`id_time_col`</b> (str, optional):  Column that identifies each (aggregated) timestep. Default is 'temporal_id'. 
+ - <b>`cross_temporal_id_col`</b> (str, optional):  Column that will identify each cross-temporal aggregation. Default is 'cross_temporal_id'. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple[FrameT, dict[str, np.ndarray]]`</b>:  df, tags_ct 
+ - <b>`df`</b>:  DataFrame with cross-temporal ids. 
+ - <b>`tags_ct`</b>:  Tags for the cross-temporal hierarchies. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `level_to_outputs`
+
+```python
+level_to_outputs(level: list[int]) → tuple[list[float], list[str]]
+```
+
+Converts list of levels into output names matching StatsForecast and NeuralForecast methods. 
+
+
+
+**Args:**
+ 
+ - <b>`level`</b> (list[int]):  Probability levels for prediction intervals [0,100]. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple[list[float], list[str]]`</b>:  quantiles and output_names 
+ - <b>`quantiles`</b>:  quantiles derived from levels. 
+ - <b>`output_names`</b>:  String list with output column names. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `quantiles_to_outputs`
+
+```python
+quantiles_to_outputs(quantiles: list[float]) → tuple[list[float], list[str]]
+```
+
+Converts list of quantiles into output names matching StatsForecast and NeuralForecast methods. 
+
+
+
+**Args:**
+ 
+ - <b>`quantiles`</b> (list[float]):  Alternative to level, quantiles to estimate from y distribution [0., 1.]. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple[list[float], list[str]]`</b>:  quantiles and output_names 
+ - <b>`quantiles`</b>:  quantiles to estimate from y distribution. 
+ - <b>`output_names`</b>:  String list with output column names. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `samples_to_quantiles_df`
+
+```python
+samples_to_quantiles_df(
+    samples: ndarray,
+    unique_ids: Sequence[str],
+    dates: list[str],
+    quantiles: Optional[list[float]] = None,
+    level: Optional[list[int]] = None,
+    model_name: str = 'model',
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    backend: str = 'pandas'
+) → tuple[list[float], ~FrameT]
+```
+
+Transform Random Samples into HierarchicalForecast input. 
+
+Auxiliary function to create compatible HierarchicalForecast input `Y_hat_df` dataframe. 
+
+
+
+**Args:**
+ 
+ - <b>`samples`</b> (np.ndarray):  Samples from forecast distribution of shape [n_series, n_samples, horizon]. 
+ - <b>`unique_ids`</b> (Sequence[str]):  Unique identifiers for each time series. 
+ - <b>`dates`</b> (list[str]):  list of forecast dates. 
+ - <b>`quantiles`</b> (Optional[list[float]], optional):  Alternative to level, quantiles to estimate from y distribution [0., 1.]. Default is None. 
+ - <b>`level`</b> (Optional[list[int]], optional):  Probability levels for prediction intervals [0,100]. Default is None. 
+ - <b>`model_name`</b> (str, optional):  Name of forecasting model. Default is "model". 
+ - <b>`id_col`</b> (str, optional):  column that identifies each serie. Default is 'unique_id'. 
+ - <b>`time_col`</b> (str, optional):  column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. 
+ - <b>`backend`</b> (str, optional):  backend to use for the output dataframe, either 'pandas' or 'polars'. Default is 'pandas'. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple[list[float], FrameT]`</b>:  quantiles and Y_hat_df 
+ - <b>`quantiles`</b>:  quantiles to estimate from y distribution [0., 1.]. 
+ - <b>`Y_hat_df`</b>:  DataFrame with base quantile forecasts with columns ds and models to reconcile indexed by unique_id. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `CodeTimer`
+
+
+
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(name=None, verbose=True)
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `HierarchicalPlot`
+Hierarchical Plot 
+
+This class contains a collection of matplotlib visualization methods, suited for small to medium sized hierarchical series. 
+
+
+
+**Args:**
+ 
+ - <b>`S`</b> (Frame):  DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](./utils#function-aggregate). 
+ - <b>`tags`</b> (dict[str, np.ndarray]):  hierarchical aggregation indexes, where  each key is a level and its value contains tags associated to that level. 
+ - <b>`S_id_col`</b> (str, optional):  column that identifies each aggregation. Default is 'unique_id'. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    S: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    tags: dict[str, ndarray],
+    S_id_col: str = 'unique_id'
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `plot_hierarchical_predictions_gap`
+
+```python
+plot_hierarchical_predictions_gap(
+    Y_df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    models: Optional[list[str]] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    target_col: str = 'y'
+)
+```
+
+Hierarchically Predictions Gap plot 
+
+
+
+**Args:**
+ 
+ - <b>`Y_df`</b> (Frame):  hierarchically structured series ($\mathbf{y}_{[a,b]}$).  It contains columns ['unique_id', 'ds', 'y'] and models. 
+ - <b>`models`</b> (Optional[list[str]], optional):  string identifying filtering model columns. Default is None. 
+ - <b>`xlabel`</b> (Optional[str], optional):  string for the plot's x axis label. Default is None. 
+ - <b>`ylabel`</b> (Optional[str], optional):  string for the plot's y axis label. Default is None. 
+ - <b>`id_col`</b> (str, optional):  column that identifies each serie. Default is 'unique_id'. 
+ - <b>`time_col`</b> (str, optional):  column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. 
+ - <b>`target_col`</b> (str, optional):  column that contains the target. Default is 'y'. 
+
+
+
+**Returns:**
+ 
+ - <b>`matplotlib.figure.Figure`</b>:  figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure. 
+
+---
+
+
+
+### <kbd>method</kbd> `plot_hierarchically_linked_series`
+
+```python
+plot_hierarchically_linked_series(
+    bottom_series: str,
+    Y_df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    models: Optional[list[str]] = None,
+    level: Optional[list[int]] = None,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    target_col: str = 'y'
+)
+```
+
+Hierarchically Linked Series plot 
+
+
+
+**Args:**
+ 
+ - <b>`bottom_series`</b> (str):  string identifying the `'unique_id'` bottom-level series to plot. 
+ - <b>`Y_df`</b> (Frame):  hierarchically structured series ($\mathbf{y}_{[a,b]}$).  It contains columns ['unique_id', 'ds', 'y'] and models. 
+ - <b>`models`</b> (Optional[list[str]], optional):  string identifying filtering model columns. Default is None. 
+ - <b>`level`</b> (Optional[list[int]], optional):  confidence levels for prediction intervals available in `Y_df`. Default is None. 
+ - <b>`id_col`</b> (str, optional):  column that identifies each serie. Default is 'unique_id'. 
+ - <b>`time_col`</b> (str, optional):  column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. 
+ - <b>`target_col`</b> (str, optional):  column that contains the target. Default is 'y'. 
+
+
+
+**Returns:**
+ 
+ - <b>`matplotlib.figure.Figure`</b>:  figure object containing the plots of the hierarchilly linked series. 
+
+---
+
+
+
+### <kbd>method</kbd> `plot_series`
+
+```python
+plot_series(
+    series: str,
+    Y_df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    models: Optional[list[str]] = None,
+    level: Optional[list[int]] = None,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    target_col: str = 'y'
+)
+```
+
+Single Series plot 
+
+
+
+**Args:**
+ 
+ - <b>`series`</b> (str):  string identifying the `'unique_id'` any-level series to plot. 
+ - <b>`Y_df`</b> (Frame):  hierarchically structured series ($\mathbf{y}_{[a,b]}$).  It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`. 
+ - <b>`models`</b> (Optional[list[str]], optional):  string identifying filtering model columns. Default is None. 
+ - <b>`level`</b> (Optional[list[int]], optional):  confidence levels for prediction intervals available in `Y_df`. Default is None. 
+ - <b>`id_col`</b> (str, optional):  column that identifies each serie. Default is 'unique_id'. 
+ - <b>`time_col`</b> (str, optional):  column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. 
+ - <b>`target_col`</b> (str, optional):  column that contains the target. Default is 'y'. 
+
+
+
+**Returns:**
+ 
+ - <b>`matplotlib.figure.Figure`</b>:  figure object containing the plot of the single series. 
+
+---
+
+
+
+### <kbd>method</kbd> `plot_summing_matrix`
+
+```python
+plot_summing_matrix()
+```
+
+Summation Constraints plot 
+
+This method simply plots the hierarchical aggregation constraints matrix $\mathbf{S}$. 
+
+
+
+**Returns:**
+ 
+ - <b>`matplotlib.figure.Figure`</b>:  figure object containing the plot of the summing matrix. 
+
+
