@@ -1,0 +1,404 @@
+
+
+
+
+# <kbd>module</kbd> `hierarchicalforecast.evaluation`
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `mse`
+
+```python
+mse(
+    y: ndarray,
+    y_hat: ndarray,
+    weights: Optional[ndarray] = None,
+    axis: Optional[int] = None
+) → Union[float, ndarray]
+```
+
+Mean Squared Error 
+
+Calculates Mean Squared Error between `y` and `y_hat`. MSE measures the relative prediction accuracy of a forecasting method by calculating the squared deviation of the prediction and the true value at a given time, and averages these devations over the length of the series. 
+
+$$ \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`y`</b> (np.ndarray):  numpy array, Actual values. 
+ - <b>`y_hat`</b> (np.ndarray):  numpy array, Predicted values. 
+ - <b>`weights`</b> (Optional[np.ndarray], optional):  numpy array, Specifies date stamps per serie to consider in loss. Default is None. 
+ - <b>`axis`</b> (Optional[int], optional):  Axis along which to compute the metric. Default is None. 
+
+
+
+**Returns:**
+ 
+ - <b>`Union[float, np.ndarray]`</b>:  numpy array, (single value). 
+
+
+---
+
+
+
+## <kbd>function</kbd> `mqloss`
+
+```python
+mqloss(
+    y: ndarray,
+    y_hat: ndarray,
+    quantiles: ndarray,
+    weights: Optional[ndarray] = None,
+    axis: Optional[int] = None
+) → Union[float, ndarray]
+```
+
+Multi-Quantile Loss 
+
+Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`. MQL calculates the average multi-quantile Loss for a given set of quantiles, based on the absolute difference between predicted quantiles and observed values. 
+
+$$ \mathrm{MQL}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) $$ 
+
+The limit behavior of MQL allows to measure the accuracy of a full predictive distribution $\mathbf{\hat{F}}_{\tau}$ with the continuous ranked probability score (CRPS). This can be achieved through a numerical integration technique, that discretizes the quantiles and treats the CRPS integral with a left Riemann approximation, averaging over uniformly distanced quantiles. 
+
+$$ \mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq $$ 
+
+
+
+**Args:**
+ 
+ - <b>`y`</b> (np.ndarray):  numpy array, Actual values. 
+ - <b>`y_hat`</b> (np.ndarray):  numpy array, Predicted values. 
+ - <b>`quantiles`</b> (np.ndarray):  numpy array. Quantiles between 0 and 1, to perform evaluation upon size (n_quantiles). 
+ - <b>`weights`</b> (Optional[np.ndarray], optional):  numpy array, Specifies date stamps per serie to consider in loss. Default is None. 
+ - <b>`axis`</b> (Optional[int], optional):  Axis along which to compute the metric. Default is None. 
+
+
+
+**Returns:**
+ 
+ - <b>`Union[float, np.ndarray]`</b>:  numpy array, (single value). 
+
+References: 
+    - [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643) 
+    - [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907) 
+
+
+---
+
+
+
+## <kbd>function</kbd> `rel_mse`
+
+```python
+rel_mse(y, y_hat, y_train, mask=None)
+```
+
+Relative Mean Squared Error 
+
+Computes Relative mean squared error (RelMSE), as proposed by Hyndman & Koehler (2006) as an alternative to percentage errors, to avoid measure unstability. 
+
+$$ \mathrm{RelMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{naive1}) = \frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{naive1})} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`y`</b> (np.ndarray):  numpy array, Actual values of size (`n_series`, `horizon`). 
+ - <b>`y_hat`</b> (np.ndarray):  numpy array, Predicted values (`n_series`, `horizon`). 
+ - <b>`y_train`</b> (np.ndarray):  numpy array, Training values. 
+ - <b>`mask`</b> (Optional[np.ndarray], optional):  numpy array, Specifies date stamps per serie to consider in loss. Default is None. 
+
+
+
+**Returns:**
+ 
+ - <b>`float`</b>:  loss. 
+
+References: 
+    - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy". International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239) 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures". International Journal of Forecasting, Volume 40, Issue 2.](https://www.sciencedirect.com/science/article/pii/S0169207023000432) 
+
+
+---
+
+
+
+## <kbd>function</kbd> `msse`
+
+```python
+msse(y, y_hat, y_train, mask=None)
+```
+
+Mean Squared Scaled Error 
+
+Computes Mean squared scaled error (MSSE), as proposed by Hyndman & Koehler (2006) as an alternative to percentage errors, to avoid measure unstability. 
+
+$$ \mathrm{MSSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{y}^{in-sample}) = \frac{\frac{1}{h} \sum^{t+h}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^2}{\frac{1}{t-1} \sum^{t}_{\tau=2} (y_{\tau} - y_{\tau-1})^2} $$ 
+
+where $n$ ($n=$`n`) is the size of the training data, and $h$ is the forecasting horizon ($h=$`horizon`). 
+
+
+
+**Args:**
+ 
+ - <b>`y`</b> (np.ndarray):  numpy array, Actual values of size (`n_series`, `horizon`). 
+ - <b>`y_hat`</b> (np.ndarray):  numpy array, Predicted values (`n_series`, `horizon`). 
+ - <b>`y_train`</b> (np.ndarray):  numpy array, Predicted values (`n_series`, `n`). 
+ - <b>`mask`</b> (Optional[np.ndarray], optional):  numpy array, Specifies date stamps per serie to consider in loss. Default is None. 
+
+
+
+**Returns:**
+ 
+ - <b>`float`</b>:  loss. 
+
+References: 
+    - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy". International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239) 
+
+
+---
+
+
+
+## <kbd>function</kbd> `scaled_crps`
+
+```python
+scaled_crps(y, y_hat, quantiles)
+```
+
+Scaled Continues Ranked Probability Score 
+
+Calculates a scaled variation of the CRPS, as proposed by Rangapuram (2021), to measure the accuracy of predicted quantiles `y_hat` compared to the observation `y`. 
+
+This metric averages percentual weighted absolute deviations as defined by the quantile losses. 
+
+$$ \mathrm{sCRPS}(\hat{F}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i} \int^{1}_{0} \frac{\mathrm{QL}(\hat{F}_{i,\tau}, y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq $$ 
+
+where $\hat{F}_{\tau}$ is the an estimated multivariate distribution, and $y_{i,\tau}$ are its realizations. 
+
+
+
+**Args:**
+ 
+ - <b>`y`</b> (np.ndarray):  numpy array, Actual values of size (`n_series`, `horizon`). 
+ - <b>`y_hat`</b> (np.ndarray):  numpy array, Predicted quantiles of size (`n_series`, `horizon`, `n_quantiles`). 
+ - <b>`quantiles`</b> (np.ndarray):  numpy array,(`n_quantiles`). Quantiles to estimate from the distribution of y. 
+
+
+
+**Returns:**
+ 
+ - <b>`float`</b>:  loss. 
+
+References: 
+    - [Gneiting, Tilmann. (2011). "Quantiles as optimal point forecasts". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063) 
+    - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). "The M5 uncertainty competition: Results, findings and conclusions". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722) 
+    - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). "End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series". Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html) 
+
+
+---
+
+
+
+## <kbd>function</kbd> `energy_score`
+
+```python
+energy_score(y, y_sample1, y_sample2, beta=2)
+```
+
+Energy Score 
+
+Calculates Gneiting's Energy Score sample approximation for `y` and independent multivariate samples `y_sample1` and `y_sample2`. The Energy Score generalizes the CRPS (`beta`=1) in the multivariate setting. 
+
+$$ \mathrm{ES}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}_{\tau}') = \frac{1}{2} \mathbb{E}_{\hat{P}} \left[ ||\mathbf{\hat{y}}_{\tau} - \mathbf{\hat{y}}_{\tau}'||^{\beta} \right] -   \mathbb{E}_{\hat{P}} \left[ ||\mathbf{y}_{\tau} - \mathbf{\hat{y}}_{\tau}||^{\beta} \right] \quad \beta \in (0,2] $$ 
+
+where $\mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}_{\tau}'$ are independent samples drawn from $\hat{P}$. 
+
+
+
+**Args:**
+ 
+ - <b>`y`</b> (np.ndarray):  numpy array, Actual values of size (`n_series`, `horizon`). 
+ - <b>`y_sample1`</b> (np.ndarray):  numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`). 
+ - <b>`y_sample2`</b> (np.ndarray):  numpy array, predictive distribution sample of size (`n_series`, `horizon`, `n_samples`). 
+ - <b>`beta`</b> (float, optional):  float in (0,2], defines the energy score's power for the euclidean metric. Default is 2. 
+
+
+
+**Returns:**
+ 
+ - <b>`float`</b>:  score. 
+
+References: 
+    - [Gneiting, Tilmann, and Adrian E. Raftery. (2007). "Strictly proper scoring rules, prediction and estimation". Journal of the American Statistical Association.](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf) 
+    - [Anastasios Panagiotelis, Puwasala Gamakumara, George Athanasopoulos, Rob J. Hyndman. (2022). "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation". European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087) 
+
+
+---
+
+
+
+## <kbd>function</kbd> `log_score`
+
+```python
+log_score(y, y_hat, cov, allow_singular=True)
+```
+
+Log Score. 
+
+One of the simplest multivariate probability scoring rules, it evaluates the negative density at the value of the realisation. 
+
+$$ \mathrm{LS}(\mathbf{y}_{\tau}, \mathbf{P}(\theta_{\tau})) = - \log(f(\mathbf{y}_{\tau}, \theta_{\tau})) $$ 
+
+where $f$ is the density, $\mathbf{P}(\theta_{\tau})$ is a parametric distribution and $f(\mathbf{y}_{\tau}, \theta_{\tau})$ represents its density. For the moment we only support multivariate normal log score. 
+
+$$ f(\mathbf{y}_{\tau}, \theta_{\tau}) = (2\pi )^{-k/2}\det({\boldsymbol{\Sigma }})^{-1/2} \,\exp \left(- {\frac {1}{2}}(\mathbf{y}_{\tau} -\hat{\mathbf{y}}_{\tau})^{\!{\mathsf{T}}} {\boldsymbol{\Sigma }}^{-1} (\mathbf{y}_{\tau} -\hat{\mathbf{y}}_{\tau}) \right) $$ 
+
+
+
+**Args:**
+ 
+ - <b>`y`</b> (np.ndarray):  numpy array, Actual values of size (`n_series`, `horizon`). 
+ - <b>`y_hat`</b> (np.ndarray):  numpy array, Predicted values (`n_series`, `horizon`). 
+ - <b>`cov`</b> (np.ndarray):  numpy matrix, Predicted values covariance (`n_series`, `n_series`, `horizon`). 
+ - <b>`allow_singular`</b> (bool, optional):  if true allows singular covariance. Default is True. 
+
+
+
+**Returns:**
+ 
+ - <b>`float`</b>:  score. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `evaluate`
+
+```python
+evaluate(
+    df: ~FrameT,
+    metrics: list[Callable],
+    tags: dict[str, ndarray],
+    models: Optional[list[str]] = None,
+    train_df: Optional[~FrameT] = None,
+    level: Optional[list[int]] = None,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    target_col: str = 'y',
+    agg_fn: Optional[str] = 'mean',
+    benchmark: Optional[str] = None
+) → ~FrameT
+```
+
+Evaluate hierarchical forecast using different metrics. 
+
+
+
+**Args:**
+ 
+ - <b>`df`</b> (pandas, polars, dask or spark DataFrame):  Forecasts to evaluate. Must have `id_col`, `time_col`, `target_col` and models' predictions. 
+ - <b>`metrics`</b> (list of callable):  Functions with arguments `df`, `models`, `id_col`, `target_col` and optionally `train_df`. 
+ - <b>`tags`</b> (dict):  Each key is a level in the hierarchy and its value contains tags associated to that level. Each key is a level in the hierarchy and its value contains tags associated to that level. 
+ - <b>`models`</b> (list of str, optional):  Names of the models to evaluate. If `None` will use every column in the dataframe after removing id, time and target. 
+ - <b>`train_df`</b> (pandas, polars, dask or spark DataFrame, optional):  Training set. Used to evaluate metrics such as `mase`. 
+ - <b>`level`</b> (list of int, optional):  Prediction interval levels. Used to compute losses that rely on quantiles. 
+ - <b>`id_col`</b> (str):  Column that identifies each serie. 
+ - <b>`time_col`</b> (str):  Column that identifies each timestep, its values can be timestamps or integers. 
+ - <b>`target_col`</b> (str):  Column that contains the target. 
+ - <b>`agg_fn`</b> (str, optional):  Statistic to compute on the scores by id to reduce them to a single number. 
+ - <b>`benchmark`</b> (str, optional):  If passed, evaluators are scaled by the error of this benchmark model. 
+
+
+
+**Returns:**
+ 
+ - <b>`pandas, polars DataFrame`</b>:  Metrics with one row per (id, metric) combination and one column per model. If `agg_fn` is not `None`, there is only one row per metric. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `HierarchicalEvaluation`
+Hierarchical Evaluation Class. 
+
+You can use your own metrics to evaluate the performance of each level in the structure. The metrics receive `y` and `y_hat` as arguments and they are numpy arrays of size `(series, horizon)`. Consider, for example, the function `rmse` that calculates the root mean squared error. 
+
+This class facilitates measurements across the hierarchy, defined by the `tags` list. See also the [aggregate method](./utils#function-aggregate). 
+
+
+
+**Args:**
+ 
+ - <b>`evaluators`</b> (list[Callable]):  functions with arguments `y`, `y_hat` (numpy arrays). 
+
+References: 
+    - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy". International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(evaluators: list[Callable])
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `evaluate`
+
+```python
+evaluate(
+    Y_hat_df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    Y_test_df: Union[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')],
+    tags: dict[str, ndarray],
+    Y_df: Optional[ForwardRef('DataFrame[Any]'), ForwardRef('LazyFrame[Any]')] = None,
+    benchmark: Optional[str] = None,
+    id_col: str = 'unique_id',
+    time_col: str = 'ds',
+    target_col: str = 'y'
+) → ~FrameT
+```
+
+Hierarchical Evaluation Method. 
+
+
+
+**Args:**
+ 
+ - <b>`Y_hat_df`</b> (Frame):  DataFrame, Forecasts with columns `'unique_id'`, `'ds'` and models to evaluate. 
+ - <b>`Y_test_df`</b> (Frame):  DataFrame, Observed values with columns `['unique_id', 'ds', 'y']`. 
+ - <b>`tags`</b> (dict[str, np.ndarray]):  np.array, each str key is a level and its value contains tags associated to that level. 
+ - <b>`Y_df`</b> (Optional[Frame], optional):  DataFrame, Training set of base time series with columns `['unique_id', 'ds', 'y']`. Default is None. 
+ - <b>`benchmark`</b> (Optional[str], optional):  str, If passed, evaluators are scaled by the error of this benchark. Default is None. 
+ - <b>`id_col`</b> (str, optional):  str='unique_id', column that identifies each serie. Default is "unique_id". 
+ - <b>`time_col`</b> (str, optional):  str='ds', column that identifies each timestep, its values can be timestamps or integers. Default is "ds". 
+ - <b>`target_col`</b> (str, optional):  str='y', column that contains the target. Default is "y". 
+
+
+
+**Returns:**
+ 
+ - <b>`FrameT`</b>:  evaluation: DataFrame with accuracy measurements across hierarchical levels. 
+
+
