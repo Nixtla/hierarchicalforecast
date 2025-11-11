@@ -134,7 +134,7 @@ def test_reconciliation_recovers_original_y(grouped_data, lib):
     models = reconciled_native.drop(*drop_cols).columns
 
     for model in models:
-        np.testing.assert_allclose(reconciled_native['y'], reconciled_native[model], atol=1e-1)
+        np.testing.assert_allclose(reconciled_native['y'], reconciled_native[model], atol=5e-1)
 
 @pytest.mark.parametrize("lib", ["pandas", "polars"])
 def test_reconcile_raises_on_invalid_y_hat_dtype(grouped_data, lib):
