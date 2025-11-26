@@ -29,14 +29,14 @@ external libraries into a compatible data frame format.
 ## Hierarchical Visualization
 
 ::: hierarchicalforecast.utils.HierarchicalPlot
+    options:
+      members:
+        - plot_summing_matrix
+        - plot_series
+        - plot_hierarchically_linked_series
+        - plot_hierarchical_predictions_gap
 
-::: hierarchicalforecast.utils.plot_summing_matrix
-
-::: hierarchicalforecast.utils.plot_series
-
-::: hierarchicalforecast.utils.plot_hierarchically_linked_series
-
-::: hierarchicalforecast.utils.plot_hierarchical_predictions_gap
+### Example
 
 ```python
 from statsforecast.core import StatsForecast
