@@ -5,7 +5,6 @@ load_docs_scripts:
 	fi
 
 api_docs:
-# 	lazydocs .hierarchicalforecast --no-watermark
 	python docs/to_mdx.py docs
 
 examples_docs:
@@ -18,13 +17,13 @@ format_docs:
 	# replace _docs with docs
 	sed -i -e 's/_docs/docs/g' ./docs-scripts/docs-final-formatting.bash
 	bash ./docs-scripts/docs-final-formatting.bash
+	find docs/mintlify -name "*.mdx" -exec sed -i '' 's/\\\\/\\/g' {} +
 
 
 preview_docs:
 	cd docs/mintlify && mintlify dev
 
 clean:
-# 	rm -f docs/*.md
 	find docs/mintlify -name "*.mdx" -exec rm -f {} +
 
 
