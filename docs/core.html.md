@@ -1,7 +1,8 @@
 ---
-output-file: core.html
 title: Core
+description: Core
 ---
+
 ##
 
 HierarchicalForecast contains pure Python implementations of
@@ -15,13 +16,13 @@ the hierarchical time series pd.DataFrame `Y_df`, the base predictions
 pd.DataFrame `Y_hat_df`, the aggregation constraints matrix `S`. For
 more information on the creation of aggregation constraints matrix see
 the utils [aggregation
-method](https://nixtlaverse.nixtla.io/hierarchicalforecast/src/utils.html#aggregate).<br/><br/>
+method](https://nixtlaverse.nixtla.io/hierarchicalforecast/src/utils.html#aggregate)
 
 ::: hierarchicalforecast.core.HierarchicalReconciliation
-
-::: hierarchicalforecast.core.reconcile
-
-::: hierarchicalforecast.core.bootstrap_reconcile
+    options:
+      members:
+        - reconcile
+        - bootstrap_reconcile
 
 ### Example
 
