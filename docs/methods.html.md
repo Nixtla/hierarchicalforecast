@@ -74,16 +74,16 @@ a two-step procedure.
 
 ::: hierarchicalforecast.methods.BottomUp
     handler: python
-        options:
-        docstring_style: google
-        members:
-            - fit
-            - predict
-            - fit_predict
-            - sample
-        heading_level: 3
-        show_root_heading: true
-        show_source: true
+    options:
+      docstring_style: google
+      members:
+        - fit
+        - predict
+        - fit_predict
+        - sample
+      heading_level: 3
+      show_root_heading: true
+      show_source: true
 
 ::: hierarchicalforecast.methods.BottomUpSparse
     handler: python
@@ -133,7 +133,6 @@ cls_top_down(
 ```
 
 ```python
-#\ hide
 cls_top_down = TopDownSparse(method="average_proportions")
 test_fail(
     cls_top_down,
@@ -146,16 +145,16 @@ test_fail(
 
 ::: hierarchicalforecast.methods.MiddleOut
     handler: python
-        options:
-        docstring_style: google
-        members:
-            - fit
-            - predict
-            - fit_predict
-            - sample
-        heading_level: 3
-        show_root_heading: true
-        show_source: true
+    options:
+      docstring_style: google
+      members:
+        - fit
+        - predict
+        - fit_predict
+        - sample
+      heading_level: 3
+      show_root_heading: true
+      show_source: true
 
 ::: hierarchicalforecast.methods.MiddleOutSparse
     handler: python
