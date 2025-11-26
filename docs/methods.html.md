@@ -246,9 +246,6 @@ test_fail(
     hierarchical and grouped series.”. OTexts: Melbourne, Australia.
     OTexts.com/fpp3 Accessed on July
     2022.](https://otexts.com/fpp3/hierarchical.html)
-
-### Optimal Reconciliation
-
 - [Rob J. Hyndman, Roman A. Ahmed, George Athanasopoulos, Han Lin
     Shang. “Optimal Combination Forecasts for Hierarchical Time Series”
     (2010).](https://robjhyndman.com/papers/Hierarchical6.pdf)
