@@ -1,8 +1,8 @@
 ---
-title: Normality
+title: Bootstrap
 ---
 
-<a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourism-Intervals.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourism-Bootstraped-Intervals.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 In many cases, only the time series at the lowest level of the
 hierarchies (bottom time series) are available. `HierarchicalForecast`
@@ -20,7 +20,7 @@ we will see how to do it.
 import pandas as pd
 
 # compute base forecast no coherent
-from statsforecast.models import AutoARIMA
+from statsforecast.models import AutoETS
 from statsforecast.core import StatsForecast
 
 #obtain hierarchical reconciliation methods and evaluation
@@ -42,7 +42,7 @@ Y_df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-t
 Y_df = Y_df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
 Y_df.insert(0, 'Country', 'Australia')
 Y_df = Y_df[['Country', 'Region', 'State', 'Purpose', 'ds', 'y']]
-Y_df['ds'] = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
+Y_df['ds'] = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1\2', regex=True)
 Y_df['ds'] = pd.PeriodIndex(Y_df["ds"], freq='Q').to_timestamp()
 Y_df.head()
 ```
@@ -113,7 +113,7 @@ array(['Australia/Business', 'Australia/Holiday', 'Australia/Other',
        'Australia/Visiting'], dtype=object)
 ```
 
-We can visualize the `S` matrix and the data using the
+We can visualize the `S_df` dataframe and `Y_df` using the
 `HierarchicalPlot` class as follows.
 
 ```python
@@ -125,7 +125,7 @@ hplot = HierarchicalPlot(S=S_df, tags=tags)
 hplot.plot_summing_matrix()
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-11-output-1.png)
+![](australiandomestictourism-bootstraped-intervals_files/figure-markdown_strict/cell-11-output-1.png)
 
 ```python
 hplot.plot_hierarchically_linked_series(
@@ -134,7 +134,7 @@ hplot.plot_hierarchically_linked_series(
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-12-output-1.png)
+![](australiandomestictourism-bootstraped-intervals_files/figure-markdown_strict/cell-12-output-1.png)
 
 ### Split Train/Test sets
 
@@ -166,28 +166,29 @@ Australia/Western Australia/Visiting                     72
 Length: 425, dtype: int64
 ```
 
-## Computing base forecasts
+## Computing Base Forecasts
 
 The following cell computes the **base forecasts** for each time series
-in `Y_df` using the `AutoARIMA` and model. Observe that `Y_hat_df`
-contains the forecasts but they are not coherent. To reconcile the
-prediction intervals we need to calculate the uncoherent intervals using
-the `level` argument of `StatsForecast`.
+in `Y_df` using the `AutoETS` and model. Observe that `Y_hat_df`
+contains the forecasts but they are not coherent. Since we are computing
+prediction intervals using bootstrapping, we only need the fitted values
+of the models.
 
 ```python
-fcst = StatsForecast(models=[AutoARIMA(season_length=4)], 
+fcst = StatsForecast(models=[AutoETS(season_length=4, model='ZAA')],
                      freq='QS', n_jobs=-1)
-Y_hat_df = fcst.forecast(df=Y_train_df, h=8, fitted=True, level=[80, 90])
+Y_hat_df = fcst.forecast(df=Y_train_df, h=8, fitted=True)
 Y_fitted_df = fcst.forecast_fitted_values()
 ```
 
-## Reconcile forecasts
+## Reconcile Base Forecasts
 
 The following cell makes the previous forecasts coherent using the
 `HierarchicalReconciliation` class. Since the hierarchy structure is not
 strict, we can’t use methods such as `TopDown` or `MiddleOut`. In this
 example we use `BottomUp` and `MinTrace`. If you want to calculate
-prediction intervals, you have to use the `level` argument as follows.
+prediction intervals, you have to use the `level` argument as follows
+and set `intervals_method='bootstrap'`.
 
 ```python
 reconcilers = [
@@ -196,8 +197,9 @@ reconcilers = [
     MinTrace(method='ols')
 ]
 hrec = HierarchicalReconciliation(reconcilers=reconcilers)
-Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_fitted_df, 
-                          S_df=S_df, tags=tags, level=[80, 90])
+Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_fitted_df, S_df=S_df, 
+                          tags=tags, level=[80, 90], 
+                          intervals_method='bootstrap')
 ```
 
 The dataframe `Y_rec_df` contains the reconciled forecasts.
@@ -206,18 +208,17 @@ The dataframe `Y_rec_df` contains the reconciled forecasts.
 Y_rec_df.head()
 ```
 
-|     | unique_id | ds         | AutoARIMA    | AutoARIMA-lo-90 | AutoARIMA-lo-80 | AutoARIMA-hi-80 | AutoARIMA-hi-90 | AutoARIMA/BottomUp | AutoARIMA/BottomUp-lo-90 | AutoARIMA/BottomUp-lo-80 | ... | AutoARIMA/MinTrace_method-mint_shrink | AutoARIMA/MinTrace_method-mint_shrink-lo-90 | AutoARIMA/MinTrace_method-mint_shrink-lo-80 | AutoARIMA/MinTrace_method-mint_shrink-hi-80 | AutoARIMA/MinTrace_method-mint_shrink-hi-90 | AutoARIMA/MinTrace_method-ols | AutoARIMA/MinTrace_method-ols-lo-90 | AutoARIMA/MinTrace_method-ols-lo-80 | AutoARIMA/MinTrace_method-ols-hi-80 | AutoARIMA/MinTrace_method-ols-hi-90 |
-|-----|-----------|------------|--------------|-----------------|-----------------|-----------------|-----------------|--------------------|--------------------------|--------------------------|-----|---------------------------------------|---------------------------------------------|---------------------------------------------|---------------------------------------------|---------------------------------------------|-------------------------------|-------------------------------------|-------------------------------------|-------------------------------------|-------------------------------------|
-| 0   | Australia | 2016-01-01 | 26212.553553 | 24705.948180    | 25038.715077    | 27386.392029    | 27719.158927    | 24646.517084       | 23983.656843             | 24130.064091             | ... | 25267.797338                          | 24491.630618                                | 24663.064091                                | 25872.530586                                | 26043.964058                                | 26082.753488                  | 25010.876141                        | 25247.623803                        | 26917.883174                        | 27154.630835                        |
-| 1   | Australia | 2016-04-01 | 25033.667125 | 23337.267588    | 23711.954696    | 26355.379554    | 26730.066662    | 22942.957703       | 22229.916838             | 22387.407579             | ... | 23836.804444                          | 23002.620214                                | 23186.868128                                | 24486.740760                                | 24670.988674                                | 24822.102094                  | 23616.734393                        | 23882.966332                        | 25761.237857                        | 26027.469796                        |
-| 2   | Australia | 2016-07-01 | 24507.027198 | 22640.028798    | 23052.396413    | 25961.657983    | 26374.025599    | 22568.286488       | 21805.892199             | 21974.283728             | ... | 23294.240908                          | 22410.719833                                | 22605.864873                                | 23982.616942                                | 24177.761983                                | 24269.578724                  | 22944.380043                        | 23237.079287                        | 25302.078162                        | 25594.777406                        |
-| 3   | Australia | 2016-10-01 | 25598.928613 | 23575.665243    | 24022.547410    | 27175.309816    | 27622.191983    | 23113.075726       | 22308.671860             | 22486.342127             | ... | 24154.484487                          | 23221.706185                                | 23427.730766                                | 24881.238208                                | 25087.262790                                | 25340.549923                  | 23905.434070                        | 24222.410936                        | 26458.688911                        | 26775.665777                        |
-| 4   | Australia | 2017-01-01 | 26982.576796 | 24669.535238    | 25180.421285    | 28784.732308    | 29295.618354    | 23779.264921       | 22874.194227             | 23074.098975             | ... | 25155.001372                          | 24125.268915                                | 24352.707952                                | 25957.294793                                | 26184.733830                                | 26690.200927                  | 25051.352698                        | 25413.328335                        | 27967.073518                        | 28329.049155                        |
+|     | unique_id | ds         | AutoETS      | AutoETS/BottomUp | AutoETS/BottomUp-lo-90 | AutoETS/BottomUp-lo-80 | AutoETS/BottomUp-hi-80 | AutoETS/BottomUp-hi-90 | AutoETS/MinTrace_method-mint_shrink | AutoETS/MinTrace_method-mint_shrink-lo-90 | AutoETS/MinTrace_method-mint_shrink-lo-80 | AutoETS/MinTrace_method-mint_shrink-hi-80 | AutoETS/MinTrace_method-mint_shrink-hi-90 | AutoETS/MinTrace_method-ols | AutoETS/MinTrace_method-ols-lo-90 | AutoETS/MinTrace_method-ols-lo-80 | AutoETS/MinTrace_method-ols-hi-80 | AutoETS/MinTrace_method-ols-hi-90 |
+|-----|-----------|------------|--------------|------------------|------------------------|------------------------|------------------------|------------------------|-------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------------------------|-----------------------------|-----------------------------------|-----------------------------------|-----------------------------------|-----------------------------------|
+| 0   | Australia | 2016-01-01 | 26080.878488 | 24487.152503     | 23242.757311           | 23332.592968           | 25379.829486           | 25424.139137           | 25521.551706                        | 24407.442712                              | 24698.931479                              | 26357.024354                              | 26466.740682                              | 26034.132091                | 24914.199038                      | 25100.470502                      | 27102.746065                      | 27176.467048                      |
+| 1   | Australia | 2016-04-01 | 24587.012115 | 23068.314292     | 21823.919100           | 21910.615057           | 23945.982949           | 24278.683243           | 24106.522479                        | 23185.403634                              | 23283.902251                              | 25098.332342                              | 25473.239949                              | 24567.457913                | 23483.983814                      | 23640.627126                      | 25709.792870                      | 25809.220444                      |
+| 2   | Australia | 2016-07-01 | 24147.307744 | 22686.983933     | 21293.529449           | 21526.525610           | 23697.859931           | 24150.879789           | 23717.610501                        | 22603.501507                              | 22802.771308                              | 24802.973260                              | 25228.795629                              | 24150.111246                | 23030.178193                      | 23154.972436                      | 25359.917993                      | 25404.792198                      |
+| 3   | Australia | 2016-10-01 | 24794.040779 | 23428.037637     | 22034.583153           | 22273.826957           | 24241.840440           | 24438.913635           | 24472.939115                        | 23361.285512                              | 23584.825871                              | 25338.713995                              | 25469.426623                              | 24831.540721                | 23725.927463                      | 23836.401911                      | 25900.154695                      | 25977.249268                      |
+| 4   | Australia | 2017-01-01 | 26283.998654 | 24939.637616     | 23695.217554           | 23903.395713           | 25815.638682           | 25973.164607           | 26029.322724                        | 24948.339795                              | 25144.179030                              | 26900.068461                              | 27119.073160                              | 26348.229758                | 25254.682234                      | 25487.518098                      | 27410.894158                      | 27477.330557                      |
 
-## Plot forecasts
+## Plot Predictions
 
-Then we can plot the probabilistic forecasts using the following
-function.
+Then we can plot the probabilist forecasts using the following function.
 
 ```python
 plot_df = Y_df.merge(Y_rec_df, on=['unique_id', 'ds'], how="outer")
@@ -229,26 +230,26 @@ plot_df = Y_df.merge(Y_rec_df, on=['unique_id', 'ds'], how="outer")
 hplot.plot_series(
     series='Australia',
     Y_df=plot_df, 
-    models=['y', 'AutoARIMA', 'AutoARIMA/MinTrace_method-ols'],
+    models=['y', 'AutoETS', 'AutoETS/MinTrace_method-ols', 'AutoETS/MinTrace_method-mint_shrink'],
     level=[80]
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-19-output-1.png)
+![](australiandomestictourism-bootstraped-intervals_files/figure-markdown_strict/cell-19-output-1.png)
 
 ```python
 # Since we are plotting a bottom time series
 # the probabilistic and mean forecasts
-# are the same
+# differ due to bootstrapping
 hplot.plot_series(
     series='Australia/Western Australia/Experience Perth/Visiting',
     Y_df=plot_df, 
-    models=['y', 'AutoARIMA', 'AutoARIMA/BottomUp'],
+    models=['y', 'AutoETS', 'AutoETS/BottomUp'],
     level=[80]
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-20-output-1.png)
+![](australiandomestictourism-bootstraped-intervals_files/figure-markdown_strict/cell-20-output-1.png)
 
 ### Plot hierarchichally linked time series
 
@@ -256,24 +257,24 @@ hplot.plot_series(
 hplot.plot_hierarchically_linked_series(
     bottom_series='Australia/Western Australia/Experience Perth/Visiting',
     Y_df=plot_df, 
-    models=['y', 'AutoARIMA', 'AutoARIMA/MinTrace_method-ols', 'AutoARIMA/BottomUp'],
+    models=['y', 'AutoETS', 'AutoETS/MinTrace_method-ols', 'AutoETS/BottomUp'],
     level=[80]
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-21-output-1.png)
+![](australiandomestictourism-bootstraped-intervals_files/figure-markdown_strict/cell-21-output-1.png)
 
 ```python
 # ACT only has Canberra
 hplot.plot_hierarchically_linked_series(
     bottom_series='Australia/ACT/Canberra/Other',
     Y_df=plot_df, 
-    models=['y', 'AutoARIMA/MinTrace_method-mint_shrink'],
+    models=['y', 'AutoETS/MinTrace_method-mint_shrink'],
     level=[80, 90]
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-22-output-1.png)
+![](australiandomestictourism-bootstraped-intervals_files/figure-markdown_strict/cell-22-output-1.png)
 
 ### References
 
@@ -288,4 +289,7 @@ hplot.plot_hierarchically_linked_series(
     American Statistical Association, 114(526):804–819, 2019. doi:
     10.1080/01621459.2018.1448825. URL
     https://robjhyndman.com/publications/mint/.](https://robjhyndman.com/publications/mint/)
+-   [Puwasala Gamakumara Ph. D. dissertation. Monash University,
+    Econometrics and Business Statistics (2020). “Probabilistic Forecast
+    Reconciliation”](https://bridges.monash.edu/articles/thesis/Probabilistic_Forecast_Reconciliation_Theory_and_Applications/11869533)
 

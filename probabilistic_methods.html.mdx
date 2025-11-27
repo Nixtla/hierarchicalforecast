@@ -28,14 +28,17 @@ generate hierarchically coherent prediction distributions. This class is
 meant to be used as the `sampler` input as other `HierarchicalForecast` [reconciliation classes](./methods).
 
 Given base forecasts under a normal distribution:
-$$\\hat{y}_{h} \\sim \\mathrm{N}(\\hat{\\boldsymbol{\\mu}}, \\hat{\\mathbf{W}}_{h})$$
+
+```math
+\hat{y}_{h} \sim \mathrm{N}(\hat{\boldsymbol{\mu}}, \hat{\mathbf{W}}_{h})
+```
 
 The reconciled forecasts are also normally distributed:
 
-$$
-\\tilde{y}_{h} \\sim \\mathrm{N}(\\mathbf{S}\\mathbf{P}\\hat{\\boldsymbol{\\mu}},
-\\mathbf{S}\\mathbf{P}\\hat{\\mathbf{W}}_{h} \\mathbf{P}^{\\intercal} \\mathbf{S}^{\\intercal})
-$$
+```math
+\tilde{y}_{h} \sim \mathrm{N}(\mathbf{S}\mathbf{P}\hat{\boldsymbol{\mu}},
+\mathbf{S}\mathbf{P}\hat{\mathbf{W}}_{h} \mathbf{P}^{\intercal} \mathbf{S}^{\intercal})
+```
 
 **Parameters:**
 
@@ -82,7 +85,9 @@ Type | Description
 ### `Bootstrap`
 
 ```python
-Bootstrap(S, P, y_hat, y_insample, y_hat_insample, num_samples=100, seed=0, W=None)
+Bootstrap(
+    S, P, y_hat, y_insample, y_hat_insample, num_samples=100, seed=0, W=None
+)
 ```
 
 Bootstrap Probabilistic Reconciliation Class.
@@ -95,10 +100,16 @@ for any reconciliation strategy. This class is meant to be used as the `sampler`
 input as other `HierarchicalForecast` [reconciliation classes](./methods).
 
 Given a boostraped set of simulated sample paths:
-$$(\\hat{\\mathbf{y}}^{[1]}_{\\tau}, \\dots ,\\hat{\\mathbf{y}}^{[B]}_{\\tau})$$
+
+```math
+\hat{\mathbf{y}}^{[1]}_{\tau}, \dots ,\hat{\mathbf{y}}^{[B]}_{\tau})
+```
 
 The reconciled sample paths allow for reconciled distributional forecasts:
-$$(\\mathbf{S}\\mathbf{P}\\hat{\\mathbf{y}}^{[1]}_{\\tau}, \\dots ,\\mathbf{S}\\mathbf{P}\\hat{\\mathbf{y}}^{[B]}_{\\tau})$$
+
+```math
+(\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[1]}_{\tau}, \dots ,\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[B]}_{\tau})
+```
 
 **Parameters:**
 
@@ -148,7 +159,17 @@ Name | Type | Description
 ### `PERMBU`
 
 ```python
-PERMBU(S, tags, y_hat, y_insample, y_hat_insample, sigmah, num_samples=None, seed=0, P=None)
+PERMBU(
+    S,
+    tags,
+    y_hat,
+    y_insample,
+    y_hat_insample,
+    sigmah,
+    num_samples=None,
+    seed=0,
+    P=None,
+)
 ```
 
 PERMBU Probabilistic Reconciliation Class.
@@ -157,30 +178,29 @@ The PERMBU method leverages empirical bottom-level marginal distributions
 with empirical copula functions (describing bottom-level dependencies) to
 generate the distribution of aggregate-level distributions using BottomUp
 reconciliation. The sample reordering technique in the PERMBU method reinjects
-multivariate dependencies into independent bottom-level samples.
+multivariate dependencies into independent bottom-level samples. $\hat{\epsilon}\_{i,t}$
 
-```
 Algorithm:
-1.   For all series compute conditional marginals distributions.
-2.   Compute residuals $\hat{\epsilon}_{i,t}$ and obtain rank permutations.
-2.   Obtain K-sample from the bottom-level series predictions.
-3.   Apply recursively through the hierarchical structure:<br/>
-    3.1.   For a given aggregate series $i$ and its children series:<br/>
-    3.2.   Obtain children's empirical joint using sample reordering copula.<br/>
-    3.2.   From the children's joint obtain the aggregate series's samples.
-```
+
+1. For all series compute conditional marginals distributions.
+1. Compute residuals $\hat{\epsilon}\_{i,t}$ and obtain rank permutations.
+1. Obtain K-sample from the bottom-level series predictions.
+1. Apply recursively through the hierarchical structure:
+   4.1. For a given aggregate series $i$ and its children series:
+   4.2. Obtain children's empirical joint using sample reordering copula.
+   4.2. From the children's joint obtain the aggregate series's samples.
 
 **Parameters:**
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | <code>[Union](#typing.Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
+`S` | <code>[array](#numpy.array)</code> | summing matrix of size (`base`, `bottom`). | *required*
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample values of size (`base`, `insample_size`). | *required*
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample point forecasts of size (`base`, `insample_size`). | *required*
-`sigmah` | <code>[ndarray](#numpy.ndarray)</code> | np.array, forecast standard dev. of size (`base`, `horizon`). | *required*
-`num_samples` | <code>[Optional](#typing.Optional)\[[int](#int)\]</code> | int, number of normal prediction samples generated. | <code>None</code>
-`seed` | <code>[int](#int)</code> | int, random seed for numpy generator's replicability. | <code>0</code>
+`y_insample` | <code>[array](#numpy.array)</code> | Insample values of size (`base`, `insample_size`). | *required*
+`y_hat_insample` | <code>[array](#numpy.array)</code> | Insample point forecasts of size (`base`, `insample_size`). | *required*
+`sigmah` | <code>[array](#numpy.array)</code> | forecast standard dev. of size (`base`, `horizon`). | *required*
+`num_samples` | <code>[int](#int)</code> | number of normal prediction samples generated. Default is None | <code>None</code>
+`seed` | <code>[int](#int)</code> | random seed for numpy generator's replicability. Default is 0. | <code>0</code>
 
 <details class="references" open markdown="1">
 <summary>References</summary>
@@ -206,13 +226,13 @@ aggregation to the new samples.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`num_samples` | <code>[Optional](#typing.Optional)\[[int](#int)\]</code> | int, number of samples generated from coherent distribution. | <code>None</code>
+`num_samples` | <code>[int](#int)</code> | number of samples generated from coherent distribution. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`samples` | | Coherent samples of size (`base`, `horizon`, `num_samples`).
+`samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`base`, `horizon`, `num_samples`).
 
 ## References
 

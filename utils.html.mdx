@@ -21,7 +21,16 @@ external libraries into a compatible data frame format.
 ### `aggregate`
 
 ```python
-aggregate(df, spec, exog_vars=None, sparse_s=False, id_col='unique_id', time_col='ds', id_time_col=None, target_cols=('y',))
+aggregate(
+    df,
+    spec,
+    exog_vars=None,
+    sparse_s=False,
+    id_col="unique_id",
+    time_col="ds",
+    id_time_col=None,
+    target_cols=("y",),
+)
 ```
 
 Utils Aggregation Function.
@@ -51,7 +60,17 @@ Type | Description
 ### `aggregate_temporal`
 
 ```python
-aggregate_temporal(df, spec, exog_vars=None, sparse_s=False, id_col='unique_id', time_col='ds', id_time_col='temporal_id', target_cols=('y',), aggregation_type='local')
+aggregate_temporal(
+    df,
+    spec,
+    exog_vars=None,
+    sparse_s=False,
+    id_col="unique_id",
+    time_col="ds",
+    id_time_col="temporal_id",
+    target_cols=("y",),
+    aggregation_type="local",
+)
 ```
 
 Utils Aggregation Function for Temporal aggregations.
@@ -106,7 +125,15 @@ Name | Type | Description
 ### `get_cross_temporal_tags`
 
 ```python
-get_cross_temporal_tags(df, tags_cs, tags_te, sep='//', id_col='unique_id', id_time_col='temporal_id', cross_temporal_id_col='cross_temporal_id')
+get_cross_temporal_tags(
+    df,
+    tags_cs,
+    tags_te,
+    sep="//",
+    id_col="unique_id",
+    id_time_col="temporal_id",
+    cross_temporal_id_col="cross_temporal_id",
+)
 ```
 
 Get cross-temporal tags.
@@ -150,96 +177,6 @@ Name | Type | Description | Default
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | hierarchical aggregation indexes, where each key is a level and its value contains tags associated to that level. | *required*
 `S_id_col` | <code>[str](#str)</code> | column that identifies each aggregation. Default is 'unique_id'. | <code>'unique_id'</code>
 
-#### `HierarchicalPlot.S`
-
-```python
-S = nw.from_native(S)
-```
-
-#### `HierarchicalPlot.S_cols_ex_id_col`
-
-```python
-S_cols_ex_id_col = S_cols_ex_id_col
-```
-
-#### `HierarchicalPlot.plot_hierarchical_predictions_gap`
-
-```python
-plot_hierarchical_predictions_gap(Y_df, models=None, xlabel=None, ylabel=None, id_col='unique_id', time_col='ds', target_col='y')
-```
-
-Hierarchically Predictions Gap plot
-
-**Parameters:**
-
-Name | Type | Description | Default
----- | ---- | ----------- | -------
-`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
-`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
-`xlabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's x axis label. Default is None. | <code>None</code>
-`ylabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's y axis label. Default is None. | <code>None</code>
-`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
-`time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
-`target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
-
-**Returns:**
-
-Type | Description
----- | -----------
-| matplotlib.figure.Figure: figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
-
-#### `HierarchicalPlot.plot_hierarchically_linked_series`
-
-```python
-plot_hierarchically_linked_series(bottom_series, Y_df, models=None, level=None, id_col='unique_id', time_col='ds', target_col='y')
-```
-
-Hierarchically Linked Series plot
-
-**Parameters:**
-
-Name | Type | Description | Default
----- | ---- | ----------- | -------
-`bottom_series` | <code>[str](#str)</code> | string identifying the `'unique_id'` bottom-level series to plot. | *required*
-`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
-`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
-`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
-`time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
-`target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
-
-**Returns:**
-
-Type | Description
----- | -----------
-| matplotlib.figure.Figure: figure object containing the plots of the hierarchilly linked series.
-
-#### `HierarchicalPlot.plot_series`
-
-```python
-plot_series(series, Y_df, models=None, level=None, id_col='unique_id', time_col='ds', target_col='y')
-```
-
-Single Series plot
-
-**Parameters:**
-
-Name | Type | Description | Default
----- | ---- | ----------- | -------
-`series` | <code>[str](#str)</code> | string identifying the `'unique_id'` any-level series to plot. | *required*
-`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`. | *required*
-`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
-`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
-`time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
-`target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
-
-**Returns:**
-
-Type | Description
----- | -----------
-| matplotlib.figure.Figure: figure object containing the plot of the single series.
-
 #### `HierarchicalPlot.plot_summing_matrix`
 
 ```python
@@ -249,23 +186,117 @@ plot_summing_matrix()
 Summation Constraints plot
 
 This method simply plots the hierarchical aggregation
-constraints matrix $\\mathbf{S}$.
+constraints matrix $\mathbf{S}$.
 
 **Returns:**
 
-Type | Description
----- | -----------
-| matplotlib.figure.Figure: figure object containing the plot of the summing matrix.
+Name | Type | Description
+---- | ---- | -----------
+`fig` | <code>[Figure](#matplotlib.figure.Figure)</code> | figure object containing the plot of the summing matrix.
 
-#### `HierarchicalPlot.tags`
+#### `HierarchicalPlot.plot_series`
 
 ```python
-tags = tags
+plot_series(
+    series,
+    Y_df,
+    models=None,
+    level=None,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+)
 ```
 
+Single Series plot
 
+**Parameters:**
 
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`series` | <code>[str](#str)</code> | string identifying the `'unique_id'` any-level series to plot. | *required*
+`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\mathbf{y}\_{[a,b]}$). It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`. | *required*
+`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
+`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
+`time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
+`target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
 
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`fig` | <code>[Figure](#matplotlib.figure.Figure)</code> | figure object containing the plot of the single series.
+
+#### `HierarchicalPlot.plot_hierarchically_linked_series`
+
+```python
+plot_hierarchically_linked_series(
+    bottom_series,
+    Y_df,
+    models=None,
+    level=None,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+)
+```
+
+Hierarchically Linked Series plot
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`bottom_series` | <code>[str](#str)</code> | string identifying the `'unique_id'` bottom-level series to plot. | *required*
+`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
+`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
+`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
+`time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
+`target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`fig` | <code>[Figure](#matplotlib.figure.Figure)</code> | figure object containing the plots of the hierarchilly linked series.
+
+#### `HierarchicalPlot.plot_hierarchical_predictions_gap`
+
+```python
+plot_hierarchical_predictions_gap(
+    Y_df,
+    models=None,
+    xlabel=None,
+    ylabel=None,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+)
+```
+
+Hierarchically Predictions Gap plot
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
+`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
+`xlabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's x axis label. Default is None. | <code>None</code>
+`ylabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's y axis label. Default is None. | <code>None</code>
+`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
+`time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
+`target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`fig` | <code>[Figure](#matplotlib.figure.Figure)</code> | figure object containing the plot of the aggregated predictions at different levels of the hierarchical structure.
+
+### Example
 
 ```python
 from statsforecast.core import StatsForecast
@@ -296,45 +327,22 @@ hplots.plot_hierarchical_predictions_gap(
 )
 ```
 
-
-```python
-# polars
-from statsforecast.core import StatsForecast
-from statsforecast.models import AutoETS
-from datasetsforecast.hierarchical import HierarchicalData
-
-Y_df, S, tags = HierarchicalData.load('./data', 'Labour')
-Y_df['ds'] = pd.to_datetime(Y_df['ds'])
-S = S.reset_index(names="unique_id")
-
-Y_test_df  = Y_df.groupby('unique_id').tail(24)
-Y_train_df = Y_df.drop(Y_test_df.index)
-Y_test_df_pl  = pl.from_pandas(Y_test_df)
-Y_train_df_pl = pl.from_pandas(Y_train_df)
-
-fcst = StatsForecast(
-    models=[AutoETS(season_length=12, model='AAZ')],
-    freq='1m',
-    n_jobs=-1
-)
-Y_hat_df = fcst.forecast(df=Y_train_df_pl, h=24)
-
-# Plot prediction difference of different aggregation
-# Levels Country, Country/Region, Country/Gender/Region ...
-hplots = HierarchicalPlot(S=S, tags=tags)
-
-hplots.plot_hierarchical_predictions_gap(
-    Y_df=Y_hat_df, models='AutoETS',
-    xlabel='Month', ylabel='Predictions',
-)
-```
-
 ## External Forecast Adapters
 
 ### `samples_to_quantiles_df`
 
 ```python
-samples_to_quantiles_df(samples, unique_ids, dates, quantiles=None, level=None, model_name='model', id_col='unique_id', time_col='ds', backend='pandas')
+samples_to_quantiles_df(
+    samples,
+    unique_ids,
+    dates,
+    quantiles=None,
+    level=None,
+    model_name="model",
+    id_col="unique_id",
+    time_col="ds",
+    backend="pandas",
+)
 ```
 
 Transform Random Samples into HierarchicalForecast input.
