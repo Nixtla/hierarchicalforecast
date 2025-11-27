@@ -17,7 +17,11 @@ format_docs:
 	# replace _docs with docs
 	sed -i -e 's/_docs/docs/g' ./docs-scripts/docs-final-formatting.bash
 	bash ./docs-scripts/docs-final-formatting.bash
-	find docs/mintlify -name "*.mdx" -exec sed -i '' 's/\\\\/\\/g' {} +
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then \
+		find docs/mintlify -name "*.mdx" -exec sed -i '' -e 's/\\\\/\\/g' {} +; \
+	else \
+		find docs/mintlify -name "*.mdx" -exec sed -i 's/\\\\/\\/g' {} +; \
+	fi
 	find docs/mintlify/examples -name "*.mdx" ! -name "*.html.mdx" -type f -exec sh -c 'mv "$$1" "$${1%.mdx}.html.mdx"' _ {} \;
 
 preview_docs:
