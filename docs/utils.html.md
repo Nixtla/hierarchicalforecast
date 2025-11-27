@@ -67,39 +67,6 @@ hplots.plot_hierarchical_predictions_gap(
 )
 ```
 
-
-```python
-# polars
-from statsforecast.core import StatsForecast
-from statsforecast.models import AutoETS
-from datasetsforecast.hierarchical import HierarchicalData
-
-Y_df, S, tags = HierarchicalData.load('./data', 'Labour')
-Y_df['ds'] = pd.to_datetime(Y_df['ds'])
-S = S.reset_index(names="unique_id")
-
-Y_test_df  = Y_df.groupby('unique_id').tail(24)
-Y_train_df = Y_df.drop(Y_test_df.index)
-Y_test_df_pl  = pl.from_pandas(Y_test_df)
-Y_train_df_pl = pl.from_pandas(Y_train_df)
-
-fcst = StatsForecast(
-    models=[AutoETS(season_length=12, model='AAZ')],
-    freq='1m',
-    n_jobs=-1
-)
-Y_hat_df = fcst.forecast(df=Y_train_df_pl, h=24)
-
-# Plot prediction difference of different aggregation
-# Levels Country, Country/Region, Country/Gender/Region ...
-hplots = HierarchicalPlot(S=S, tags=tags)
-
-hplots.plot_hierarchical_predictions_gap(
-    Y_df=Y_hat_df, models='AutoETS',
-    xlabel='Month', ylabel='Predictions',
-)
-```
-
 ## External Forecast Adapters
 
 ::: hierarchicalforecast.utils.samples_to_quantiles_df
