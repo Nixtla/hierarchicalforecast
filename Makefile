@@ -18,7 +18,7 @@ format_docs:
 	sed -i -e 's/_docs/docs/g' ./docs-scripts/docs-final-formatting.bash
 	bash ./docs-scripts/docs-final-formatting.bash
 	find docs/mintlify -name "*.mdx" -exec sed -i '' 's/\\\\/\\/g' {} +
-
+	find docs/mintlify/examples -name "*.mdx" ! -name "*.html.mdx" -type f -exec sh -c 'mv "$$1" "$${1%.mdx}.html.mdx"' _ {} \;
 
 preview_docs:
 	cd docs/mintlify && mintlify dev
