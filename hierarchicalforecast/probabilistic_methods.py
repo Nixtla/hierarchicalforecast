@@ -97,7 +97,7 @@ class Normality:
             num_samples (int): number of samples generated from coherent distribution.
 
         Returns:
-            np.ndarray: samples: Coherent samples of size (`base`, `horizon`, `num_samples`).
+            samples (np.ndarray): Coherent samples of size (`base`, `horizon`, `num_samples`).
         """
         rng = np.random.default_rng(self.seed)
         n_series, n_horizon = self.y_hat.shape
