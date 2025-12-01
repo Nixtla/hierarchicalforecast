@@ -67,6 +67,4 @@ hplots.plot_hierarchical_predictions_gap(
 )
 ```
 
-## External Forecast Adapters
-
 ::: hierarchicalforecast.utils.samples_to_quantiles_df
