@@ -51,7 +51,7 @@ dev = [
     "pytest-benchmark",
     "pytest-cov",
     "pip-licenses",
-    "git+https://github.com/Nixtla/mkdocstrings-parser@main",
+    "mkdocstrings-parser @ git+https://github.com/Nixtla/mkdocstrings-parser@main"
 ]
 polars = [
     "polars[numpy]<=1.32.0"
