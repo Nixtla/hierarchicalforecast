@@ -66,5 +66,3 @@ hplots.plot_hierarchical_predictions_gap(
     xlabel='Month', ylabel='Predictions',
 )
 ```
-
-::: hierarchicalforecast.utils.samples_to_quantiles_df
