@@ -14,14 +14,13 @@ examples_docs:
 	quarto render nbs --output-dir ../docs/mintlify/
 
 format_docs:
-	# replace _docs with docs
-	sed -i -e 's/_docs/docs/g' ./docs-scripts/docs-final-formatting.bash
-	bash ./docs-scripts/docs-final-formatting.bash
+	# replace _docs with docs and remove the sed that breaks LaTeX (converts \\\\ to \\)
 	@if [[ "$$OSTYPE" == "darwin"* ]]; then \
-		find docs/mintlify -name "*.mdx" -exec sed -i '' -e 's/\\\\/\\/g' {} +; \
+		sed -i '' -e 's/_docs/docs/g' -e '/\\\\\\\\.*\\\\/d' ./docs-scripts/docs-final-formatting.bash; \
 	else \
-		find docs/mintlify -name "*.mdx" -exec sed -i 's/\\\\/\\/g' {} +; \
+		sed -i -e 's/_docs/docs/g' -e '/\\\\\\\\.*\\\\/d' ./docs-scripts/docs-final-formatting.bash; \
 	fi
+	bash ./docs-scripts/docs-final-formatting.bash
 	find docs/mintlify/examples -name "*.mdx" ! -name "*.html.mdx" -type f -exec sh -c 'mv "$$1" "$${1%.mdx}.html.mdx"' _ {} \;
 
 preview_docs:
