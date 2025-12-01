@@ -37,6 +37,9 @@ title: "Hierarchical Forecast 👑"
 ---
 """
     readme_text = Path("README.md").read_text()
+    # Skip the first 15 lines
+    lines = readme_text.split('\n')
+    readme_text = '\n'.join(lines[15:])
     readme_text = header + readme_text
     (output_path / "index.html.mdx").write_text(readme_text)
 
