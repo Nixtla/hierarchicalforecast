@@ -186,7 +186,7 @@ plot_summing_matrix()
 Summation Constraints plot
 
 This method simply plots the hierarchical aggregation
-constraints matrix $\mathbf{S}$.
+constraints matrix $\\mathbf{S}$.
 
 **Returns:**
 
@@ -215,7 +215,7 @@ Single Series plot
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `series` | <code>[str](#str)</code> | string identifying the `'unique_id'` any-level series to plot. | *required*
-`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\mathbf{y}\_{[a,b]}$). It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`. | *required*
+`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`. | *required*
 `models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
 `level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
 `id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
@@ -249,7 +249,7 @@ Hierarchically Linked Series plot
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `bottom_series` | <code>[str](#str)</code> | string identifying the `'unique_id'` bottom-level series to plot. | *required*
-`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
+`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
 `models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
 `level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
 `id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
@@ -282,7 +282,7 @@ Hierarchically Predictions Gap plot
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
+`Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
 `models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
 `xlabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's x axis label. Default is None. | <code>None</code>
 `ylabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's y axis label. Default is None. | <code>None</code>

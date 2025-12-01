@@ -102,13 +102,13 @@ input as other `HierarchicalForecast` [reconciliation classes](./methods).
 Given a boostraped set of simulated sample paths:
 
 ```math
-\hat{\mathbf{y}}^{[1]}_{\tau}, \dots ,\hat{\mathbf{y}}^{[B]}_{\tau})
+\hat{\mathbf{y}}^{[1]}_{\\tau}, \dots ,\hat{\mathbf{y}}^{[B]}_{\\tau})
 ```
 
 The reconciled sample paths allow for reconciled distributional forecasts:
 
 ```math
-(\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[1]}_{\tau}, \dots ,\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[B]}_{\tau})
+(\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[1]}_{\\tau}, \dots ,\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[B]}_{\\tau})
 ```
 
 **Parameters:**
@@ -178,12 +178,12 @@ The PERMBU method leverages empirical bottom-level marginal distributions
 with empirical copula functions (describing bottom-level dependencies) to
 generate the distribution of aggregate-level distributions using BottomUp
 reconciliation. The sample reordering technique in the PERMBU method reinjects
-multivariate dependencies into independent bottom-level samples. $\hat{\epsilon}\_{i,t}$
+multivariate dependencies into independent bottom-level samples. $\\hat{\\epsilon}\_{i,t}$
 
 Algorithm:
 
 1. For all series compute conditional marginals distributions.
-1. Compute residuals $\hat{\epsilon}\_{i,t}$ and obtain rank permutations.
+1. Compute residuals $\\hat{\\epsilon}\_{i,t}$ and obtain rank permutations.
 1. Obtain K-sample from the bottom-level series predictions.
 1. Apply recursively through the hierarchical structure:
    4.1. For a given aggregate series $i$ and its children series:

@@ -25,7 +25,6 @@ installed, if not check this guide for instructions on how to install
 HierarchicalForecast.
 
 ```python
-%%capture
 !pip install hierarchicalforecast statsforecast datasetsforecast
 ```
 
@@ -124,7 +123,6 @@ This cell computes the base predictions `Y_hat_df` for all the series in
 insample predictions `Y_fitted_df` for the methods that require them.
 
 ```python
-%%capture
 with CodeTimer('Fit/Predict Model     ', verbose):
     # Read to avoid unnecesary AutoARIMA computation
     yhat_file = f'./data/{dataset}/Y_hat.csv'
