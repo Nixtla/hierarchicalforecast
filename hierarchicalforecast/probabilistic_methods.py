@@ -271,6 +271,7 @@ class PERMBU:
     2.   Compute residuals $\hat{\epsilon}_{i,t}$ and obtain rank permutations.
     3.   Obtain K-sample from the bottom-level series predictions.
     4.   Apply recursively through the hierarchical structure:
+    
         4.1.   For a given aggregate series $i$ and its children series:
         4.2.   Obtain children's empirical joint using sample reordering copula.
         4.2.   From the children's joint obtain the aggregate series's samples.
