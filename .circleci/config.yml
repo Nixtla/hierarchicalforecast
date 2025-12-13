@@ -7,6 +7,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
+      - run:
           name: Install dependencies
           command: |
             pip install uv
