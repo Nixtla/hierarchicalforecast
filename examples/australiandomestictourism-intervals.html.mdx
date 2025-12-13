@@ -11,7 +11,6 @@ to calculate prediction intervals for all hierarchies. In this notebook
 we will see how to do it.
 
 ```python
-%%capture
 !pip install hierarchicalforecast statsforecast
 ```
 
@@ -125,7 +124,7 @@ hplot = HierarchicalPlot(S=S_df, tags=tags)
 hplot.plot_summing_matrix()
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-11-output-1.png)
+![](australiandomestictourism-intervals_files/figure-markdown_strict/cell-11-output-1.png)
 
 ```python
 hplot.plot_hierarchically_linked_series(
@@ -134,7 +133,7 @@ hplot.plot_hierarchically_linked_series(
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-12-output-1.png)
+![](australiandomestictourism-intervals_files/figure-markdown_strict/cell-12-output-1.png)
 
 ### Split Train/Test sets
 
@@ -234,7 +233,7 @@ hplot.plot_series(
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-19-output-1.png)
+![](australiandomestictourism-intervals_files/figure-markdown_strict/cell-19-output-1.png)
 
 ```python
 # Since we are plotting a bottom time series
@@ -248,7 +247,7 @@ hplot.plot_series(
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-20-output-1.png)
+![](australiandomestictourism-intervals_files/figure-markdown_strict/cell-20-output-1.png)
 
 ### Plot hierarchichally linked time series
 
@@ -261,7 +260,7 @@ hplot.plot_hierarchically_linked_series(
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-21-output-1.png)
+![](australiandomestictourism-intervals_files/figure-markdown_strict/cell-21-output-1.png)
 
 ```python
 # ACT only has Canberra
@@ -273,7 +272,7 @@ hplot.plot_hierarchically_linked_series(
 )
 ```
 
-![](AustralianDomesticTourism-Intervals_files/figure-markdown_strict/cell-22-output-1.png)
+![](australiandomestictourism-intervals_files/figure-markdown_strict/cell-22-output-1.png)
 
 ### References
 

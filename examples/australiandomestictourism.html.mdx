@@ -31,7 +31,6 @@ You can run these experiments using CPU or GPU with Google Colab.
 <a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourism.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ```python
-%%capture
 !pip install hierarchicalforecast statsforecast
 ```
 
@@ -91,7 +90,6 @@ from hierarchicalforecast.utils import aggregate
 
 
 ```python
-%%capture
 Y_df, S_df, tags = aggregate(Y_df, spec)
 ```
 
@@ -166,14 +164,12 @@ in `Y_df` using the `ETS` model. Observe that `Y_hat_df` contains the
 forecasts but they are not coherent.
 
 ```python
-%%capture
 from statsforecast.models import AutoETS
 from statsforecast.core import StatsForecast
 ```
 
 
 ```python
-%%capture
 fcst = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')], 
                      freq='QS', n_jobs=-1)
 Y_hat_df = fcst.forecast(df=Y_train_df, h=8, fitted=True)

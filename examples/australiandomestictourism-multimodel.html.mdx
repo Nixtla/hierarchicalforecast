@@ -26,7 +26,6 @@ You can run these experiments using CPU or GPU with Google Colab.
 <a href='https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourism-Multimodel.ipynb' target='_parent'><img src='https://colab.research.google.com/assets/colab-badge.svg' alt='Open In Colab'/></a>
 
 ```python
-%%capture
 !pip install hierarchicalforecast statsforecast mlforecast datasetsforecast neuralforecast
 ```
 
@@ -78,7 +77,6 @@ Using the `aggregate` function from `HierarchicalForecast` we can get
 the full set of time series.
 
 ```python
-%%capture
 from hierarchicalforecast.utils import aggregate
 ```
 
@@ -108,7 +106,6 @@ the following models:
 -   **Country/State/Region**: `NBEATS` model from `NeuralForecast`.
 
 ```python
-%%capture
 
 from statsforecast.core import StatsForecast
 from statsforecast.models import AutoETS
@@ -148,7 +145,6 @@ def fit_predict_any_models(models, df, h):
 We now define the models that we want to use.
 
 ```python
-%%capture
 h = 8
 stat_models = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')], freq='QS', n_jobs=-1)
 ml_models = MLForecast(models = [HistGradientBoostingRegressor()], freq='QS', lags=[1, 4])
@@ -171,7 +167,6 @@ timeseries that are present in each level of the hierarchy, using the
 `tags` we created earlier using the `aggregate` function.
 
 ```python
-%%capture
 
 Y_hat = []
 Y_fitted = []
