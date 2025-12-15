@@ -48,23 +48,7 @@ Name | Type | Description | Default
 #### `HierarchicalReconciliation.reconcile`
 
 ```python
-reconcile(
-    Y_hat_df,
-    tags,
-    S_df=None,
-    Y_df=None,
-    level=None,
-    intervals_method="normality",
-    num_samples=-1,
-    seed=0,
-    is_balanced=False,
-    id_col="unique_id",
-    time_col="ds",
-    target_col="y",
-    id_time_col="temporal_id",
-    temporal=False,
-    S=None,
-)
+reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, S=None)
 ```
 
 Hierarchical Reconciliation Method.
@@ -119,19 +103,7 @@ Type | Description
 #### `HierarchicalReconciliation.bootstrap_reconcile`
 
 ```python
-bootstrap_reconcile(
-    Y_hat_df,
-    S_df,
-    tags,
-    Y_df=None,
-    level=None,
-    intervals_method="normality",
-    num_samples=-1,
-    num_seeds=1,
-    id_col="unique_id",
-    time_col="ds",
-    target_col="y",
-)
+bootstrap_reconcile(Y_hat_df, S_df, tags, Y_df=None, level=None, intervals_method='normality', num_samples=-1, num_seeds=1, id_col='unique_id', time_col='ds', target_col='y')
 ```
 
 Bootstraped Hierarchical Reconciliation Method.
