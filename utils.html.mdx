@@ -21,7 +21,16 @@ external libraries into a compatible data frame format.
 ### `aggregate`
 
 ```python
-aggregate(df, spec, exog_vars=None, sparse_s=False, id_col='unique_id', time_col='ds', id_time_col=None, target_cols=('y',))
+aggregate(
+    df,
+    spec,
+    exog_vars=None,
+    sparse_s=False,
+    id_col="unique_id",
+    time_col="ds",
+    id_time_col=None,
+    target_cols=("y",),
+)
 ```
 
 Utils Aggregation Function.
@@ -51,7 +60,17 @@ Type | Description
 ### `aggregate_temporal`
 
 ```python
-aggregate_temporal(df, spec, exog_vars=None, sparse_s=False, id_col='unique_id', time_col='ds', id_time_col='temporal_id', target_cols=('y',), aggregation_type='local')
+aggregate_temporal(
+    df,
+    spec,
+    exog_vars=None,
+    sparse_s=False,
+    id_col="unique_id",
+    time_col="ds",
+    id_time_col="temporal_id",
+    target_cols=("y",),
+    aggregation_type="local",
+)
 ```
 
 Utils Aggregation Function for Temporal aggregations.
@@ -106,7 +125,15 @@ Name | Type | Description
 ### `get_cross_temporal_tags`
 
 ```python
-get_cross_temporal_tags(df, tags_cs, tags_te, sep='//', id_col='unique_id', id_time_col='temporal_id', cross_temporal_id_col='cross_temporal_id')
+get_cross_temporal_tags(
+    df,
+    tags_cs,
+    tags_te,
+    sep="//",
+    id_col="unique_id",
+    id_time_col="temporal_id",
+    cross_temporal_id_col="cross_temporal_id",
+)
 ```
 
 Get cross-temporal tags.
@@ -170,7 +197,15 @@ Name | Type | Description
 #### `HierarchicalPlot.plot_series`
 
 ```python
-plot_series(series, Y_df, models=None, level=None, id_col='unique_id', time_col='ds', target_col='y')
+plot_series(
+    series,
+    Y_df,
+    models=None,
+    level=None,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+)
 ```
 
 Single Series plot
@@ -196,7 +231,15 @@ Name | Type | Description
 #### `HierarchicalPlot.plot_hierarchically_linked_series`
 
 ```python
-plot_hierarchically_linked_series(bottom_series, Y_df, models=None, level=None, id_col='unique_id', time_col='ds', target_col='y')
+plot_hierarchically_linked_series(
+    bottom_series,
+    Y_df,
+    models=None,
+    level=None,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+)
 ```
 
 Hierarchically Linked Series plot
@@ -222,7 +265,15 @@ Name | Type | Description
 #### `HierarchicalPlot.plot_hierarchical_predictions_gap`
 
 ```python
-plot_hierarchical_predictions_gap(Y_df, models=None, xlabel=None, ylabel=None, id_col='unique_id', time_col='ds', target_col='y')
+plot_hierarchical_predictions_gap(
+    Y_df,
+    models=None,
+    xlabel=None,
+    ylabel=None,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+)
 ```
 
 Hierarchically Predictions Gap plot

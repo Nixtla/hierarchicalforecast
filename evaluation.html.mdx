@@ -15,7 +15,19 @@ function that can be used in combination with loss functions from
 ### `evaluate`
 
 ```python
-evaluate(df, metrics, tags, models=None, train_df=None, level=None, id_col='unique_id', time_col='ds', target_col='y', agg_fn='mean', benchmark=None)
+evaluate(
+    df,
+    metrics,
+    tags,
+    models=None,
+    train_df=None,
+    level=None,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+    agg_fn="mean",
+    benchmark=None,
+)
 ```
 
 Evaluate hierarchical forecast using different metrics.

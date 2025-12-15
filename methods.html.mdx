@@ -94,7 +94,18 @@ References:
 #### `BottomUp.fit`
 
 ```python
-fit(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit(
+    S,
+    y_hat,
+    idx_bottom,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 Bottom Up Fit Method.
@@ -147,7 +158,19 @@ Name | Type | Description
 #### `BottomUp.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(
+    S,
+    y_hat,
+    idx_bottom,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 BottomUp Reconciliation Method.
@@ -216,7 +239,18 @@ See the parent class for more details.
 #### `BottomUpSparse.fit`
 
 ```python
-fit(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit(
+    S,
+    y_hat,
+    idx_bottom,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 Bottom Up Fit Method.
@@ -269,7 +303,19 @@ Name | Type | Description
 #### `BottomUpSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(
+    S,
+    y_hat,
+    idx_bottom,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 BottomUp Reconciliation Method.
@@ -355,7 +401,18 @@ References:
 #### `TopDown.fit`
 
 ```python
-fit(S, y_hat, y_insample, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(
+    S,
+    y_hat,
+    y_insample,
+    y_hat_insample=None,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+    idx_bottom=None,
+)
 ```
 
 TopDown Fit Method.
@@ -408,7 +465,19 @@ Name | Type | Description
 #### `TopDown.fit_predict`
 
 ```python
-fit_predict(S, y_hat, tags, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
+fit_predict(
+    S,
+    y_hat,
+    tags,
+    idx_bottom=None,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+)
 ```
 
 Top Down Reconciliation Method.
@@ -474,7 +543,18 @@ See the parent class for more details.
 #### `TopDownSparse.fit`
 
 ```python
-fit(S, y_hat, y_insample, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(
+    S,
+    y_hat,
+    y_insample,
+    y_hat_insample=None,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+    idx_bottom=None,
+)
 ```
 
 TopDown Fit Method.
@@ -527,7 +607,19 @@ Name | Type | Description
 #### `TopDownSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, tags, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
+fit_predict(
+    S,
+    y_hat,
+    tags,
+    idx_bottom=None,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+)
 ```
 
 #### `TopDownSparse.sample`
@@ -614,7 +706,18 @@ predict(**kwargs)
 #### `MiddleOut.fit_predict`
 
 ```python
-fit_predict(S, y_hat, tags, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
+fit_predict(
+    S,
+    y_hat,
+    tags,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+)
 ```
 
 Middle Out Reconciliation Method.
@@ -691,7 +794,18 @@ predict(**kwargs)
 #### `MiddleOutSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, tags, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
+fit_predict(
+    S,
+    y_hat,
+    tags,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+)
 ```
 
 #### `MiddleOutSparse.sample`
@@ -757,7 +871,18 @@ References:
 #### `MinTrace.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(
+    S,
+    y_hat,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+    idx_bottom=None,
+)
 ```
 
 MinTrace Fit Method.
@@ -810,7 +935,19 @@ Name | Type | Description
 #### `MinTrace.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(
+    S,
+    y_hat,
+    idx_bottom=None,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 MinTrace Reconciliation Method.
@@ -890,7 +1027,18 @@ Name | Type | Description | Default
 #### `MinTraceSparse.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(
+    S,
+    y_hat,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+    idx_bottom=None,
+)
 ```
 
 MinTraceSparse Fit Method.
@@ -943,7 +1091,19 @@ Name | Type | Description
 #### `MinTraceSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(
+    S,
+    y_hat,
+    idx_bottom=None,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 MinTrace Reconciliation Method.
@@ -1033,7 +1193,18 @@ Name | Type | Description | Default
 #### `OptimalCombination.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(
+    S,
+    y_hat,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+    idx_bottom=None,
+)
 ```
 
 MinTrace Fit Method.
@@ -1086,7 +1257,19 @@ Name | Type | Description
 #### `OptimalCombination.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(
+    S,
+    y_hat,
+    idx_bottom=None,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 MinTrace Reconciliation Method.
@@ -1178,7 +1361,18 @@ Name | Type | Description | Default
 #### `ERM.fit`
 
 ```python
-fit(S, y_hat, y_insample, y_hat_insample, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(
+    S,
+    y_hat,
+    y_insample,
+    y_hat_insample,
+    sigmah=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+    idx_bottom=None,
+)
 ```
 
 ERM Fit Method.
@@ -1231,7 +1425,19 @@ Name | Type | Description
 #### `ERM.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(
+    S,
+    y_hat,
+    idx_bottom=None,
+    y_insample=None,
+    y_hat_insample=None,
+    sigmah=None,
+    level=None,
+    intervals_method=None,
+    num_samples=None,
+    seed=None,
+    tags=None,
+)
 ```
 
 ERM Reconciliation Method.
