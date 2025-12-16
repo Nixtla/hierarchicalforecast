@@ -1681,7 +1681,7 @@ class MinTraceSparse(MinTrace):
 
 
 class OptimalCombination(MinTrace):
-    """Optimal Combination Reconciliation Class.
+    r"""Optimal Combination Reconciliation Class.
 
     This reconciliation algorithm was proposed by Hyndman et al. 2011, the method uses generalized least squares
     estimator using the coherency errors covariance matrix. Consider the covariance of the base forecast
@@ -1712,7 +1712,7 @@ class OptimalCombination(MinTrace):
 
 
 class ERM(HReconciler):
-    """Empirical Risk Minimization Reconciliation Class.
+    r"""Empirical Risk Minimization Reconciliation Class.
 
     The Empirical Risk Minimization reconciliation strategy relaxes the unbiasedness assumptions from
     previous reconciliation methods like MinT and optimizes square errors between the reconciled predictions

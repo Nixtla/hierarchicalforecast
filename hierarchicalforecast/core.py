@@ -49,7 +49,7 @@ def _reverse_engineer_sigmah(
     target_col: str = "y",
     num_samples: int = 200,
 ) -> np.ndarray:
-    """Reverse engineer sigma_h from prediction intervals.
+    r"""Reverse engineer sigma_h from prediction intervals.
 
     This function assumes that the model creates prediction intervals
     under a normality with the following the Equation:
@@ -78,7 +78,7 @@ def _reverse_engineer_sigmah(
 
     pi_col = pi_model_name[0]
     sign = -1 if "lo" in pi_col else 1
-    level_cols = re.findall("[\d]+[.,\d]+|[\d]*[.][\d]+|[\d]+", pi_col)
+    level_cols = re.findall(r"[\d]+[.,\d]+|[\d]*[.][\d]+|[\d]+", pi_col)
     level_col = float(level_cols[-1])
     z = norm.ppf(0.5 + level_col / num_samples)
     sigmah = Y_hat_df[pi_col].to_numpy().reshape(n_series, -1)
@@ -88,7 +88,7 @@ def _reverse_engineer_sigmah(
 
 
 class HierarchicalReconciliation:
-    """Hierarchical Reconciliation Class.
+    r"""Hierarchical Reconciliation Class.
 
     The `core.HierarchicalReconciliation` class allows you to efficiently fit multiple
     HierarchicaForecast methods for a collection of time series and base predictions stored in

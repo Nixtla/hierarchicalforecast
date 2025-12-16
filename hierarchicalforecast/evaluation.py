@@ -36,7 +36,7 @@ def mse(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Mean Squared Error
+    r"""Mean Squared Error
 
     Calculates Mean Squared Error between
     `y` and `y_hat`. MSE measures the relative prediction
@@ -76,7 +76,7 @@ def mqloss(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Multi-Quantile Loss
+    r"""Multi-Quantile Loss
 
     Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
     MQL calculates the average multi-quantile Loss for
@@ -131,7 +131,7 @@ def mqloss(
 
 
 def rel_mse(y, y_hat, y_train, mask=None):
-    """Relative Mean Squared Error
+    r"""Relative Mean Squared Error
 
     Computes Relative mean squared error (RelMSE), as proposed by Hyndman & Koehler (2006)
     as an alternative to percentage errors, to avoid measure unstability.
@@ -207,7 +207,7 @@ def msse(y, y_hat, y_train, mask=None):
 
 
 def scaled_crps(y, y_hat, quantiles):
-    """Scaled Continues Ranked Probability Score
+    r"""Scaled Continues Ranked Probability Score
 
     Calculates a scaled variation of the CRPS, as proposed by Rangapuram (2021),
     to measure the accuracy of predicted quantiles `y_hat` compared to the observation `y`.
@@ -246,7 +246,7 @@ def scaled_crps(y, y_hat, quantiles):
 
 
 def energy_score(y, y_sample1, y_sample2, beta=2):
-    """Energy Score
+    r"""Energy Score
 
     Calculates Gneiting's Energy Score sample approximation for
     `y` and independent multivariate samples `y_sample1` and `y_sample2`.
@@ -289,7 +289,7 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
 
 
 def log_score(y, y_hat, cov, allow_singular=True):
-    """Log Score.
+    r"""Log Score.
 
     One of the simplest multivariate probability scoring rules,
     it evaluates the negative density at the value of the realisation.

@@ -500,7 +500,7 @@ def get_cross_temporal_tags(
         tags_cs (dict[str, np.ndarray]): Tags for the cross-sectional hierarchies.
         tags_te (dict[str, np.ndarray]): Tags for the temporal hierarchies.
         sep (str, optional): Separator for the cross-temporal tags. Default is "//".
-        id_col (str, optional): Column that identifies each serie. Default is 'unique_id'.
+        id_col (str, optional): Column that identifies each series. Default is 'unique_id'.
         id_time_col (str, optional): Column that identifies each (aggregated) timestep. Default is 'temporal_id'.
         cross_temporal_id_col (str, optional): Column that will identify each cross-temporal aggregation. Default is 'cross_temporal_id'.
 
@@ -534,7 +534,7 @@ def get_cross_temporal_tags(
 
 
 class HierarchicalPlot:
-    """Hierarchical Plot
+    r"""Hierarchical Plot
 
     This class contains a collection of matplotlib visualization methods, suited for small
     to medium sized hierarchical series.
@@ -560,7 +560,7 @@ class HierarchicalPlot:
         self.tags = tags
 
     def plot_summing_matrix(self):
-        """Summation Constraints plot
+        r"""Summation Constraints plot
 
         This method simply plots the hierarchical aggregation
         constraints matrix $\mathbf{S}$.
@@ -583,7 +583,7 @@ class HierarchicalPlot:
         time_col: str = "ds",
         target_col: str = "y",
     ):
-        """Single Series plot
+        r"""Single Series plot
 
         Args:
             series (str): string identifying the `'unique_id'` any-level series to plot.
@@ -591,7 +591,7 @@ class HierarchicalPlot:
                     It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`.
             models (Optional[list[str]], optional): string identifying filtering model columns. Default is None.
             level (Optional[list[int]], optional): confidence levels for prediction intervals available in `Y_df`. Default is None.
-            id_col (str, optional): column that identifies each serie. Default is 'unique_id'.
+            id_col (str, optional): column that identifies each series. Default is 'unique_id'.
             time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
             target_col (str, optional): column that contains the target. Default is 'y'.
 
@@ -665,7 +665,7 @@ class HierarchicalPlot:
         time_col: str = "ds",
         target_col: str = "y",
     ):
-        """Hierarchically Linked Series plot
+        r"""Hierarchically Linked Series plot
 
         Args:
             bottom_series (str): string identifying the `'unique_id'` bottom-level series to plot.
@@ -673,12 +673,12 @@ class HierarchicalPlot:
                     It contains columns ['unique_id', 'ds', 'y'] and models.
             models (Optional[list[str]], optional): string identifying filtering model columns. Default is None.
             level (Optional[list[int]], optional): confidence levels for prediction intervals available in `Y_df`. Default is None.
-            id_col (str, optional): column that identifies each serie. Default is 'unique_id'.
+            id_col (str, optional): column that identifies each series. Default is 'unique_id'.
             time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
             target_col (str, optional): column that contains the target. Default is 'y'.
 
         Returns:
-            fig (matplotlib.figure.Figure): figure object containing the plots of the hierarchilly linked series.
+            fig (matplotlib.figure.Figure): figure object containing the plots of the hierarchically linked series.
         """
         Y_nw = nw.from_native(Y_df)
 
@@ -761,7 +761,7 @@ class HierarchicalPlot:
         time_col: str = "ds",
         target_col: str = "y",
     ):
-        """Hierarchically Predictions Gap plot
+        r"""Hierarchically Predictions Gap plot
 
         Args:
             Y_df (Frame): hierarchically structured series ($\mathbf{y}_{[a,b]}$).
@@ -769,7 +769,7 @@ class HierarchicalPlot:
             models (Optional[list[str]], optional): string identifying filtering model columns. Default is None.
             xlabel (Optional[str], optional): string for the plot's x axis label. Default is None.
             ylabel (Optional[str], optional): string for the plot's y axis label. Default is None.
-            id_col (str, optional): column that identifies each serie. Default is 'unique_id'.
+            id_col (str, optional): column that identifies each series. Default is 'unique_id'.
             time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
             target_col (str, optional): column that contains the target. Default is 'y'.
 
