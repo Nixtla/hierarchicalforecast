@@ -6,7 +6,7 @@ import re
 import reprlib
 import time
 from inspect import signature
-from typing import Optional
+from typing import Optional, Union
 
 import narwhals.stable.v2 as nw
 import numpy as np
@@ -15,6 +15,7 @@ from scipy import sparse
 from scipy.stats import norm
 
 from .methods import HReconciler
+from ._array_compat import numpy_to_dask
 
 
 def _build_fn_name(fn) -> str:
@@ -29,6 +30,15 @@ def _build_fn_name(fn) -> str:
     if fn_name == "MinTrace" and func_params["method"] == "mint_shrink":
         if func_params["mint_shr_ridge"] == 2e-8:
             args_to_remove.append("mint_shr_ridge")
+
+    # Exclude internal state attributes that are set during fit/reconcile
+    # These are large arrays or internal state that shouldn't be part of the name
+    internal_state_attrs = [
+        "P", "W", "y_hat", "sampler", "fitted",
+        "intervals_method", "y_insample", "y_hat_insample",
+        "sigmah", "cov", "residuals",
+    ]
+    args_to_remove.extend(internal_state_attrs)
 
     func_params = [
         f"{name}-{value}"
@@ -328,6 +338,8 @@ class HierarchicalReconciliation:
         target_col: str = "y",
         id_time_col: str = "temporal_id",
         temporal: bool = False,
+        distributed: bool = False,
+        chunks: Union[int, str, tuple] = "auto",
         S: Frame = None,  # For compatibility with the old API, S_df is now S
     ) -> FrameT:
         r"""Hierarchical Reconciliation Method.
@@ -370,6 +382,8 @@ class HierarchicalReconciliation:
             id_col (str, optional): column that identifies each serie. Default is "unique_id".
             time_col (str, optional): column that identifies each timestep, its values can be timestamps or integers. Default is "ds".
             target_col (str, optional): column that contains the target. Default is "y".
+            distributed (bool, optional): If True, convert numpy arrays to Dask arrays for distributed computation. Default is False.
+            chunks (Union[int, str, tuple], optional): Chunk size for Dask arrays. Default is "auto".
 
         Returns:
             (FrameT): DataFrame, with reconciled predictions.
@@ -450,7 +464,14 @@ class HierarchicalReconciliation:
                 time_col=time_col,
                 target_col=target_col,
             )
+            # Convert to Dask array if distributed mode is enabled
+            if distributed:
+                y_insample = numpy_to_dask(y_insample, chunks=chunks)
             reconciler_args["y_insample"] = y_insample
+
+        # Store distributed settings for use in the loop
+        self._distributed = distributed
+        self._chunks = chunks
 
         Y_tilde_nw = nw.maybe_reset_index(Y_hat_nw.clone())
         self.execution_times = {}
@@ -462,11 +483,15 @@ class HierarchicalReconciliation:
             if reconciler.is_sparse_method:
                 reconciler_args["S"] = S_for_sparse
             else:
-                reconciler_args["S"] = (
+                S_arr = (
                     S_nw.select(nw.col(S_nw_cols_ex_id_col))
                     .to_numpy()
                     .astype(np.float64, copy=False)
                 )
+                # Convert S to Dask array if distributed mode is enabled
+                if distributed:
+                    S_arr = numpy_to_dask(S_arr, chunks=chunks)
+                reconciler_args["S"] = S_arr
 
             for model_name in self.model_names:
                 start = time.time()
@@ -483,6 +508,9 @@ class HierarchicalReconciliation:
                     time_col=time_col,
                     target_col=model_name,
                 )
+                # Convert y_hat to Dask array if distributed mode is enabled
+                if distributed:
+                    y_hat = numpy_to_dask(y_hat, chunks=chunks)
                 reconciler_args["y_hat"] = y_hat
 
                 if Y_nw is not None and model_name in Y_nw.columns:
@@ -494,6 +522,9 @@ class HierarchicalReconciliation:
                         time_col=time_col,
                         target_col=model_name,
                     )
+                    # Convert y_hat_insample to Dask array if distributed mode is enabled
+                    if distributed:
+                        y_hat_insample = numpy_to_dask(y_hat_insample, chunks=chunks)
                     reconciler_args["y_hat_insample"] = y_hat_insample
 
                 if level is not None:

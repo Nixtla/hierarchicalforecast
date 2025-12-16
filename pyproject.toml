@@ -55,6 +55,9 @@ dev = [
 polars = [
     "polars[numpy]<=1.32.0"
 ]
+distributed = [
+    "dask[array]>=2023.1.0"
+]
 
 [project.urls]
 Homepage = "https://github.com/Nixtla/hierarchicalforecast/"

@@ -12,6 +12,11 @@ import numpy as np
 from qpsolvers import solve_qp
 from scipy import sparse
 
+from hierarchicalforecast._array_compat import (
+    compute_if_dask,
+    get_array_module,
+    is_dask_array,
+)
 from hierarchicalforecast.utils import (
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
@@ -83,9 +88,12 @@ class HReconciler:
         level: Optional[list[int]] = None,
         sampler: Optional[Union[Normality, PERMBU, Bootstrap]] = None,
     ):
-
         # Mean reconciliation
-        res = {"mean": (S @ (P @ y_hat))}
+        # Support both numpy and dask arrays via @ operator
+        mean_result = S @ (P @ y_hat)
+
+        # Compute if dask array for compatibility with downstream operations
+        res = {"mean": compute_if_dask(mean_result)}
 
         # Probabilistic reconciliation
         if (level is not None) and (sampler is not None):
@@ -178,11 +186,19 @@ class BottomUp(HReconciler):
 
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
-        P = np.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float64)
+        # Create P matrix - always use numpy then convert if needed
+        P = np.eye(n_bottom, n_hiers, n_hiers - n_bottom, dtype=np.float64)
         if getattr(self, "intervals_method", False) is None:
             W = None
         else:
             W = np.eye(n_hiers, dtype=np.float64)
+
+        # Convert to Dask if S is a Dask array
+        if is_dask_array(S):
+            import dask.array as da
+            P = da.from_array(P, chunks="auto")
+            if W is not None:
+                W = da.from_array(W, chunks="auto")
         return P, W
 
     def fit(
@@ -401,22 +417,28 @@ class TopDown(HReconciler):
     ):
 
         n_hiers, n_bottom = S.shape
+        # Get appropriate array module
+        xp = get_array_module(S)
+
+        # For strictly hierarchical check, we need numpy arrays
+        S_np = compute_if_dask(S)
+        y_insample_np = compute_if_dask(y_insample)
 
         # Check if the data structure is strictly hierarchical.
         if tags is not None:
-            if not is_strictly_hierarchical(S, tags):
+            if not is_strictly_hierarchical(S_np, tags):
                 raise ValueError(
                     "Top-down reconciliation requires strictly hierarchical structures."
                 )
-            idx_top = int(S.sum(axis=1).argmax())
+            idx_top = int(S_np.sum(axis=1).argmax())
             levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
             idx_bottom = levels_[list(levels_)[-1]]
-            y_btm = y_insample[idx_bottom]
+            y_btm = y_insample_np[idx_bottom]
         else:
             idx_top = 0
-            y_btm = y_insample[(n_hiers - n_bottom) :]
+            y_btm = y_insample_np[(n_hiers - n_bottom) :]
 
-        y_top = y_insample[idx_top]
+        y_top = y_insample_np[idx_top]
 
         if self.method == "average_proportions":
             prop = np.nanmean(y_btm / y_top, axis=1)
@@ -437,11 +459,17 @@ class TopDown(HReconciler):
                 """
             )
 
-        P = np.zeros_like(
-            S, np.float64
-        ).T  # float 64 if prop is too small, happens with wiki2
-        P[:, idx_top] = prop
-        W = np.eye(n_hiers, dtype=np.float64)
+        # Create P and W using the appropriate array module
+        P = xp.zeros((n_bottom, n_hiers), dtype=np.float64)
+        if is_dask_array(P):
+            # For dask arrays, we need to convert to numpy first, modify, then back
+            P_np = np.zeros((n_bottom, n_hiers), dtype=np.float64)
+            P_np[:, idx_top] = prop
+            import dask.array as da
+            P = da.from_array(P_np, chunks=P.chunks)
+        else:
+            P[:, idx_top] = prop
+        W = xp.eye(n_hiers, dtype=np.float64)
         return P, W
 
     def fit(
@@ -527,16 +555,20 @@ class TopDown(HReconciler):
             y_tilde (np.ndarray): Reconciliated y_hat using the Top Down approach.
         """
         if self.method == "forecast_proportions":
+            # Convert Dask arrays to numpy for forecast_proportions method
+            S_np = compute_if_dask(S)
+            y_hat_np = compute_if_dask(y_hat)
+
             if not self.is_strictly_hierarchical:
                 # Check if the data structure is strictly hierarchical.
-                if tags is not None and not is_strictly_hierarchical(S, tags):
+                if tags is not None and not is_strictly_hierarchical(S_np, tags):
                     raise ValueError(
                         "Top-down reconciliation requires strictly hierarchical structures."
                     )
-            S_sum = np.sum(S, axis=1)
-            if S.shape[1] > 1:
+            S_sum = np.sum(S_np, axis=1)
+            if S_np.shape[1] > 1:
                 S_max_idxs = np.argsort(S_sum)[::-1]
-                idxs_top = S_max_idxs[np.cumsum(S_sum[S_max_idxs]) <= S.shape[1]]
+                idxs_top = S_max_idxs[np.cumsum(S_sum[S_max_idxs]) <= S_np.shape[1]]
             else:
                 idxs_top = np.array([np.argmax(S_sum)])
             levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
@@ -544,16 +576,16 @@ class TopDown(HReconciler):
                 raise ValueError(
                     "Prediction intervals not implemented for `forecast_proportions`"
                 )
-            nodes = _get_child_nodes(S=S, tags=levels_)
+            nodes = _get_child_nodes(S=S_np, tags=levels_)
             reconciled = [
                 _reconcile_fcst_proportions(
-                    S=S,
+                    S=S_np,
                     y_hat=y_hat_[:, None],
                     tags=levels_,
                     nodes=nodes,
                     idxs_top=idxs_top,
                 )
-                for y_hat_ in y_hat.T
+                for y_hat_ in y_hat_np.T
             ]
             reconciled = np.hstack(reconciled)
             return {"mean": reconciled}
@@ -1105,27 +1137,33 @@ class MinTrace(HReconciler):
             raise ValueError(
                 f"Check `Y_df`. For method `{self.method}` you need to pass insample predictions and insample values."
             )
-        n_hiers, n_bottom = S.shape
+
+        # Compute dask arrays if needed for operations that require numpy
+        S_np = compute_if_dask(S)
+        y_insample_np = compute_if_dask(y_insample) if y_insample is not None else None
+        y_hat_insample_np = compute_if_dask(y_hat_insample) if y_hat_insample is not None else None
+
+        n_hiers, n_bottom = S_np.shape
         n_aggs = n_hiers - n_bottom
         # Construct J and U.T
         J = np.concatenate(
-            (np.zeros((n_bottom, n_aggs), dtype=np.float64), S[n_aggs:]), axis=1
+            (np.zeros((n_bottom, n_aggs), dtype=np.float64), S_np[n_aggs:]), axis=1
         )
-        Ut = np.concatenate((np.eye(n_aggs, dtype=np.float64), -S[:n_aggs]), axis=1)
+        Ut = np.concatenate((np.eye(n_aggs, dtype=np.float64), -S_np[:n_aggs]), axis=1)
         if self.method == "ols":
             W = np.eye(n_hiers)
             UtW = Ut
         elif self.method == "wls_struct":
-            Wdiag = np.sum(S, axis=1, dtype=np.float64)
+            Wdiag = np.sum(S_np, axis=1, dtype=np.float64)
             UtW = Ut * Wdiag
             W = np.diag(Wdiag)
         elif (
             self.method in res_methods
-            and y_insample is not None
-            and y_hat_insample is not None
+            and y_insample_np is not None
+            and y_hat_insample_np is not None
         ):
             # Residuals with shape (obs, n_hiers)
-            residuals = (y_insample - y_hat_insample).T
+            residuals = (y_insample_np - y_hat_insample_np).T
             n, _ = residuals.shape
 
             # Protection: against overfitted model
@@ -1750,30 +1788,36 @@ class ERM(HReconciler):
         y_hat_insample: np.ndarray,
         idx_bottom: np.ndarray,
     ):
-        n_hiers, n_bottom = S.shape
+        # Compute dask arrays if needed for operations that require numpy
+        S_np = compute_if_dask(S)
+        y_hat_np = compute_if_dask(y_hat)
+        y_insample_np = compute_if_dask(y_insample) if y_insample is not None else None
+        y_hat_insample_np = compute_if_dask(y_hat_insample) if y_hat_insample is not None else None
+
+        n_hiers, n_bottom = S_np.shape
         # y_hat_insample shape (n_hiers, obs)
-        if y_insample is None or y_hat_insample is None:
+        if y_insample_np is None or y_hat_insample_np is None:
             raise ValueError(
                 "Check `Y_df`. For method `ERM` you need to pass insample predictions and insample values."
             )
         # remove obs with nan values
-        nan_idx = np.isnan(y_hat_insample).any(axis=0)
-        y_insample = y_insample[:, ~nan_idx]
-        y_hat_insample = y_hat_insample[:, ~nan_idx]
+        nan_idx = np.isnan(y_hat_insample_np).any(axis=0)
+        y_insample_np = y_insample_np[:, ~nan_idx]
+        y_hat_insample_np = y_hat_insample_np[:, ~nan_idx]
         # only using h validation steps to avoid
         # computational burden
         # print(y_hat.shape)
-        h = min(y_hat.shape[1], y_hat_insample.shape[1])
-        y_hat_insample = y_hat_insample[:, -h:]  # shape (h, n_hiers)
-        y_insample = y_insample[:, -h:]
+        h = min(y_hat_np.shape[1], y_hat_insample_np.shape[1])
+        y_hat_insample_np = y_hat_insample_np[:, -h:]  # shape (h, n_hiers)
+        y_insample_np = y_insample_np[:, -h:]
         if self.method == "closed":
-            B = np.linalg.inv(S.T @ S) @ S.T @ y_insample
+            B = np.linalg.inv(S_np.T @ S_np) @ S_np.T @ y_insample_np
             B = B.T
-            P = np.linalg.pinv(y_hat_insample.T) @ B
+            P = np.linalg.pinv(y_hat_insample_np.T) @ B
             P = P.T
         elif self.method == "reg":
-            X = np.kron(S, y_hat_insample.T)
-            z = y_insample.reshape(-1)
+            X = np.kron(S_np, y_hat_insample_np.T)
+            z = y_insample_np.reshape(-1)
 
             if self.lambda_reg is None:
                 lambda_reg = np.max(np.abs(X.T.dot(z)))
@@ -1781,12 +1825,12 @@ class ERM(HReconciler):
                 lambda_reg = self.lambda_reg
 
             beta = _lasso(X, z, lambda_reg, max_iters=1000, tol=1e-4)
-            P = beta.reshape(S.shape).T
+            P = beta.reshape(S_np.shape).T
         elif self.method == "reg_bu":
-            X = np.kron(S, y_hat_insample.T)
-            Pbu = np.zeros_like(S)
-            Pbu[idx_bottom] = S[idx_bottom]
-            z = y_insample.reshape(-1) - X @ Pbu.reshape(-1)
+            X = np.kron(S_np, y_hat_insample_np.T)
+            Pbu = np.zeros_like(S_np)
+            Pbu[idx_bottom] = S_np[idx_bottom]
+            z = y_insample_np.reshape(-1) - X @ Pbu.reshape(-1)
 
             if self.lambda_reg is None:
                 lambda_reg = np.max(np.abs(X.T.dot(z)))
@@ -1795,7 +1839,7 @@ class ERM(HReconciler):
 
             beta = _lasso(X, z, lambda_reg, max_iters=1000, tol=1e-4)
             P = beta + Pbu.reshape(-1)
-            P = P.reshape(S.shape).T
+            P = P.reshape(S_np.shape).T
         else:
             raise ValueError(f"Unknown reconciliation method {self.method}")
 
