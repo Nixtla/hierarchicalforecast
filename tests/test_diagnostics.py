@@ -23,6 +23,7 @@ def diagnostic_data(tourism_df, hiers_grouped):
     Y_df, S_df, tags = aggregate(df, hiers_grouped)
     Y_df["y_model"] = Y_df["y"]
     Y_hat_df = Y_df.groupby("unique_id").tail(4).copy()
+    ds_h = Y_hat_df["ds"].unique() # noqa: F841
     Y_train_df = Y_df.query("~(ds in @ds_h)").copy()
 
     # Add noise to base forecasts to make them incoherent
