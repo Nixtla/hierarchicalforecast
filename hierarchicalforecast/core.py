@@ -36,12 +36,8 @@ def _compute_coherence_residual(
     Returns:
         Coherence residual array with same shape as y.
     """
-    if y.ndim == 1:
-        y_bottom = y[idx_bottom]
-        y_implied = S @ y_bottom
-    else:
-        y_bottom = y[idx_bottom, :]
-        y_implied = S @ y_bottom
+    y_bottom = y[idx_bottom]
+    y_implied = S @ y_bottom
     return y - y_implied
 
 
@@ -65,33 +61,27 @@ def _compute_diagnostics_for_level(
         Dictionary of metric names to values.
     """
     # Extract level data
-    y_before_level = y_before[level_indices, :].flatten()
-    y_after_level = y_after[level_indices, :].flatten()
-    residual_before_level = residual_before[level_indices, :].flatten()
-    residual_after_level = residual_after[level_indices, :].flatten()
+    y_before_level = y_before[level_indices].flatten()
+    y_after_level = y_after[level_indices].flatten()
+    residual_before_level = residual_before[level_indices].flatten()
+    residual_after_level = residual_after[level_indices].flatten()
 
     # Adjustments
     adjustment = y_after_level - y_before_level
 
     metrics = {
-        "coherence_residual_mae_before": float(np.mean(np.abs(residual_before_level))),
-        "coherence_residual_rmse_before": float(
-            np.sqrt(np.mean(residual_before_level**2))
-        ),
-        "coherence_residual_mae_after": float(np.mean(np.abs(residual_after_level))),
-        "coherence_residual_rmse_after": float(
-            np.sqrt(np.mean(residual_after_level**2))
-        ),
-        "adjustment_mae": float(np.mean(np.abs(adjustment))),
-        "adjustment_rmse": float(np.sqrt(np.mean(adjustment**2))),
-        "adjustment_max": float(np.max(np.abs(adjustment))),
-        "adjustment_mean": float(np.mean(adjustment)),
-        "negative_count_before": int(np.sum(y_before_level < 0)),
-        "negative_count_after": int(np.sum(y_after_level < 0)),
-        "negative_introduced": int(
-            np.sum((y_before_level >= 0) & (y_after_level < 0))
-        ),
-        "negative_removed": int(np.sum((y_before_level < 0) & (y_after_level >= 0))),
+        "coherence_residual_mae_before": np.mean(np.abs(residual_before_level), dtype=np.float64),
+        "coherence_residual_rmse_before": np.sqrt(np.mean(residual_before_level**2), dtype=np.float64),
+        "coherence_residual_mae_after": np.mean(np.abs(residual_after_level), dtype=np.float64),
+        "coherence_residual_rmse_after": np.sqrt(np.mean(residual_after_level**2), dtype=np.float64),
+        "adjustment_mae": np.mean(np.abs(adjustment), dtype=np.float64),
+        "adjustment_rmse": np.sqrt(np.mean(adjustment**2), dtype=np.float64),
+        "adjustment_max": np.max(np.abs(adjustment, dtype=np.float64)),
+        "adjustment_mean": np.mean(adjustment, dtype=np.float64),
+        "negative_count_before": np.sum(y_before_level < 0, dtype=np.int64),
+        "negative_count_after": np.sum(y_after_level < 0, dtype=np.int64),
+        "negative_introduced": np.sum((y_before_level >= 0) & (y_after_level < 0), dtype=np.int64),
+        "negative_removed": np.sum((y_before_level < 0) & (y_after_level >= 0), dtype=np.int64),
     }
     return metrics
 
