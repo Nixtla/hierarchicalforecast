@@ -48,7 +48,7 @@ Name | Type | Description | Default
 #### `HierarchicalReconciliation.reconcile`
 
 ```python
-reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, S=None, diagnostics=False, diagnostics_atol=1e-06)
+reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, S=None)
 ```
 
 Hierarchical Reconciliation Method.
@@ -93,28 +93,12 @@ Name | Type | Description | Default
 `id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is "unique_id". | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is "ds". | <code>'ds'</code>
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is "y". | <code>'y'</code>
-`diagnostics` | <code>[bool](#bool)</code> | if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False. | <code>False</code>
-`diagnostics_atol` | <code>[float](#float)</code> | absolute tolerance for numerical coherence check. Default is 1e-6. | <code>1e-06</code>
 
 **Returns:**
 
 Type | Description
 ---- | -----------
 <code>[FrameT](#narwhals.typing.FrameT)</code> | DataFrame, with reconciled predictions.
-
-<details class="note" open markdown="1">
-<summary>Note</summary>
-
-When `diagnostics=True`, after reconciliation completes, `self.diagnostics` will contain
-a DataFrame with coherence metrics per hierarchical level, including:
-
-- `coherence_residual_mae_before/after`: Mean absolute coherence residual before/after reconciliation
-- `adjustment_mae/rmse/max/mean`: Statistics on the adjustments made by reconciliation
-- `negative_count_before/after`: Count of negative values before/after reconciliation
-- `is_coherent`: Whether reconciled forecasts satisfy aggregation constraints (Overall level only)
-- `coherence_max_violation`: Maximum coherence violation (Overall level only)
-
-</details>
 
 #### `HierarchicalReconciliation.bootstrap_reconcile`
 

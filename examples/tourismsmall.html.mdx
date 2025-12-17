@@ -112,10 +112,6 @@ from statsforecast.core import StatsForecast
 from statsforecast.models import AutoARIMA, Naive
 ```
 
-``` text
-/home/osprangers/Repositories/hierarchicalforecast/.venv/lib/python3.10/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
-  from .autonotebook import tqdm as notebook_tqdm
-```
 
 ```python
 fcst = StatsForecast(
@@ -156,97 +152,6 @@ hrec = HierarchicalReconciliation(reconcilers=reconcilers)
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, Y_df=Y_train_df, S_df=S_df, tags=tags)
 ```
 
-## 4.1 Coherence Diagnostics
-
-The `reconcile` method supports an optional `diagnostics=True` parameter
-that computes a detailed report showing how reconciliation changed the
-forecasts. This is useful for:
-
--   Verifying that base forecasts were incoherent and reconciliation
-    fixed them
--   Understanding which hierarchy levels were adjusted the most
--   Detecting if reconciliation introduced negative values
--   Confirming numerical coherence within tolerance
-
-```python
-# Run reconciliation with diagnostics enabled
-hrec_diag = HierarchicalReconciliation(reconcilers=[BottomUp(), TopDown(method='forecast_proportions')])
-Y_rec_diag_df = hrec_diag.reconcile(
-    Y_hat_df=Y_hat_df, 
-    Y_df=Y_train_df, 
-    S_df=S_df, 
-    tags=tags,
-    diagnostics=True  # Enable coherence diagnostics
-)
-```
-
-The diagnostics are stored in `hrec.diagnostics` as a DataFrame with
-metrics per hierarchical level:
-
-```python
-# View the full diagnostics report
-hrec_diag.diagnostics
-```
-
-|     | level   | metric                         | AutoARIMA/BottomUp | Naive/BottomUp | AutoARIMA/TopDown_method-forecast_proportions | Naive/TopDown_method-forecast_proportions |
-|-----|---------|--------------------------------|--------------------|----------------|-----------------------------------------------|-------------------------------------------|
-| 0   | Country | coherence_residual_mae_before  | 1551.154858        | 0.0            | 1.551155e+03                                  | 0.0                                       |
-| 1   | Country | coherence_residual_rmse_before | 1823.566338        | 0.0            | 1.823566e+03                                  | 0.0                                       |
-| 2   | Country | coherence_residual_mae_after   | 0.000000           | 0.0            | 7.275958e-12                                  | 0.0                                       |
-| 3   | Country | coherence_residual_rmse_after  | 0.000000           | 0.0            | 1.455192e-11                                  | 0.0                                       |
-| 4   | Country | adjustment_mae                 | 1551.154858        | 0.0            | 0.000000e+00                                  | 0.0                                       |
-| ... | ...     | ...                            | ...                | ...            | ...                                           | ...                                       |
-| 57  | Overall | negative_count_after           | 0.000000           | 0.0            | 0.000000e+00                                  | 0.0                                       |
-| 58  | Overall | negative_introduced            | 0.000000           | 0.0            | 0.000000e+00                                  | 0.0                                       |
-| 59  | Overall | negative_removed               | 0.000000           | 0.0            | 0.000000e+00                                  | 0.0                                       |
-| 60  | Overall | is_coherent                    | 1.000000           | 1.0            | 1.000000e+00                                  | 1.0                                       |
-| 61  | Overall | coherence_max_violation        | 0.000000           | 0.0            | 2.910383e-11                                  | 0.0                                       |
-
-**Key metrics explained:**
-
--   `coherence_residual_mae_before`: Mean absolute incoherence in base
-    forecasts (should be \> 0 if base forecasts are incoherent)
--   `coherence_residual_mae_after`: Mean absolute incoherence after
-    reconciliation (should be ~0)
--   `adjustment_mae/rmse/max`: How much forecasts were adjusted by
-    reconciliation
--   `negative_count_before/after`: Count of negative forecast values
--   `is_coherent`: Whether the reconciled forecasts satisfy the
-    hierarchical constraints (1.0 = yes)
-
-Let’s filter to see just the coherence verification:
-
-```python
-# Check coherence metrics at the Overall level
-coherence_check = hrec_diag.diagnostics.query(
-    "level == 'Overall' and metric in ['coherence_residual_mae_before', 'coherence_residual_mae_after', 'is_coherent', 'coherence_max_violation']"
-)
-coherence_check
-```
-
-|     | level   | metric                        | AutoARIMA/BottomUp | Naive/BottomUp | AutoARIMA/TopDown_method-forecast_proportions | Naive/TopDown_method-forecast_proportions |
-|-----|---------|-------------------------------|--------------------|----------------|-----------------------------------------------|-------------------------------------------|
-| 48  | Overall | coherence_residual_mae_before | 91.123692          | 0.0            | 9.112369e+01                                  | 0.0                                       |
-| 50  | Overall | coherence_residual_mae_after  | 0.000000           | 0.0            | 2.119653e-13                                  | 0.0                                       |
-| 60  | Overall | is_coherent                   | 1.000000           | 1.0            | 1.000000e+00                                  | 1.0                                       |
-| 61  | Overall | coherence_max_violation       | 0.000000           | 0.0            | 2.910383e-11                                  | 0.0                                       |
-
-We can also see which levels required the largest adjustments:
-
-```python
-# Compare adjustment magnitude across levels
-adjustment_by_level = hrec_diag.diagnostics.query("metric == 'adjustment_mae'")
-adjustment_by_level
-```
-
-|     | level                             | metric         | AutoARIMA/BottomUp | Naive/BottomUp | AutoARIMA/TopDown_method-forecast_proportions | Naive/TopDown_method-forecast_proportions |
-|-----|-----------------------------------|----------------|--------------------|----------------|-----------------------------------------------|-------------------------------------------|
-| 4   | Country                           | adjustment_mae | 1551.154858        | 0.0            | 0.000000                                      | 0.0                                       |
-| 16  | Country/Purpose                   | adjustment_mae | 996.859118         | 0.0            | 1106.796143                                   | 0.0                                       |
-| 28  | Country/Purpose/State             | adjustment_mae | 91.836329          | 0.0            | 151.248239                                    | 0.0                                       |
-| 40  | Country/Purpose/State/CityNonCity | adjustment_mae | 0.000000           | 0.0            | 87.497279                                     | 0.0                                       |
-| 52  | Overall                           | adjustment_mae | 91.123692          | 0.0            | 152.381830                                    | 0.0                                       |
-
 ## 5. Evaluation
 
 The `HierarchicalForecast` package includes the `evaluate` function to
@@ -273,11 +178,11 @@ evaluation.set_index(["level", "metric"]).filter(like="ARIMA", axis=1)
 |                                   |            | AutoARIMA | AutoARIMA/BottomUp | AutoARIMA/TopDown_method-forecast_proportions | AutoARIMA/TopDown_method-proportion_averages | AutoARIMA/MiddleOut_middle_level-Country/Purpose/State_top_down_method-proportion_averages |
 |-----------------------------------|------------|-----------|--------------------|-----------------------------------------------|----------------------------------------------|--------------------------------------------------------------------------------------------|
 | level                             | metric     |           |                    |                                               |                                              |                                                                                            |
-| Country                           | mse-scaled | 0.123161  | 0.055264           | 0.123161                                      | 0.123161                                     | 0.079278                                                                                   |
-| Country/Purpose                   | mse-scaled | 0.171063  | 0.077688           | 0.101570                                      | 0.128151                                     | 0.104186                                                                                   |
-| Country/Purpose/State             | mse-scaled | 0.194383  | 0.149163           | 0.201738                                      | 0.327854                                     | 0.194383                                                                                   |
-| Country/Purpose/State/CityNonCity | mse-scaled | 0.170373  | 0.170373           | 0.210060                                      | 0.341365                                     | 0.225656                                                                                   |
-| Overall                           | mse-scaled | 0.154912  | 0.085342           | 0.131308                                      | 0.168269                                     | 0.115569                                                                                   |
+| Country                           | mse-scaled | 0.317897  | 0.367078           | 0.317897                                      | 0.317897                                     | 0.305053                                                                                   |
+| Country/Purpose                   | mse-scaled | 0.318950  | 0.233606           | 0.262216                                      | 0.320225                                     | 0.196062                                                                                   |
+| Country/Purpose/State             | mse-scaled | 0.268057  | 0.281189           | 0.320349                                      | 0.511356                                     | 0.268057                                                                                   |
+| Country/Purpose/State/CityNonCity | mse-scaled | 0.292136  | 0.292136           | 0.323261                                      | 0.509784                                     | 0.280599                                                                                   |
+| Overall                           | mse-scaled | 0.308942  | 0.295690           | 0.297072                                      | 0.364775                                     | 0.255038                                                                                   |
 
 ### References
 
