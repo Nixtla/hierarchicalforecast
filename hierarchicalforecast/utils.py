@@ -175,9 +175,7 @@ def aggregate(
 
     # Checks
     # Generate order-preserving list of unique cols based on spec
-    seen = set()
-    spec_cols = [col for cols in spec for col in cols if col not in seen and not seen.add(col)]  # type: ignore[func-returns-value]
-
+    spec_cols = list(dict.fromkeys([col for cols in spec for col in cols]))
     # Check if last level in spec contains all levels
     missing_cols_in_bottom_spec = set(spec_cols) - set(spec[-1])
     if missing_cols_in_bottom_spec and not temporal_agg:
@@ -746,7 +744,7 @@ class HierarchicalPlot:
         kwargs = dict(
             loc="lower center", prop={"size": 10}, bbox_to_anchor=(0, 0.05, 1, 1)
         )
-        if sys.version_info.minor > 7:
+        if sys.version_info.minor > 7:  # noqa: YTT204
             kwargs["ncols"] = np.max([2, np.ceil(len(labels) / 2)])
         fig.legend(handles, labels, **kwargs)
         return fig
@@ -1169,7 +1167,7 @@ def _lasso(
     beta_changes = np.zeros(feats, dtype=np.float64)
     residuals = y.copy()
 
-    for it in range(max_iters):
+    for _it in range(max_iters):
         for i in range(feats):
             norms_i = norms[i]
             # is feature is close to zero, we
