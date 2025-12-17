@@ -30,7 +30,7 @@ class HReconciler:
     insample = False
     P = None
     sampler = None
-    _init_params: Optional[dict] = None  # Stores initialization parameters for naming
+    _init_params: dict | None = None  # Stores initialization parameters for naming
 
     def _get_sampler(
         self,
