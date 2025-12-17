@@ -30,6 +30,7 @@ class HReconciler:
     insample = False
     P = None
     sampler = None
+    _init_params: Optional[dict] = None  # Stores initialization parameters for naming
 
     def _get_sampler(
         self,
@@ -175,6 +176,9 @@ class BottomUp(HReconciler):
 
     insample = False
 
+    def __init__(self):
+        self._init_params = {}
+
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
         P = np.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float64)
@@ -299,6 +303,9 @@ class BottomUpSparse(BottomUp):
 
     is_sparse_method = True
 
+    def __init__(self):
+        self._init_params = {}
+
     def _get_PW_matrices(self, S, idx_bottom):
         n_hiers, n_bottom = S.shape
         P = sparse.eye(n_bottom, n_hiers, n_hiers - n_bottom, np.float64, "csr")
@@ -390,6 +397,7 @@ class TopDown(HReconciler):
             )
         self.method = method
         self.insample = method in ["average_proportions", "proportion_averages"]
+        self._init_params = {"method": method}
 
     def _get_PW_matrices(
         self,
@@ -756,6 +764,7 @@ class MiddleOut(HReconciler):
             "average_proportions",
             "proportion_averages",
         ]
+        self._init_params = {"middle_level": middle_level, "top_down_method": top_down_method}
 
     def _get_PW_matrices(self, **kwargs):
         raise NotImplementedError("Not implemented")
@@ -1087,6 +1096,10 @@ class MinTrace(HReconciler):
         self.num_threads = num_threads
         if not self.nonnegative and self.num_threads > 1:
             warnings.warn("`num_threads` is only used when `nonnegative=True`")
+        # Store init params for naming (excluding internal flags like insample, num_threads)
+        self._init_params = {"method": method, "nonnegative": nonnegative}
+        if method == "mint_shrink":
+            self._init_params["mint_shr_ridge"] = mint_shr_ridge
 
     def _get_PW_matrices(
         self,
@@ -1386,6 +1399,8 @@ class MinTraceSparse(MinTrace):
         super().__init__(method, nonnegative, num_threads=num_threads)
         # Assign the attributes specific to the sparse class.
         self.qp = qp
+        # Override _init_params to include sparse-specific params
+        self._init_params = {"method": method, "nonnegative": nonnegative}
 
     def _get_PW_matrices(
         self,
@@ -1708,6 +1723,8 @@ class OptimalCombination(MinTrace):
             method=method, nonnegative=nonnegative, num_threads=num_threads
         )
         self.insample = False
+        # Override _init_params for OptimalCombination
+        self._init_params = {"method": method, "nonnegative": nonnegative}
 
 
 class ERM(HReconciler):
@@ -1740,6 +1757,7 @@ class ERM(HReconciler):
         self.method = method
         self.lambda_reg = lambda_reg
         self.insample = True
+        self._init_params = {"method": method, "lambda_reg": lambda_reg}
 
     def _get_PW_matrices(
         self,
