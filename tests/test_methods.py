@@ -589,6 +589,7 @@ def test_top_down_forecast_proportions_intervals(hierarchical_data):
         y_insample=y_insample,
         y_hat_insample=y_hat_insample,
         level=[80, 90],
+        intervals_method="bootstrap",
         num_samples=100,
         seed=42,
     )
@@ -632,6 +633,7 @@ def test_top_down_sparse_forecast_proportions_intervals(hierarchical_data):
         y_insample=y_insample,
         y_hat_insample=y_hat_insample,
         level=[80, 90],
+        intervals_method="bootstrap",
         num_samples=100,
         seed=42,
     )

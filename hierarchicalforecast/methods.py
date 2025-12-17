@@ -769,6 +769,11 @@ class TopDown(HReconciler):
                         "Prediction intervals for `forecast_proportions` require "
                         "`y_insample` and `y_hat_insample`."
                     )
+                if intervals_method != "bootstrap":
+                    raise ValueError(
+                        "Only `bootstrap` intervals_method is implemented for "
+                        "`forecast_proportions`."
+                    )
                 if num_samples is None:
                     num_samples = 100
                 if seed is None:
@@ -912,6 +917,11 @@ class TopDownSparse(TopDown):
                     raise ValueError(
                         "Prediction intervals for `forecast_proportions` require "
                         "`y_insample` and `y_hat_insample`."
+                    )
+                if intervals_method != "bootstrap":
+                    raise ValueError(
+                        "Only `bootstrap` intervals_method is implemented for "
+                        "`forecast_proportions` with sparse matrices."
                     )
                 if num_samples is None:
                     num_samples = 100
