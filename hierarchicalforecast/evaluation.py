@@ -2,8 +2,8 @@ __all__ = ['evaluate']
 
 
 import warnings
+from collections.abc import Callable
 from inspect import signature
-from typing import Callable, Optional, Union
 
 import narwhals.stable.v2 as nw
 import numpy as np
@@ -20,7 +20,7 @@ def _loss_deprecation_notice(loss):
 
 
 def _metric_protections(
-    y: np.ndarray, y_hat: np.ndarray, weights: Optional[np.ndarray]
+    y: np.ndarray, y_hat: np.ndarray, weights: np.ndarray | None
 ) -> None:
     if not ((weights is None) or (np.sum(weights) > 0)):
         raise Exception("Sum of `weights` cannot be 0")
@@ -33,9 +33,9 @@ def _metric_protections(
 def mse(
     y: np.ndarray,
     y_hat: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
+    weights: np.ndarray | None = None,
+    axis: int | None = None,
+) -> float | np.ndarray:
     r"""Mean Squared Error
 
     Calculates Mean Squared Error between
@@ -73,9 +73,9 @@ def mqloss(
     y: np.ndarray,
     y_hat: np.ndarray,
     quantiles: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
+    weights: np.ndarray | None = None,
+    axis: int | None = None,
+) -> float | np.ndarray:
     r"""Multi-Quantile Loss
 
     Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
@@ -254,7 +254,7 @@ def energy_score(y, y_sample1, y_sample2, beta=2):
 
     $$
     \mathrm{ES}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}')
-    = \\frac{1}{2} \mathbb{E}_{\hat{P}} \\left[ ||\\mathbf{\hat{y}}_{\\tau} - \\mathbf{\hat{y}}_{\\tau}'||^{\\beta} \\right] -  
+    = \\frac{1}{2} \mathbb{E}_{\hat{P}} \\left[ ||\\mathbf{\hat{y}}_{\\tau} - \\mathbf{\hat{y}}_{\\tau}'||^{\\beta} \\right] -
     \mathbb{E}_{\hat{P}} \\left[ ||\\mathbf{y}_{\\tau} - \\mathbf{\hat{y}}_{\\tau}||^{\\beta} \\right]
     \quad \\beta \in (0,2]
     $$
@@ -363,8 +363,8 @@ class HierarchicalEvaluation:
         Y_hat_df: Frame,
         Y_test_df: Frame,
         tags: dict[str, np.ndarray],
-        Y_df: Optional[Frame] = None,
-        benchmark: Optional[str] = None,
+        Y_df: Frame | None = None,
+        benchmark: str | None = None,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
@@ -470,7 +470,7 @@ class HierarchicalEvaluation:
                     "level": evaluation_index_np[:, 0],
                     "metric": evaluation_index_np[:, 1],
                 },
-                **dict(zip(model_names, evaluation_np.T)),
+                **dict(zip(model_names, evaluation_np.T, strict=False)),
             },
             backend=native_namespace,
         )
@@ -484,14 +484,14 @@ def evaluate(
     df: FrameT,
     metrics: list[Callable],
     tags: dict[str, np.ndarray],
-    models: Optional[list[str]] = None,
-    train_df: Optional[FrameT] = None,
-    level: Optional[list[int]] = None,
+    models: list[str] | None = None,
+    train_df: FrameT | None = None,
+    level: list[int] | None = None,
     id_col: str = "unique_id",
     time_col: str = "ds",
     target_col: str = "y",
-    agg_fn: Optional[str] = "mean",
-    benchmark: Optional[str] = None,
+    agg_fn: str | None = "mean",
+    benchmark: str | None = None,
 ) -> FrameT:
     """Evaluate hierarchical forecast using different metrics.
 

@@ -6,7 +6,6 @@ import reprlib
 import sys
 import timeit
 from collections.abc import Sequence
-from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import narwhals.stable.v2 as nw
@@ -40,7 +39,7 @@ class CodeTimer:
             print(
                 "Code block"
                 + self.name
-                + " took:\t{0:.5f}".format(self.took)
+                + f" took:\t{self.took:.5f}"
                 + " seconds"
             )
 
@@ -129,11 +128,11 @@ def _to_upper_hierarchy(
 def aggregate(
     df: Frame,
     spec: list[list[str]],
-    exog_vars: Optional[dict[str, Union[str, list[str]]]] = None,
+    exog_vars: dict[str, str | list[str]] | None = None,
     sparse_s: bool = False,
     id_col: str = "unique_id",
     time_col: str = "ds",
-    id_time_col: Optional[str] = None,
+    id_time_col: str | None = None,
     target_cols: Sequence[str] = ("y",),
 ) -> tuple[FrameT, FrameT, dict]:
     """Utils Aggregation Function.
@@ -202,7 +201,7 @@ def aggregate(
 
     # Prepare the aggregation dictionary
     agg_dict = dict(
-        zip(target_cols, tuple(zip(target_cols, len(target_cols) * ["sum"])))
+        zip(target_cols, tuple(zip(target_cols, len(target_cols) * ["sum"], strict=False)), strict=False)
     )
 
     # Check if exog_vars are present in df & add to the aggregation dictionary if it is not None
@@ -316,7 +315,7 @@ def aggregate(
         S_nw = nw.from_dict(
             {
                 **{_id_col: category_list},
-                **dict(zip(tags[level_name], S_dum)),
+                **dict(zip(tags[level_name], S_dum, strict=False)),
             },
             backend=backend,
         )
@@ -334,7 +333,7 @@ def aggregate(
 def aggregate_temporal(
     df: Frame,
     spec: dict[str, int],
-    exog_vars: Optional[dict[str, Union[str, list[str]]]] = None,
+    exog_vars: dict[str, str | list[str]] | None = None,
     sparse_s: bool = False,
     id_col: str = "unique_id",
     time_col: str = "ds",
@@ -452,7 +451,7 @@ def aggregate_temporal(
 
 def make_future_dataframe(
     df: Frame,
-    freq: Union[str, int],
+    freq: str | int,
     h: int,
     id_col: str = "unique_id",
     time_col: str = "ds",
@@ -575,8 +574,8 @@ class HierarchicalPlot:
         self,
         series: str,
         Y_df: Frame,
-        models: Optional[list[str]] = None,
-        level: Optional[list[int]] = None,
+        models: list[str] | None = None,
+        level: list[int] | None = None,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
@@ -615,7 +614,7 @@ class HierarchicalPlot:
         except AttributeError:
             cmap = plt.cm.get_cmap("tab10", 10)
         cmap = [cmap(i) for i in range(10)][: len(cols_wo_levels)]
-        cmap_dict = dict(zip(cols_wo_levels, cmap))
+        cmap_dict = dict(zip(cols_wo_levels, cmap, strict=False))
         for col in cols_wo_levels:
             ax.plot(
                 df_plot[time_col].to_numpy(),
@@ -657,8 +656,8 @@ class HierarchicalPlot:
         self,
         bottom_series: str,
         Y_df: Frame,
-        models: Optional[list[str]] = None,
-        level: Optional[list[int]] = None,
+        models: list[str] | None = None,
+        level: list[int] | None = None,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
@@ -701,7 +700,7 @@ class HierarchicalPlot:
         ]
         cmap = plt.cm.get_cmap("tab10", 10)
         cmap = [cmap(i) for i in range(10)][: len(cols_wo_levels)]
-        cmap_dict = dict(zip(cols_wo_levels, cmap))
+        cmap_dict = dict(zip(cols_wo_levels, cmap, strict=False))
         for idx, series in enumerate(linked_series):
             df_plot = Y_nw.filter(nw.col(id_col) == series)
             for col in cols_wo_levels:
@@ -752,9 +751,9 @@ class HierarchicalPlot:
     def plot_hierarchical_predictions_gap(
         self,
         Y_df: Frame,
-        models: Optional[list[str]] = None,
-        xlabel: Optional[str] = None,
-        ylabel: Optional[str] = None,
+        models: list[str] | None = None,
+        xlabel: str | None = None,
+        ylabel: str | None = None,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
@@ -875,8 +874,8 @@ def samples_to_quantiles_df(
     samples: np.ndarray,
     unique_ids: Sequence[str],
     dates: list[str],
-    quantiles: Optional[list[float]] = None,
-    level: Optional[list[int]] = None,
+    quantiles: list[float] | None = None,
+    level: list[int] | None = None,
     model_name: str = "model",
     id_col: str = "unique_id",
     time_col: str = "ds",
@@ -948,7 +947,7 @@ def samples_to_quantiles_df(
     df_nw = nw.from_dict(
         {
             **{id_col: unique_ids, time_col: ds, model_name: forecasts_mean},
-            **dict(zip(col_names, forecasts_quantiles.T)),
+            **dict(zip(col_names, forecasts_quantiles.T, strict=False)),
         },
         backend=backend,
     )

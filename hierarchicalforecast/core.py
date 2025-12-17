@@ -6,7 +6,6 @@ import re
 import reprlib
 import time
 from inspect import signature
-from typing import Optional
 
 import narwhals.stable.v2 as nw
 import numpy as np
@@ -112,9 +111,9 @@ class HierarchicalReconciliation:
         self,
         Y_hat_nw: Frame,
         S_nw: Frame,
-        Y_nw: Optional[Frame],
+        Y_nw: Frame | None,
         tags: dict[str, np.ndarray],
-        level: Optional[list[int]] = None,
+        level: list[int] | None = None,
         intervals_method: str = "normality",
         id_col: str = "unique_id",
         time_col: str = "ds",
@@ -317,8 +316,8 @@ class HierarchicalReconciliation:
         Y_hat_df: Frame,
         tags: dict[str, np.ndarray],
         S_df: Frame = None,
-        Y_df: Optional[Frame] = None,
-        level: Optional[list[int]] = None,
+        Y_df: Frame | None = None,
+        level: list[int] | None = None,
         intervals_method: str = "normality",
         num_samples: int = -1,
         seed: int = 0,
@@ -456,7 +455,7 @@ class HierarchicalReconciliation:
         self.execution_times = {}
         self.level_names = {}
         self.sample_names = {}
-        for reconciler, name_copy in zip(self.reconcilers, self.orig_reconcilers):
+        for reconciler, name_copy in zip(self.reconcilers, self.orig_reconcilers, strict=False):
             reconcile_fn_name = _build_fn_name(name_copy)
 
             if reconciler.is_sparse_method:
@@ -550,7 +549,7 @@ class HierarchicalReconciliation:
                         fcsts_model["quantiles"], (len(Y_tilde_nw), -1)
                     )
                     y_tilde = dict(
-                        zip(self.level_names[recmodel_name], sorted_quantiles.T)
+                        zip(self.level_names[recmodel_name], sorted_quantiles.T, strict=False)
                     )
                     Y_tilde_nw = Y_tilde_nw.with_columns(**y_tilde)
 
@@ -560,7 +559,7 @@ class HierarchicalReconciliation:
                             f"{recmodel_name}-sample-{i}" for i in range(num_samples)
                         ]
                         samples = np.reshape(samples, (len(Y_tilde_nw), -1))
-                        y_tilde = dict(zip(self.sample_names[recmodel_name], samples.T))
+                        y_tilde = dict(zip(self.sample_names[recmodel_name], samples.T, strict=False))
                         Y_tilde_nw = Y_tilde_nw.with_columns(**y_tilde)
 
                 end = time.time()
@@ -575,8 +574,8 @@ class HierarchicalReconciliation:
         Y_hat_df: Frame,
         S_df: Frame,
         tags: dict[str, np.ndarray],
-        Y_df: Optional[Frame] = None,
-        level: Optional[list[int]] = None,
+        Y_df: Frame | None = None,
+        level: list[int] | None = None,
         intervals_method: str = "normality",
         num_samples: int = -1,
         num_seeds: int = 1,
