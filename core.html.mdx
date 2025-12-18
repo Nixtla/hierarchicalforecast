@@ -48,7 +48,7 @@ Name | Type | Description | Default
 #### `HierarchicalReconciliation.reconcile`
 
 ```python
-reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, S=None, diagnostics=False, diagnostics_atol=1e-06)
+reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, S=None)
 ```
 
 Hierarchical Reconciliation Method.
@@ -84,8 +84,8 @@ Name | Type | Description | Default
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and its value contains tags associated to that level. | *required*
 `S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). Default is None. | <code>None</code>
-`Y_df` | <code>[Optional](#typing.Optional)\[[Frame](#narwhals.typing.Frame)\]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | positive float list \[0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
+`Y_df` | <code>[Optional](#Optional)\[[Frame](#narwhals.typing.Frame)\]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | positive float list \[0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". | <code>'normality'</code>
 `num_samples` | <code>[int](#int)</code> | if positive return that many probabilistic coherent samples. Default is -1. | <code>-1</code>
 `seed` | <code>[int](#int)</code> | random seed for numpy generator's replicability. Default is 0. | <code>0</code>
@@ -93,28 +93,12 @@ Name | Type | Description | Default
 `id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is "unique_id". | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is "ds". | <code>'ds'</code>
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is "y". | <code>'y'</code>
-`diagnostics` | <code>[bool](#bool)</code> | if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False. | <code>False</code>
-`diagnostics_atol` | <code>[float](#float)</code> | absolute tolerance for numerical coherence check. Default is 1e-6. | <code>1e-06</code>
 
 **Returns:**
 
 Type | Description
 ---- | -----------
 <code>[FrameT](#narwhals.typing.FrameT)</code> | DataFrame, with reconciled predictions.
-
-<details class="note" open markdown="1">
-<summary>Note</summary>
-
-When `diagnostics=True`, after reconciliation completes, `self.diagnostics` will contain
-a DataFrame with coherence metrics per hierarchical level, including:
-
-- `coherence_residual_mae_before/after`: Mean absolute coherence residual before/after reconciliation
-- `adjustment_mae/rmse/max/mean`: Statistics on the adjustments made by reconciliation
-- `negative_count_before/after`: Count of negative values before/after reconciliation
-- `is_coherent`: Whether reconciled forecasts satisfy aggregation constraints (Overall level only)
-- `coherence_max_violation`: Maximum coherence violation (Overall level only)
-
-</details>
 
 #### `HierarchicalReconciliation.bootstrap_reconcile`
 
@@ -134,8 +118,8 @@ Name | Type | Description | Default
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
 `S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). | *required*
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and its value contains tags associated to that level. | *required*
-`Y_df` | <code>[Optional](#typing.Optional)\[[Frame](#narwhals.typing.Frame)\]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | positive float list \[0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
+`Y_df` | <code>[Optional](#Optional)\[[Frame](#narwhals.typing.Frame)\]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | positive float list \[0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". | <code>'normality'</code>
 `num_samples` | <code>[int](#int)</code> | if positive return that many probabilistic coherent samples. Default is -1. | <code>-1</code>
 `num_seeds` | <code>[int](#int)</code> | random seed for numpy generator's replicability. Default is 1. | <code>1</code>
