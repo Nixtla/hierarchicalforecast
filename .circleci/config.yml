@@ -14,7 +14,7 @@ jobs:
           name: Install dependencies & run tests
           command: |
             pip install uv && uv sync --group dev
-            uv pytest
+            uv run pytest
   test-model-performance:
     parameters:
       hierarchy:
@@ -72,7 +72,7 @@ jobs:
           name: Run model performance tests
           command: |
             source .venv/bin/activate
-            uv pip install ".[dev,polars]"
+            uv sync --group dev
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
             python -m src.models_temporal
