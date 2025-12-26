@@ -125,6 +125,120 @@ def samplers(test_data):
         'empty_permbu_sampler': empty_permbu_sampler,
     }
 
+
+# Tests for Normality covariance_type parameter (Issue #99)
+class TestNormalityCovarianceType:
+    """Tests for Normality covariance_type parameter."""
+
+    def test_normality_diagonal_covariance(self, test_data):
+        """Test Normality with diagonal covariance (default, backward compat)."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        # Default (diagonal) should work without residuals
+        normality_diag = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="diagonal"
+        )
+        samples = normality_diag.get_samples(num_samples=50)
+        assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+
+    def test_normality_full_covariance(self, test_data):
+        """Test Normality with full empirical covariance."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        # Compute residuals from insample data
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        normality_full = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="full",
+            residuals=residuals
+        )
+        samples = normality_full.get_samples(num_samples=50)
+        assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+
+    def test_normality_shrink_covariance(self, test_data):
+        """Test Normality with shrinkage covariance (Schäfer-Strimmer)."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        # Compute residuals from insample data
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        normality_shrink = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="shrink",
+            residuals=residuals,
+            shrinkage_ridge=2e-8
+        )
+        samples = normality_shrink.get_samples(num_samples=50)
+        assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+
+    def test_normality_invalid_covariance_type(self, test_data):
+        """Test that invalid covariance_type raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="invalid_type"
+            )
+        assert "Unknown covariance_type" in str(exc_info.value)
+
+    def test_normality_full_requires_residuals(self, test_data):
+        """Test that full covariance requires residuals."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full"
+                # residuals not provided
+            )
+        assert "requires `residuals` parameter" in str(exc_info.value)
+
+    def test_normality_shrink_requires_residuals(self, test_data):
+        """Test that shrink covariance requires residuals."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="shrink"
+                # residuals not provided
+            )
+        assert "requires `residuals` parameter" in str(exc_info.value)
+
+
 def test_coherent_samples_shape(samplers):
     """Test that coherent samples have the correct shape."""
     normality_samples = samplers['normality_sampler'].get_samples(num_samples=100)

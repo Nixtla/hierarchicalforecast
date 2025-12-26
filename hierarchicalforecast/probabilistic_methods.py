@@ -8,7 +8,12 @@ import scipy.sparse as sp
 from scipy.stats import norm
 from sklearn.preprocessing import OneHotEncoder
 
-from .utils import is_strictly_hierarchical
+from .utils import (
+    _ma_cov,
+    _shrunk_covariance_schaferstrimmer_no_nans,
+    _shrunk_covariance_schaferstrimmer_with_nans,
+    is_strictly_hierarchical,
+)
 
 
 class Normality:
@@ -34,13 +39,25 @@ class Normality:
         S (Union[np.ndarray, sp.spmatrix]): np.array, summing matrix of size (`base`, `bottom`).
         P (Union[np.ndarray, sp.spmatrix]): np.array, reconciliation matrix of size (`bottom`, `base`).
         y_hat (np.ndarray): Point forecasts values of size (`base`, `horizon`).
-        W (Union[np.ndarray, sp.spmatrix]): np.array, hierarchical covariance matrix of size (`base`, `base`).
         sigmah (np.ndarray): np.array, forecast standard dev. of size (`base`, `horizon`).
+        W (Union[np.ndarray, sp.spmatrix]): np.array, hierarchical covariance matrix of size (`base`, `base`).
         seed (int, optional): int, random seed for numpy generator's replicability. Default is 0.
+        covariance_type (str, optional): Type of covariance estimator to use. Options are:
+            - `'diagonal'`: Uses the W matrix diagonal with correlation scaling (default, backward compatible).
+            - `'full'`: Uses full empirical covariance computed from residuals.
+            - `'shrink'`: Uses Schäfer-Strimmer shrinkage estimator for better stability.
+            Default is `'diagonal'`.
+        residuals (np.ndarray, optional): Insample residuals of size (`base`, `obs`). Required for
+            `covariance_type='full'` or `covariance_type='shrink'`. Default is None.
+        shrinkage_ridge (float, optional): Ridge parameter for shrinkage covariance estimator.
+            Only used when `covariance_type='shrink'`. Default is 2e-8.
 
     References:
         - [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022). "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation". European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+        - [Schäfer, Juliane, and Korbinian Strimmer. "A Shrinkage Approach to Large-Scale Covariance Matrix Estimation". Statistical Applications in Genetics and Molecular Biology 4, no. 1 (2005).](https://doi.org/10.2202/1544-6115.1175)
     """
+
+    VALID_COVARIANCE_TYPES = ["diagonal", "full", "shrink"]
 
     def __init__(
         self,
@@ -50,10 +67,31 @@ class Normality:
         sigmah: np.ndarray,
         W: np.ndarray | sp.spmatrix,
         seed: int = 0,
+        covariance_type: str = "diagonal",
+        residuals: np.ndarray | None = None,
+        shrinkage_ridge: float = 2e-8,
     ):
+        # Validate covariance_type
+        if covariance_type not in self.VALID_COVARIANCE_TYPES:
+            raise ValueError(
+                f"Unknown covariance_type `{covariance_type}`. "
+                f"Choose from {self.VALID_COVARIANCE_TYPES}."
+            )
+
+        # Validate residuals for full/shrink types
+        if covariance_type in ["full", "shrink"] and residuals is None:
+            raise ValueError(
+                f"covariance_type='{covariance_type}' requires `residuals` parameter. "
+                "Provide insample residuals of size (`base`, `obs`)."
+            )
+
         self.S = S
         self.P = P
         self.y_hat = y_hat
+        self.covariance_type = covariance_type
+        self.residuals = residuals
+        self.shrinkage_ridge = shrinkage_ridge
+
         if isinstance(P, sp.linalg.LinearOperator) and sp.issparse(S):
             self.SP = sp.linalg.aslinearoperator(self.S) @ self.P
         else:
@@ -62,10 +100,37 @@ class Normality:
         self.sigmah = sigmah
         self.seed = seed
 
-        # Base Normality Errors assume independence/diagonal covariance
-        # Calculate correlation matrix from covariance matrix
-        std_ = np.sqrt(self.W.diagonal())
-        R1 = self.W / np.outer(std_, std_)
+        # Compute correlation/covariance matrix based on covariance_type
+        if covariance_type == "diagonal":
+            # Original behavior: use W diagonal with correlation scaling
+            std_ = np.sqrt(self.W.diagonal())
+            R1 = self.W / np.outer(std_, std_)
+        elif covariance_type == "full":
+            # Full empirical covariance from residuals
+            nan_mask = np.isnan(residuals)
+            if np.any(nan_mask):
+                R1 = _ma_cov(residuals, ~nan_mask)
+            else:
+                R1 = np.cov(residuals)
+            # Convert to correlation matrix
+            std_ = np.sqrt(np.diag(R1))
+            std_[std_ < 1e-8] = 1e-8  # Avoid division by zero
+            R1 = R1 / np.outer(std_, std_)
+        elif covariance_type == "shrink":
+            # Schäfer-Strimmer shrinkage estimator
+            nan_mask = np.isnan(residuals)
+            if np.any(nan_mask):
+                R1 = _shrunk_covariance_schaferstrimmer_with_nans(
+                    residuals, ~nan_mask, shrinkage_ridge
+                )
+            else:
+                R1 = _shrunk_covariance_schaferstrimmer_no_nans(
+                    residuals, shrinkage_ridge
+                )
+            # Convert to correlation matrix
+            std_ = np.sqrt(np.diag(R1))
+            std_[std_ < 1e-8] = 1e-8  # Avoid division by zero
+            R1 = R1 / np.outer(std_, std_)
 
         # Using elementwise multiplication
         cov_recs = []
