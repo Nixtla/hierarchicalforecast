@@ -2,6 +2,7 @@ import warnings
 
 import numpy as np
 import pytest
+import scipy.sparse as sp
 
 from hierarchicalforecast.evaluation import (
     energy_score,
@@ -293,6 +294,22 @@ class TestNormalityCovarianceType:
                 covariance_type="invalid_type"
             )
         assert "Unknown covariance_type" in str(exc_info.value)
+
+    def test_normality_invalid_type_for_covariance_type(self, test_data):
+        """Test that non-string/non-enum covariance_type raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type=123  # Invalid type
+            )
+        assert "must be a string or CovarianceType enum" in str(exc_info.value)
 
     def test_normality_full_requires_residuals(self, test_data):
         """Test that full covariance requires residuals."""
@@ -663,7 +680,7 @@ class TestNormalityCovarianceType:
         )
 
         # Generate many samples for statistical test
-        num_samples = 10000
+        num_samples = 50000
         samples = normality.get_samples(num_samples=num_samples)
         sample_means = samples.mean(axis=2)
 
@@ -783,6 +800,91 @@ class TestNormalityCovarianceType:
         samples2 = normality2.get_samples(num_samples=100)
 
         assert not np.allclose(samples1, samples2)
+
+    # =========================================================================
+    # get_prediction_levels and get_prediction_quantiles tests
+    # =========================================================================
+
+    def test_normality_get_prediction_levels(self, test_data):
+        """Test get_prediction_levels method."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+        )
+
+        res = {"mean": normality.SP @ test_data['y_hat_base']}
+        levels = [80, 95]
+        res = normality.get_prediction_levels(res, levels)
+
+        # Check that required keys are present
+        assert "sigmah" in res
+        assert "lo-80" in res
+        assert "hi-80" in res
+        assert "lo-95" in res
+        assert "hi-95" in res
+
+        # Check shapes
+        n_series, n_horizon = test_data['y_hat_base'].shape
+        assert res["sigmah"].shape == (test_data['S'].shape[0], n_horizon)
+        assert res["lo-80"].shape == (test_data['S'].shape[0], n_horizon)
+        assert res["hi-80"].shape == (test_data['S'].shape[0], n_horizon)
+
+        # Check that intervals are symmetric around mean
+        assert np.allclose(res["hi-80"] - res["mean"], res["mean"] - res["lo-80"])
+
+    def test_normality_get_prediction_quantiles(self, test_data):
+        """Test get_prediction_quantiles method."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+        )
+
+        res = {"mean": normality.SP @ test_data['y_hat_base']}
+        quantiles = np.array([0.1, 0.5, 0.9])
+        res = normality.get_prediction_quantiles(res, quantiles)
+
+        # Check that required keys are present
+        assert "sigmah" in res
+        assert "quantiles" in res
+
+        # Check shapes
+        n_series = test_data['S'].shape[0]
+        n_horizon = test_data['y_hat_base'].shape[1]
+        assert res["quantiles"].shape == (n_series, n_horizon, len(quantiles))
+
+        # Check that median (0.5) is roughly equal to mean
+        np.testing.assert_allclose(res["quantiles"][:, :, 1], res["mean"], rtol=0.01)
+
+    def test_normality_sparse_matrix_handling(self, test_data):
+        """Test that sparse S matrix is handled correctly."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        # Convert S to sparse matrix
+        S_sparse = sp.csr_matrix(test_data['S'])
+
+        normality = Normality(
+            S=S_sparse,
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+        )
+
+        samples = normality.get_samples(num_samples=50)
+        assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
 
 
 def test_coherent_samples_shape(samplers):
