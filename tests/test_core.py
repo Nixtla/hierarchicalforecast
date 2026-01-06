@@ -242,25 +242,33 @@ def test_reconcile_raises_on_invalid_level(grouped_data, lib, level, method):
         )
 
 @pytest.mark.parametrize("lib", ["pandas", "polars"])
-def test_mintrace_nonnegative_raises_on_bootstrap(grouped_data, lib):
-    """Test that MinTrace with nonnegative=True raises error for bootstrap intervals.
+@pytest.mark.parametrize("method", ['bootstrap', 'permbu'])
+def test_mintrace_nonnegative_raises_on_intervals_method(grouped_data, lib, method):
+    """Test that MinTrace with nonnegative=True raises error for bootstrap and permbu intervals.
 
-    Nonnegative reconciliation is not compatible with bootstrap probabilistic
+    Nonnegative reconciliation is not compatible with bootstrap and permbu probabilistic
     forecasts because these methods generate samples based on historical residuals which
     may not respect the nonnegative constraint.
     """
     data = grouped_data[lib]
     Y_hat, S, Y_train, tags = data["Y_hat_df"], data["S_df"], data["Y_train_df"], data["tags"]
 
+    # Add prediction intervals (required for permbu method)
+    Y_hat_nw = nw.from_native(Y_hat)
+    Y_hat_with_intervals = Y_hat_nw.with_columns([
+        (nw.col('y_model') * 0.9).alias('y_model-lo-90'),
+        (nw.col('y_model') * 1.1).alias('y_model-hi-90')
+    ])
+
     hrec = HierarchicalReconciliation([MinTrace(method="mint_shrink", nonnegative=True)])
     with pytest.raises(ValueError, match="nonnegative reconciliation is not compatible"):
         hrec.reconcile(
-            Y_hat_df=Y_hat,
+            Y_hat_df=Y_hat_with_intervals,
             Y_df=Y_train,
             S_df=S,
             tags=tags,
             level=[90],
-            intervals_method="bootstrap",
+            intervals_method=method,
             num_samples=1000,
             seed=1,
         )
