@@ -367,37 +367,42 @@ def _reconcile_fcst_proportions(
 
 
 def _reconcile_fcst_proportions_bootstrap(
-    S: np.ndarray,
+    S: Union[np.ndarray, sparse.csr_matrix],
     y_hat: np.ndarray,
     tags: dict[str, np.ndarray],
-    nodes: dict[str, dict[int, np.ndarray]],
-    idxs_top: np.ndarray,
     y_insample: np.ndarray,
     y_hat_insample: np.ndarray,
     num_samples: int,
     seed: int,
     level: list[int],
+    nodes: Optional[dict[str, dict[int, np.ndarray]]] = None,
+    idxs_top: Optional[np.ndarray] = None,
+    A: Optional[sparse.csr_matrix] = None,
 ):
     """Generate prediction intervals for forecast_proportions using bootstrap.
 
     This function generates bootstrap samples by adding resampled residuals to
     the base forecasts, then reconciles each sample using forecast proportions.
+    Supports both dense and sparse summing matrices.
 
     Args:
-        S: Summing matrix of size (`base`, `bottom`).
+        S: Summing matrix of size (`base`, `bottom`). Can be dense or sparse.
         y_hat: Forecast values of size (`base`, `horizon`).
         tags: Each key is a level and each value its `S` indices.
-        nodes: Child nodes structure from _get_child_nodes.
-        idxs_top: Indices of top-level nodes.
         y_insample: Insample values of size (`base`, `insample_size`).
         y_hat_insample: Insample forecast values of size (`base`, `insample_size`).
         num_samples: Number of bootstrap samples.
         seed: Random seed for reproducibility.
         level: Confidence levels for prediction intervals.
+        nodes: Child nodes structure from _get_child_nodes (required for dense S).
+        idxs_top: Indices of top-level nodes (required for dense S).
+        A: Adjacency matrix (required for sparse S).
 
     Returns:
         quantiles: Array of shape (`base`, `horizon`, `num_quantiles`).
     """
+    is_sparse = sparse.issparse(S)
+
     # Compute residuals
     residuals = y_insample - y_hat_insample
     h = y_hat.shape[1]
@@ -417,19 +422,28 @@ def _reconcile_fcst_proportions_bootstrap(
         # Add residual block to forecasts
         y_hat_sample = y_hat + residuals[:, idx : (idx + h)]
 
-        # Reconcile the bootstrap sample using forecast proportions
-        reconciled_sample = np.hstack(
-            [
-                _reconcile_fcst_proportions(
-                    S=S,
-                    y_hat=y_hat_sample_col[:, None],
-                    tags=tags,
-                    nodes=nodes,
-                    idxs_top=idxs_top,
-                )
-                for y_hat_sample_col in y_hat_sample.T
-            ]
-        )
+        if is_sparse:
+            # Reconcile the bootstrap sample using sparse forecast proportions
+            reconciled_sample = _reconcile_fcst_proportions_sparse(
+                S=S,
+                y_hat=y_hat_sample,
+                A=A,
+                tags=tags,
+            )
+        else:
+            # Reconcile the bootstrap sample using dense forecast proportions
+            reconciled_sample = np.hstack(
+                [
+                    _reconcile_fcst_proportions(
+                        S=S,
+                        y_hat=y_hat_sample_col[:, None],
+                        tags=tags,
+                        nodes=nodes, # type: ignore[arg-type]
+                        idxs_top=idxs_top,
+                    )
+                    for y_hat_sample_col in y_hat_sample.T
+                ]
+            )
         bootstrap_samples.append(reconciled_sample)
 
     # Stack samples: [num_samples, n_series, horizon]
@@ -498,80 +512,6 @@ def _reconcile_fcst_proportions_sparse(
         ]
     ).T
     return y_tilde
-
-
-def _reconcile_fcst_proportions_sparse_bootstrap(
-    S: sparse.csr_matrix,
-    y_hat: np.ndarray,
-    A: sparse.csr_matrix,
-    tags: dict[str, np.ndarray],
-    y_insample: np.ndarray,
-    y_hat_insample: np.ndarray,
-    num_samples: int,
-    seed: int,
-    level: list[int],
-):
-    """Generate prediction intervals for sparse forecast_proportions using bootstrap.
-
-    This function generates bootstrap samples by adding resampled residuals to
-    the base forecasts, then reconciles each sample using sparse forecast proportions.
-
-    Args:
-        S: Sparse summing matrix of size (`base`, `bottom`).
-        y_hat: Forecast values of size (`base`, `horizon`).
-        A: Adjacency matrix.
-        tags: Each key is a level and each value its `S` indices.
-        y_insample: Insample values of size (`base`, `insample_size`).
-        y_hat_insample: Insample forecast values of size (`base`, `insample_size`).
-        num_samples: Number of bootstrap samples.
-        seed: Random seed for reproducibility.
-        level: Confidence levels for prediction intervals.
-
-    Returns:
-        quantiles: Array of shape (`base`, `horizon`, `num_quantiles`).
-    """
-    # Compute residuals
-    residuals = y_insample - y_hat_insample
-    h = y_hat.shape[1]
-
-    # Remove NaN columns from residuals
-    residuals = residuals[:, np.isnan(residuals).sum(axis=0) == 0]
-
-    # Get valid sample indices
-    sample_idx = np.arange(residuals.shape[1] - h)
-    rng = np.random.default_rng(seed)
-
-    # Generate bootstrap samples
-    samples_idx = rng.choice(sample_idx, size=num_samples)
-    bootstrap_samples = []
-
-    for idx in samples_idx:
-        # Add residual block to forecasts
-        y_hat_sample = y_hat + residuals[:, idx : (idx + h)]
-
-        # Reconcile the bootstrap sample using sparse forecast proportions
-        reconciled_sample = _reconcile_fcst_proportions_sparse(
-            S=S,
-            y_hat=y_hat_sample,
-            A=A,
-            tags=tags,
-        )
-        bootstrap_samples.append(reconciled_sample)
-
-    # Stack samples: [num_samples, n_series, horizon]
-    samples = np.stack(bootstrap_samples)
-    # Transpose to [n_series, horizon, num_samples]
-    samples = samples.transpose((1, 2, 0))
-
-    # Compute quantiles
-    quantiles = np.concatenate(
-        [[(100 - lv) / 200, ((100 - lv) / 200) + lv / 100] for lv in level]
-    )
-    quantiles = np.sort(quantiles)
-
-    # [Q, N, H] -> [N, H, Q]
-    sample_quantiles = np.quantile(samples, quantiles, axis=2)
-    return sample_quantiles.transpose((1, 2, 0))
 
 
 class TopDown(HReconciler):
@@ -790,13 +730,13 @@ class TopDown(HReconciler):
                     S=S,
                     y_hat=y_hat,
                     tags=levels_,
-                    nodes=nodes,
-                    idxs_top=idxs_top,
                     y_insample=y_insample,
                     y_hat_insample=y_hat_insample,
                     num_samples=num_samples,
                     seed=seed,
                     level=level,
+                    nodes=nodes,
+                    idxs_top=idxs_top,
                 )
             return res
         else:
@@ -935,16 +875,16 @@ class TopDownSparse(TopDown):
                     num_samples = 100
                 if seed is None:
                     seed = 0
-                res["quantiles"] = _reconcile_fcst_proportions_sparse_bootstrap(
+                res["quantiles"] = _reconcile_fcst_proportions_bootstrap(
                     S=S,
                     y_hat=y_hat,
-                    A=A,
                     tags=tags,
                     y_insample=y_insample,
                     y_hat_insample=y_hat_insample,
                     num_samples=num_samples,
                     seed=seed,
                     level=level,
+                    A=A,
                 )
             return res
         else:
