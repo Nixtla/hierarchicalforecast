@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -9,7 +11,12 @@ from hierarchicalforecast.evaluation import (
     scaled_crps,
 )
 from hierarchicalforecast.methods import BottomUp
-from hierarchicalforecast.probabilistic_methods import PERMBU, Bootstrap, Normality
+from hierarchicalforecast.probabilistic_methods import (
+    PERMBU,
+    Bootstrap,
+    CovarianceType,
+    Normality,
+)
 
 
 @pytest.fixture
@@ -130,6 +137,10 @@ def samplers(test_data):
 class TestNormalityCovarianceType:
     """Tests for Normality covariance_type parameter."""
 
+    # =========================================================================
+    # Basic functionality tests
+    # =========================================================================
+
     def test_normality_diagonal_covariance(self, test_data):
         """Test Normality with diagonal covariance (default, backward compat)."""
         cls_bottom_up = BottomUp()
@@ -158,7 +169,6 @@ class TestNormalityCovarianceType:
         normality_full = Normality(
             S=test_data['S'],
             P=P,
-            W=W,
             y_hat=test_data['y_hat_base'],
             sigmah=test_data['sigmah'],
             covariance_type="full",
@@ -178,7 +188,6 @@ class TestNormalityCovarianceType:
         normality_shrink = Normality(
             S=test_data['S'],
             P=P,
-            W=W,
             y_hat=test_data['y_hat_base'],
             sigmah=test_data['sigmah'],
             covariance_type="shrink",
@@ -187,6 +196,87 @@ class TestNormalityCovarianceType:
         )
         samples = normality_shrink.get_samples(num_samples=50)
         assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+
+    def test_normality_w_optional_for_full(self, test_data):
+        """Test that W is optional when covariance_type is 'full'."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        # Should work without W
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="full",
+            residuals=residuals
+        )
+        samples = normality.get_samples(num_samples=50)
+        assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+
+    def test_normality_w_optional_for_shrink(self, test_data):
+        """Test that W is optional when covariance_type is 'shrink'."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        # Should work without W
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="shrink",
+            residuals=residuals
+        )
+        samples = normality.get_samples(num_samples=50)
+        assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+
+    # =========================================================================
+    # Enum and case sensitivity tests
+    # =========================================================================
+
+    def test_normality_covariance_type_enum(self, test_data):
+        """Test that CovarianceType enum works."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        # Test with enum
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type=CovarianceType.SHRINK,
+            residuals=residuals
+        )
+        samples = normality.get_samples(num_samples=50)
+        assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+        assert normality.covariance_type == CovarianceType.SHRINK
+
+    def test_normality_case_insensitive_covariance_type(self, test_data):
+        """Test that covariance_type is case insensitive."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        # Test various cases
+        for cov_type in ["FULL", "Full", "fUlL"]:
+            normality = Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type=cov_type,
+                residuals=residuals
+            )
+            assert normality.covariance_type == CovarianceType.FULL
+
+    # =========================================================================
+    # Validation error tests
+    # =========================================================================
 
     def test_normality_invalid_covariance_type(self, test_data):
         """Test that invalid covariance_type raises ValueError."""
@@ -217,7 +307,6 @@ class TestNormalityCovarianceType:
                 y_hat=test_data['y_hat_base'],
                 sigmah=test_data['sigmah'],
                 covariance_type="full"
-                # residuals not provided
             )
         assert "requires `residuals` parameter" in str(exc_info.value)
 
@@ -234,9 +323,466 @@ class TestNormalityCovarianceType:
                 y_hat=test_data['y_hat_base'],
                 sigmah=test_data['sigmah'],
                 covariance_type="shrink"
-                # residuals not provided
             )
         assert "requires `residuals` parameter" in str(exc_info.value)
+
+    def test_normality_diagonal_requires_w(self, test_data):
+        """Test that diagonal covariance requires W."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="diagonal"
+            )
+        assert "covariance_type='diagonal' requires `W` parameter" in str(exc_info.value)
+
+    # =========================================================================
+    # Residuals shape validation tests
+    # =========================================================================
+
+    def test_normality_residuals_wrong_shape_1d(self, test_data):
+        """Test that 1D residuals raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals_1d = np.array([1.0, 2.0, 3.0])
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals_1d
+            )
+        assert "must be a 2D array" in str(exc_info.value)
+
+    def test_normality_residuals_wrong_n_series(self, test_data):
+        """Test that residuals with wrong number of series raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        # S has 7 series, but residuals has 5
+        residuals_wrong = np.random.randn(5, 10)
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals_wrong
+            )
+        assert "residuals shape mismatch" in str(exc_info.value)
+
+    def test_normality_residuals_empty(self, test_data):
+        """Test that empty residuals raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals_empty = np.empty((7, 0))
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals_empty
+            )
+        assert "residuals is empty" in str(exc_info.value)
+
+    def test_normality_residuals_single_observation(self, test_data):
+        """Test that residuals with single observation raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals_single = np.random.randn(7, 1)
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals_single
+            )
+        assert "At least 2 observations are required" in str(exc_info.value)
+
+    # =========================================================================
+    # NaN handling tests
+    # =========================================================================
+
+    def test_normality_residuals_all_nan_series(self, test_data):
+        """Test that all-NaN series in residuals raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+        # Make first series all NaN
+        residuals[0, :] = np.nan
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals
+            )
+        assert "all NaN values" in str(exc_info.value)
+
+    def test_normality_residuals_insufficient_non_nan(self, test_data):
+        """Test that series with <2 non-NaN observations raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+        # Make first series have only 1 non-NaN value
+        residuals[0, :] = np.nan
+        residuals[0, 0] = 1.0
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals
+            )
+        assert "fewer than 2 non-NaN observations" in str(exc_info.value)
+
+    def test_normality_residuals_with_some_nans(self, test_data):
+        """Test that residuals with some NaNs work correctly."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+        # residuals already has NaN from y_hat_base_insample
+
+        # Should work for both full and shrink
+        for cov_type in ["full", "shrink"]:
+            normality = Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type=cov_type,
+                residuals=residuals
+            )
+            samples = normality.get_samples(num_samples=50)
+            assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
+
+    # =========================================================================
+    # Warning tests
+    # =========================================================================
+
+    def test_normality_warns_w_ignored(self, test_data):
+        """Test that warning is issued when W is provided but ignored."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        with pytest.warns(UserWarning, match="W parameter is ignored"):
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W,  # Providing W when using 'full'
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals
+            )
+
+    def test_normality_warns_shrinkage_ridge_ignored(self, test_data):
+        """Test that warning is issued when shrinkage_ridge is provided but not used."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        with pytest.warns(UserWarning, match="shrinkage_ridge parameter is only used"):
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="diagonal",
+                shrinkage_ridge=1e-6  # Non-default value
+            )
+
+    def test_normality_warns_n_series_gt_n_obs(self, test_data):
+        """Test warning when n_series > n_observations for full covariance."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        # Create residuals with fewer observations than series
+        n_series = test_data['S'].shape[0]  # 7 series
+        residuals = np.random.randn(n_series, 3)  # Only 3 observations
+
+        with pytest.warns(UserWarning, match="non-positive-definite"):
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals
+            )
+
+    # =========================================================================
+    # Zero/near-zero variance tests
+    # =========================================================================
+
+    def test_normality_warns_zero_variance(self, test_data):
+        """Test warning when series has zero variance."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        n_series = test_data['S'].shape[0]
+        residuals = np.random.randn(n_series, 10)
+        # Make first series constant (zero variance)
+        residuals[0, :] = 5.0
+
+        with pytest.warns(UserWarning, match="zero or near-zero variance"):
+            Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals
+            )
+
+    def test_normality_handles_zero_variance_gracefully(self, test_data):
+        """Test that zero variance series doesn't crash and produces valid samples."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        n_series = test_data['S'].shape[0]
+        residuals = np.random.randn(n_series, 10)
+        residuals[0, :] = 5.0  # Constant series
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            normality = Normality(
+                S=test_data['S'],
+                P=P,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="full",
+                residuals=residuals
+            )
+            samples = normality.get_samples(num_samples=50)
+
+        assert samples.shape == (n_series, test_data['h'], 50)
+        assert np.all(np.isfinite(samples))
+
+    # =========================================================================
+    # W matrix validation tests
+    # =========================================================================
+
+    def test_normality_w_nan_diagonal(self, test_data):
+        """Test that W with NaN diagonal raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        W_with_nan = W.copy()
+        W_with_nan[0, 0] = np.nan
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W_with_nan,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="diagonal"
+            )
+        assert "NaN values" in str(exc_info.value)
+
+    def test_normality_w_non_positive_diagonal(self, test_data):
+        """Test that W with non-positive diagonal raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        W_with_zero = W.copy()
+        W_with_zero[0, 0] = 0.0
+
+        with pytest.raises(ValueError) as exc_info:
+            Normality(
+                S=test_data['S'],
+                P=P,
+                W=W_with_zero,
+                y_hat=test_data['y_hat_base'],
+                sigmah=test_data['sigmah'],
+                covariance_type="diagonal"
+            )
+        assert "non-positive diagonal" in str(exc_info.value)
+
+    # =========================================================================
+    # n_series > n_observations tests (non-PSD risk)
+    # =========================================================================
+
+    def test_normality_shrink_handles_high_dimensional_data(self, test_data):
+        """Test that shrink covariance handles n_series > n_observations well."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        n_series = test_data['S'].shape[0]
+        # Create high-dimensional case: more series than observations
+        residuals = np.random.randn(n_series, 3)
+
+        # Shrink should work without warning about non-PSD
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="shrink",
+            residuals=residuals
+        )
+        samples = normality.get_samples(num_samples=50)
+        assert samples.shape == (n_series, test_data['h'], 50)
+        assert np.all(np.isfinite(samples))
+
+    # =========================================================================
+    # Statistical validation tests
+    # =========================================================================
+
+    def test_normality_samples_have_correct_mean(self, test_data):
+        """Test that samples have approximately correct mean."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="diagonal",
+            seed=42
+        )
+
+        # Generate many samples for statistical test
+        num_samples = 10000
+        samples = normality.get_samples(num_samples=num_samples)
+        sample_means = samples.mean(axis=2)
+
+        # Expected mean is SP @ y_hat
+        expected_means = normality.SP @ test_data['y_hat_base']
+
+        # Check that sample means are close to expected means
+        # Using relative tolerance due to different scales
+        np.testing.assert_allclose(sample_means, expected_means, rtol=0.1)
+
+    def test_normality_samples_have_correct_variance(self, test_data):
+        """Test that samples have approximately correct variance."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        normality = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            covariance_type="diagonal",
+            seed=42
+        )
+
+        # Generate many samples for statistical test
+        num_samples = 10000
+        samples = normality.get_samples(num_samples=num_samples)
+        sample_stds = samples.std(axis=2)
+
+        # Expected standard deviation
+        expected_stds = normality.sigmah_rec
+
+        # Check that sample stds are close to expected stds
+        np.testing.assert_allclose(sample_stds, expected_stds, rtol=0.15)
+
+    def test_normality_correlation_matrix_is_valid(self, test_data):
+        """Test that computed correlation matrix has valid properties."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+        residuals = test_data['y_base'] - test_data['y_hat_base_insample']
+
+        for cov_type in ["full", "shrink"]:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                normality = Normality(
+                    S=test_data['S'],
+                    P=P,
+                    y_hat=test_data['y_hat_base'],
+                    sigmah=test_data['sigmah'],
+                    covariance_type=cov_type,
+                    residuals=residuals
+                )
+
+            corr = normality._correlation_matrix
+
+            # Check diagonal is 1
+            np.testing.assert_allclose(np.diag(corr), 1.0, atol=1e-10)
+
+            # Check symmetry
+            np.testing.assert_allclose(corr, corr.T, atol=1e-10)
+
+            # Check values in [-1, 1]
+            assert np.all(corr >= -1.0)
+            assert np.all(corr <= 1.0)
+
+    def test_normality_reproducibility_with_seed(self, test_data):
+        """Test that setting seed produces reproducible samples."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        normality1 = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            seed=42
+        )
+        samples1 = normality1.get_samples(num_samples=100)
+
+        normality2 = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            seed=42
+        )
+        samples2 = normality2.get_samples(num_samples=100)
+
+        np.testing.assert_array_equal(samples1, samples2)
+
+    def test_normality_different_seeds_different_samples(self, test_data):
+        """Test that different seeds produce different samples."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
+
+        normality1 = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            seed=42
+        )
+        samples1 = normality1.get_samples(num_samples=100)
+
+        normality2 = Normality(
+            S=test_data['S'],
+            P=P,
+            W=W,
+            y_hat=test_data['y_hat_base'],
+            sigmah=test_data['sigmah'],
+            seed=123
+        )
+        samples2 = normality2.get_samples(num_samples=100)
+
+        assert not np.allclose(samples1, samples2)
 
 
 def test_coherent_samples_shape(samplers):
