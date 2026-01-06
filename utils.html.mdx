@@ -21,16 +21,7 @@ external libraries into a compatible data frame format.
 ### `aggregate`
 
 ```python
-aggregate(
-    df,
-    spec,
-    exog_vars=None,
-    sparse_s=False,
-    id_col="unique_id",
-    time_col="ds",
-    id_time_col=None,
-    target_cols=("y",),
-)
+aggregate(df, spec, exog_vars=None, sparse_s=False, id_col='unique_id', time_col='ds', id_time_col=None, target_cols=('y',))
 ```
 
 Utils Aggregation Function.
@@ -44,11 +35,11 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `df` | <code>[Frame](#narwhals.typing.Frame)</code> | Dataframe with columns `[time_col, *target_cols]`, columns to aggregate and optionally exog_vars. | *required*
 `spec` | <code>[list](#list)\[[list](#list)\[[str](#str)\]\]</code> | list of levels. Each element of the list should contain a list of columns of `df` to aggregate. | *required*
-`exog_vars` | <code>[Optional](#typing.Optional)\[[dict](#dict)\[[str](#str), [Union](#typing.Union)\[[str](#str), [list](#list)\[[str](#str)\]\]\]\]</code> | dictionary of string keys & values that can either be a list of strings or a single string keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. | <code>None</code>
+`exog_vars` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [Union](#Union)\[[str](#str), [list](#list)\[[str](#str)\]\]\]\]</code> | dictionary of string keys & values that can either be a list of strings or a single string keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. | <code>None</code>
 `sparse_s` | <code>[bool](#bool)</code> | Return `S_df` as a sparse Pandas dataframe. Default is False. | <code>False</code>
 `id_col` | <code>[str](#str)</code> | Column that will identify each serie after aggregation. Default is "unique_id". | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Default is "ds". | <code>'ds'</code>
-`id_time_col` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally. Default is None. | <code>None</code>
+`id_time_col` | <code>[Optional](#Optional)\[[str](#str)\]</code> | Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally. Default is None. | <code>None</code>
 `target_cols` | <code>[Sequence](#collections.abc.Sequence)\[[str](#str)\]</code> | list of columns that contains the targets to aggregate. Default is ("y",). | <code>('y',)</code>
 
 **Returns:**
@@ -60,17 +51,7 @@ Type | Description
 ### `aggregate_temporal`
 
 ```python
-aggregate_temporal(
-    df,
-    spec,
-    exog_vars=None,
-    sparse_s=False,
-    id_col="unique_id",
-    time_col="ds",
-    id_time_col="temporal_id",
-    target_cols=("y",),
-    aggregation_type="local",
-)
+aggregate_temporal(df, spec, exog_vars=None, sparse_s=False, id_col='unique_id', time_col='ds', id_time_col='temporal_id', target_cols=('y',), aggregation_type='local')
 ```
 
 Utils Aggregation Function for Temporal aggregations.
@@ -84,7 +65,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `df` | <code>[Frame](#narwhals.typing.Frame)</code> | Dataframe with columns `[time_col, target_cols]` and columns to aggregate. | *required*
 `spec` | <code>[dict](#dict)\[[str](#str), [int](#int)\]</code> | Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation. | *required*
-`exog_vars` | <code>[Optional](#typing.Optional)\[[dict](#dict)\[[str](#str), [Union](#typing.Union)\[[str](#str), [list](#list)\[[str](#str)\]\]\]\]</code> | dictionary of string keys & values that can either be a list of strings or a single string keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. | <code>None</code>
+`exog_vars` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [Union](#Union)\[[str](#str), [list](#list)\[[str](#str)\]\]\]\]</code> | dictionary of string keys & values that can either be a list of strings or a single string keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. | <code>None</code>
 `sparse_s` | <code>[bool](#bool)</code> | Return `S_df` as a sparse Pandas dataframe. Default is False. | <code>False</code>
 `id_col` | <code>[str](#str)</code> | Column that will identify each serie after aggregation. Default is 'unique_id'. | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
@@ -111,7 +92,7 @@ Create future dataframe for forecasting.
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `df` | <code>[Frame](#narwhals.typing.Frame)</code> | Dataframe with ids, times and values for the exogenous regressors. | *required*
-`freq` | <code>[Union](#typing.Union)\[[str](#str), [int](#int)\]</code> | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. | *required*
+`freq` | <code>[Union](#Union)\[[str](#str), [int](#int)\]</code> | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. | *required*
 `h` | <code>[int](#int)</code> | Forecast horizon. | *required*
 `id_col` | <code>[str](#str)</code> | Column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
@@ -125,15 +106,7 @@ Name | Type | Description
 ### `get_cross_temporal_tags`
 
 ```python
-get_cross_temporal_tags(
-    df,
-    tags_cs,
-    tags_te,
-    sep="//",
-    id_col="unique_id",
-    id_time_col="temporal_id",
-    cross_temporal_id_col="cross_temporal_id",
-)
+get_cross_temporal_tags(df, tags_cs, tags_te, sep='//', id_col='unique_id', id_time_col='temporal_id', cross_temporal_id_col='cross_temporal_id')
 ```
 
 Get cross-temporal tags.
@@ -146,7 +119,7 @@ Name | Type | Description | Default
 `tags_cs` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Tags for the cross-sectional hierarchies. | *required*
 `tags_te` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Tags for the temporal hierarchies. | *required*
 `sep` | <code>[str](#str)</code> | Separator for the cross-temporal tags. Default is "//". | <code>'//'</code>
-`id_col` | <code>[str](#str)</code> | Column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
+`id_col` | <code>[str](#str)</code> | Column that identifies each series. Default is 'unique_id'. | <code>'unique_id'</code>
 `id_time_col` | <code>[str](#str)</code> | Column that identifies each (aggregated) timestep. Default is 'temporal_id'. | <code>'temporal_id'</code>
 `cross_temporal_id_col` | <code>[str](#str)</code> | Column that will identify each cross-temporal aggregation. Default is 'cross_temporal_id'. | <code>'cross_temporal_id'</code>
 
@@ -197,15 +170,7 @@ Name | Type | Description
 #### `HierarchicalPlot.plot_series`
 
 ```python
-plot_series(
-    series,
-    Y_df,
-    models=None,
-    level=None,
-    id_col="unique_id",
-    time_col="ds",
-    target_col="y",
-)
+plot_series(series, Y_df, models=None, level=None, id_col='unique_id', time_col='ds', target_col='y')
 ```
 
 Single Series plot
@@ -216,9 +181,9 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `series` | <code>[str](#str)</code> | string identifying the `'unique_id'` any-level series to plot. | *required*
 `Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns `['unique_id', 'ds', 'y']`, it may have `'models'`. | *required*
-`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
-`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
+`models` | <code>[Optional](#Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
+`id_col` | <code>[str](#str)</code> | column that identifies each series. Default is 'unique_id'. | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
 
@@ -231,15 +196,7 @@ Name | Type | Description
 #### `HierarchicalPlot.plot_hierarchically_linked_series`
 
 ```python
-plot_hierarchically_linked_series(
-    bottom_series,
-    Y_df,
-    models=None,
-    level=None,
-    id_col="unique_id",
-    time_col="ds",
-    target_col="y",
-)
+plot_hierarchically_linked_series(bottom_series, Y_df, models=None, level=None, id_col='unique_id', time_col='ds', target_col='y')
 ```
 
 Hierarchically Linked Series plot
@@ -250,9 +207,9 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `bottom_series` | <code>[str](#str)</code> | string identifying the `'unique_id'` bottom-level series to plot. | *required*
 `Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
-`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#typing.Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
-`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
+`models` | <code>[Optional](#Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | confidence levels for prediction intervals available in `Y_df`. Default is None. | <code>None</code>
+`id_col` | <code>[str](#str)</code> | column that identifies each series. Default is 'unique_id'. | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
 
@@ -260,20 +217,12 @@ Name | Type | Description | Default
 
 Name | Type | Description
 ---- | ---- | -----------
-`fig` | <code>[Figure](#matplotlib.figure.Figure)</code> | figure object containing the plots of the hierarchilly linked series.
+`fig` | <code>[Figure](#matplotlib.figure.Figure)</code> | figure object containing the plots of the hierarchically linked series.
 
 #### `HierarchicalPlot.plot_hierarchical_predictions_gap`
 
 ```python
-plot_hierarchical_predictions_gap(
-    Y_df,
-    models=None,
-    xlabel=None,
-    ylabel=None,
-    id_col="unique_id",
-    time_col="ds",
-    target_col="y",
-)
+plot_hierarchical_predictions_gap(Y_df, models=None, xlabel=None, ylabel=None, id_col='unique_id', time_col='ds', target_col='y')
 ```
 
 Hierarchically Predictions Gap plot
@@ -283,10 +232,10 @@ Hierarchically Predictions Gap plot
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `Y_df` | <code>[Frame](#narwhals.typing.Frame)</code> | hierarchically structured series ($\\mathbf{y}\_{[a,b]}$). It contains columns ['unique_id', 'ds', 'y'] and models. | *required*
-`models` | <code>[Optional](#typing.Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
-`xlabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's x axis label. Default is None. | <code>None</code>
-`ylabel` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | string for the plot's y axis label. Default is None. | <code>None</code>
-`id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is 'unique_id'. | <code>'unique_id'</code>
+`models` | <code>[Optional](#Optional)\[[list](#list)\[[str](#str)\]\]</code> | string identifying filtering model columns. Default is None. | <code>None</code>
+`xlabel` | <code>[Optional](#Optional)\[[str](#str)\]</code> | string for the plot's x axis label. Default is None. | <code>None</code>
+`ylabel` | <code>[Optional](#Optional)\[[str](#str)\]</code> | string for the plot's y axis label. Default is None. | <code>None</code>
+`id_col` | <code>[str](#str)</code> | column that identifies each series. Default is 'unique_id'. | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is 'y'. | <code>'y'</code>
 

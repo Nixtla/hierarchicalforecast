@@ -44,10 +44,10 @@ The reconciled forecasts are also normally distributed:
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | <code>[Union](#typing.Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
-`P` | <code>[Union](#typing.Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, reconciliation matrix of size (`bottom`, `base`). | *required*
+`S` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
+`P` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, reconciliation matrix of size (`bottom`, `base`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Point forecasts values of size (`base`, `horizon`). | *required*
-`W` | <code>[Union](#typing.Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, hierarchical covariance matrix of size (`base`, `base`). | *required*
+`W` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, hierarchical covariance matrix of size (`base`, `base`). | *required*
 `sigmah` | <code>[ndarray](#numpy.ndarray)</code> | np.array, forecast standard dev. of size (`base`, `horizon`). | *required*
 `seed` | <code>[int](#int)</code> | int, random seed for numpy generator's replicability. Default is 0. | <code>0</code>
 
@@ -85,9 +85,7 @@ Name | Type | Description
 ### `Bootstrap`
 
 ```python
-Bootstrap(
-    S, P, y_hat, y_insample, y_hat_insample, num_samples=100, seed=0, W=None
-)
+Bootstrap(S, P, y_hat, y_insample, y_hat_insample, num_samples=100, seed=0, W=None)
 ```
 
 Bootstrap Probabilistic Reconciliation Class.
@@ -115,8 +113,8 @@ The reconciled sample paths allow for reconciled distributional forecasts:
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | <code>[Union](#typing.Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
-`P` | <code>[Union](#typing.Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, reconciliation matrix of size (`bottom`, `base`). | *required*
+`S` | <code>[ndarray](#numpy.ndarray) | [spmatrix](#scipy.sparse.spmatrix)</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
+`P` | <code>[ndarray](#numpy.ndarray) | [spmatrix](#scipy.sparse.spmatrix)</code> | np.array, reconciliation matrix of size (`bottom`, `base`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Point forecasts values of size (`base`, `horizon`). | *required*
 `y_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample values of size (`base`, `insample_size`). | *required*
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample point forecasts of size (`base`, `insample_size`). | *required*
@@ -159,17 +157,7 @@ Name | Type | Description
 ### `PERMBU`
 
 ```python
-PERMBU(
-    S,
-    tags,
-    y_hat,
-    y_insample,
-    y_hat_insample,
-    sigmah,
-    num_samples=None,
-    seed=0,
-    P=None,
-)
+PERMBU(S, tags, y_hat, y_insample, y_hat_insample, sigmah, num_samples=None, seed=0, P=None)
 ```
 
 PERMBU Probabilistic Reconciliation Class.
