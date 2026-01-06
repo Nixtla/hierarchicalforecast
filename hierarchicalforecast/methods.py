@@ -366,7 +366,7 @@ def _reconcile_fcst_proportions(
 
 
 def _reconcile_fcst_proportions_bootstrap(
-    S: Union[np.ndarray, sparse.csr_matrix],
+    S: np.ndarray | sparse.csr_matrix,
     y_hat: np.ndarray,
     tags: dict[str, np.ndarray],
     y_insample: np.ndarray,
@@ -374,9 +374,9 @@ def _reconcile_fcst_proportions_bootstrap(
     num_samples: int,
     seed: int,
     level: list[int],
-    nodes: Optional[dict[str, dict[int, np.ndarray]]] = None,
-    idxs_top: Optional[np.ndarray] = None,
-    A: Optional[sparse.csr_matrix] = None,
+    nodes: dict[str, dict[int, np.ndarray]] | None = None,
+    idxs_top: np.ndarray | None = None,
+    A: sparse.csr_matrix | None = None,
 ):
     """Generate prediction intervals for forecast_proportions using bootstrap.
 
