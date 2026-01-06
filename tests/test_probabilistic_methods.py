@@ -134,9 +134,7 @@ def samplers(test_data):
 class TestNormalityCovarianceType:
     """Tests for Normality covariance_type parameter."""
 
-    # =========================================================================
     # Basic functionality tests
-    # =========================================================================
 
     def test_normality_diagonal_covariance(self, test_data):
         """Test Normality with diagonal covariance (default, backward compat)."""
@@ -230,9 +228,7 @@ class TestNormalityCovarianceType:
         samples = normality.get_samples(num_samples=50)
         assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
 
-    # =========================================================================
     # Enum and case sensitivity tests
-    # =========================================================================
 
     def test_normality_covariance_type_enum(self, test_data):
         """Test that CovarianceType enum works."""
@@ -271,9 +267,7 @@ class TestNormalityCovarianceType:
             )
             assert normality.covariance_type == CovarianceType.FULL
 
-    # =========================================================================
     # Validation error tests
-    # =========================================================================
 
     def test_normality_invalid_covariance_type(self, test_data):
         """Test that invalid covariance_type raises ValueError."""
@@ -354,9 +348,7 @@ class TestNormalityCovarianceType:
             )
         assert "covariance_type='diagonal' requires `W` parameter" in str(exc_info.value)
 
-    # =========================================================================
     # Residuals shape validation tests
-    # =========================================================================
 
     def test_normality_residuals_wrong_shape_1d(self, test_data):
         """Test that 1D residuals raises ValueError."""
@@ -427,9 +419,7 @@ class TestNormalityCovarianceType:
             )
         assert "At least 2 observations are required" in str(exc_info.value)
 
-    # =========================================================================
     # NaN handling tests
-    # =========================================================================
 
     def test_normality_residuals_all_nan_series(self, test_data):
         """Test that all-NaN series in residuals raises ValueError."""
@@ -490,9 +480,7 @@ class TestNormalityCovarianceType:
             samples = normality.get_samples(num_samples=50)
             assert samples.shape == (test_data['S'].shape[0], test_data['h'], 50)
 
-    # =========================================================================
     # Warning tests
-    # =========================================================================
 
     def test_normality_warns_w_ignored(self, test_data):
         """Test that warning is issued when W is provided but ignored."""
@@ -545,9 +533,7 @@ class TestNormalityCovarianceType:
                 residuals=residuals
             )
 
-    # =========================================================================
     # Zero/near-zero variance tests
-    # =========================================================================
 
     def test_normality_warns_zero_variance(self, test_data):
         """Test warning when series has zero variance."""
@@ -591,9 +577,7 @@ class TestNormalityCovarianceType:
         assert samples.shape == (n_series, test_data['h'], 50)
         assert np.all(np.isfinite(samples))
 
-    # =========================================================================
     # W matrix validation tests
-    # =========================================================================
 
     def test_normality_w_nan_diagonal(self, test_data):
         """Test that W with NaN diagonal raises ValueError."""
@@ -631,9 +615,7 @@ class TestNormalityCovarianceType:
             )
         assert "non-positive diagonal" in str(exc_info.value)
 
-    # =========================================================================
     # n_series > n_observations tests (non-PSD risk)
-    # =========================================================================
 
     def test_normality_shrink_handles_high_dimensional_data(self, test_data):
         """Test that shrink covariance handles n_series > n_observations well."""
@@ -656,9 +638,7 @@ class TestNormalityCovarianceType:
         assert samples.shape == (n_series, test_data['h'], 50)
         assert np.all(np.isfinite(samples))
 
-    # =========================================================================
     # Statistical validation tests
-    # =========================================================================
 
     def test_normality_samples_have_correct_mean(self, test_data):
         """Test that samples have approximately correct mean."""
@@ -797,9 +777,7 @@ class TestNormalityCovarianceType:
 
         assert not np.allclose(samples1, samples2)
 
-    # =========================================================================
     # get_prediction_levels and get_prediction_quantiles tests
-    # =========================================================================
 
     def test_normality_get_prediction_levels(self, test_data):
         """Test get_prediction_levels method."""
