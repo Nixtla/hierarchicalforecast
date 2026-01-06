@@ -43,10 +43,7 @@ def test_data():
     idx_bottom = [4, 3, 5, 6]
     tags = {"level1": np.array([0]), "level2": np.array([1, 2]), "level3": idx_bottom}
 
-    # sigmah for all levels in the hierarchy
-    # sigmah for Naive method
-    # as calculated here:
-    # https://otexts.com/fpp3/prediction-intervals.html
+
     y_base = S @ y_bottom
     y_hat_base = S @ y_hat_bottom
     y_hat_base_insample = S @ y_hat_bottom_insample
@@ -77,7 +74,6 @@ def test_data():
 @pytest.fixture
 def samplers(test_data):
     """Fixture to provide samplers for testing."""
-    # samplers for tests
     cls_bottom_up = BottomUp()
     P, W = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
 
@@ -383,7 +379,7 @@ class TestNormalityCovarianceType:
         """Test that residuals with wrong number of series raises ValueError."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(S=test_data['S'], idx_bottom=test_data['idx_bottom'])
-        # S has 7 series, but residuals has 5
+
         residuals_wrong = np.random.randn(5, 10)
 
         with pytest.raises(ValueError) as exc_info:
