@@ -672,7 +672,7 @@ class TestNormalityCovarianceType:
 
         # Check that sample means are close to expected means
         # Using relative tolerance due to different scales
-        np.testing.assert_allclose(sample_means, expected_means, rtol=0.1)
+        np.testing.assert_allclose(sample_means, expected_means, rtol=0.05)
 
     def test_normality_samples_have_correct_variance(self, test_data):
         """Test that samples have approximately correct variance."""
@@ -698,7 +698,7 @@ class TestNormalityCovarianceType:
         expected_stds = normality.sigmah_rec
 
         # Check that sample stds are close to expected stds
-        np.testing.assert_allclose(sample_stds, expected_stds, rtol=0.15)
+        np.testing.assert_allclose(sample_stds, expected_stds, rtol=0.10)
 
     def test_normality_correlation_matrix_is_valid(self, test_data):
         """Test that computed correlation matrix has valid properties."""

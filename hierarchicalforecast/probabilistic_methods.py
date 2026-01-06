@@ -310,7 +310,16 @@ class Normality:
                 cov_matrix = R1 * sigma_matrix
                 cov_rec = self.SP @ cov_matrix @ self.SP.T
             cov_recs.append(cov_rec)
-            sigmah_recs.append(np.sqrt(np.maximum(cov_rec.diagonal(), 0)))
+            diag_cov = cov_rec.diagonal()
+            if np.any(diag_cov < 0):
+                n_neg = np.count_nonzero(diag_cov < 0)
+                warnings.warn(
+                    f"Detected {n_neg} negative variance value(s) in reconciled covariance "
+                    "matrix diagonal. This indicates a non-positive-definite covariance "
+                    "matrix. Negative variances will be clamped to zero.",
+                    RuntimeWarning,
+                )
+            sigmah_recs.append(np.sqrt(np.maximum(diag_cov, 0)))
 
         self.sigmah_rec = np.hstack(sigmah_recs).reshape(-1, self.sigmah.shape[0]).T
         self.cov_rec = cov_recs
@@ -335,7 +344,8 @@ class Normality:
         """
         if covariance_type == CovarianceType.DIAGONAL and W is not None:
             # Original behavior: use W diagonal with correlation scaling
-            std_ = np.sqrt(W.diagonal())
+            diag = W.diagonal() if hasattr(W, "diagonal") else np.diag(W)
+            std_ = np.sqrt(diag)
             R1 = W / np.outer(std_, std_)
         elif covariance_type == CovarianceType.FULL:
             R1 = self._compute_full_correlation(residuals)
