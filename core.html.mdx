@@ -48,7 +48,7 @@ Name | Type | Description | Default
 #### `HierarchicalReconciliation.reconcile`
 
 ```python
-reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, S=None, diagnostics=False, diagnostics_atol=1e-06)
+reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, temporal_spec=None, S=None, diagnostics=False, diagnostics_atol=1e-06)
 ```
 
 Hierarchical Reconciliation Method.
@@ -93,6 +93,9 @@ Name | Type | Description | Default
 `id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is "unique_id". | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is "ds". | <code>'ds'</code>
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is "y". | <code>'y'</code>
+`id_time_col` | <code>[str](#str)</code> | column that identifies each temporal aggregation level (required when `temporal=True`). Default is "temporal_id". | <code>'temporal_id'</code>
+`temporal` | <code>[bool](#bool)</code> | if True, perform temporal reconciliation. Default is False. | <code>False</code>
+`temporal_spec` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [int](#int)\]\]</code> | Dictionary of temporal aggregation levels (e.g., {"year": 4, "quarter": 1}). When provided with `temporal=True`, validates that the forecast horizon is at least as large as the maximum aggregation factor. Default is None. | <code>None</code>
 `diagnostics` | <code>[bool](#bool)</code> | if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False. | <code>False</code>
 `diagnostics_atol` | <code>[float](#float)</code> | absolute tolerance for numerical coherence check. Default is 1e-6. | <code>1e-06</code>
 
