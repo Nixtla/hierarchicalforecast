@@ -95,7 +95,7 @@ Name | Type | Description | Default
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is "y". | <code>'y'</code>
 `id_time_col` | <code>[str](#str)</code> | column that identifies each temporal aggregation level (required when `temporal=True`). Default is "temporal_id". | <code>'temporal_id'</code>
 `temporal` | <code>[bool](#bool)</code> | if True, perform temporal reconciliation. Default is False. | <code>False</code>
-`temporal_spec` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [int](#int)\]\]</code> | Dictionary of temporal aggregation levels (e.g., {"year": 4, "quarter": 1}). When provided with `temporal=True`, validates that the forecast horizon is at least as large as the maximum aggregation factor. Default is None. | <code>None</code>
+`temporal_spec` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [int](#int)\]\]</code> | Dictionary mapping temporal aggregation level names to their aggregation factors. Each key is a descriptive name for the temporal level, and each value is the number of base periods to aggregate (e.g., for quarterly data: {"year": 4, "quarter": 1}, for monthly data: {"year": 12, "quarter": 3, "month": 1}). The value 1 represents the bottom level (no aggregation). | <code>None</code>
 `diagnostics` | <code>[bool](#bool)</code> | if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False. | <code>False</code>
 `diagnostics_atol` | <code>[float](#float)</code> | absolute tolerance for numerical coherence check. Default is 1e-6. | <code>1e-06</code>
 
