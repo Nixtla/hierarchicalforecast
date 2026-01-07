@@ -518,8 +518,7 @@ class HierarchicalReconciliation:
             target_col (str, optional): column that contains the target. Default is "y".
             id_time_col (str, optional): column that identifies each temporal aggregation level (required when `temporal=True`). Default is "temporal_id".
             temporal (bool, optional): if True, perform temporal reconciliation. Default is False.
-            temporal_spec (Optional[dict[str, int]], optional): Dictionary of temporal aggregation levels (e.g., {"year": 4, "quarter": 1}).
-                When provided with `temporal=True`, validates that the forecast horizon is at least as large as the maximum aggregation factor. Default is None.
+            temporal_spec (Optional[dict[str, int]], optional): Dictionary mapping temporal aggregation level names to their aggregation factors. Each key is a descriptive name for the temporal level, and each value is the number of base periods to aggregate (e.g., for quarterly data: {"year": 4, "quarter": 1}, for monthly data: {"year": 12, "quarter": 3, "month": 1}). The value 1 represents the bottom level (no aggregation).
             diagnostics (bool, optional): if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False.
             diagnostics_atol (float, optional): absolute tolerance for numerical coherence check. Default is 1e-6.
 
