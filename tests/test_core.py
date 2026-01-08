@@ -279,6 +279,8 @@ def test_temporal_reconcile_raises_on_insufficient_horizon(lib):
             tags=tags,
             temporal=True,
             temporal_spec=spec_temporal,
+        )
+
 @pytest.mark.parametrize("lib", ["pandas", "polars"])
 @pytest.mark.parametrize("method", ['bootstrap', 'permbu'])
 def test_mintrace_nonnegative_raises_on_intervals_method(grouped_data, lib, method):
@@ -349,6 +351,8 @@ def test_temporal_reconcile_succeeds_with_sufficient_horizon(lib):
     assert result is not None
     result_nw = nw.from_native(result)
     assert 'y_model/BottomUp' in result_nw.columns
+
+@pytest.mark.parametrize("lib", ["pandas", "polars"])
 def test_mintrace_nonnegative_with_normality_intervals(grouped_data, lib):
     """Test MinTrace nonnegative reconciliation with normality intervals via HierarchicalReconciliation.
 
