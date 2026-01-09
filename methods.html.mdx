@@ -752,7 +752,7 @@ closed form.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`method` | <code>[str](#str)</code> | One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`. | *required*
+`method` | <code>[str](#str)</code> | One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`, `emint`. | *required*
 `nonnegative` | <code>[bool](#bool)</code> | Reconciled forecasts should be nonnegative? | <code>False</code>
 `mint_shr_ridge` | <code>[float](#float)</code> | Ridge numeric protection to MinTrace-shr covariance estimator. | <code>2e-08</code>
 `num_threads` | <code>[int](#int)</code> | Number of threads to use for solving the optimization problems (when nonnegative=True). | <code>1</code>
@@ -761,6 +761,8 @@ References:
 
 - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). "Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization". Journal of the American Statistical Association, 114 , 804-819. doi:10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/).
 - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182. https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+- [Wickramasuriya, S.L. (2021). Properties of point forecast reconciliation approaches. arXiv:2103.11129](https://arxiv.org/abs/2103.11129).
+- [Wang, X., Hyndman, R.J., & Wickramasuriya, S.L. (2025). Optimal forecast reconciliation with time series selection. European Journal of Operational Research, 323, 455-470.](https://doi.org/10.1016/j.ejor.2024.12.004)
 
 #### `MinTrace.fit`
 
