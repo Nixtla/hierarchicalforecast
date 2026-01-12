@@ -28,8 +28,8 @@ def test_data():
             [1.0, 1.0, 1.0, 1.0],
             [1.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 1.0],
-            [0.0, 1.0, 0.0, 0.0],
             [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ]
@@ -40,8 +40,7 @@ def test_data():
     y_hat_bottom_insample = np.roll(y_bottom, 1)
     y_hat_bottom_insample[:, 0] = np.nan
     y_hat_bottom = np.vstack([i * np.ones(h) for i in range(1, 5)])
-    idx_bottom = [4, 3, 5, 6]
-    tags = {"level1": np.array([0]), "level2": np.array([1, 2]), "level3": idx_bottom}
+    tags = {"level1": np.array([0]), "level2": np.array([1, 2]), "level3": np.array([3, 4, 5, 6])}
 
     y_base = S @ y_bottom
     y_hat_base = S @ y_hat_bottom
@@ -62,7 +61,6 @@ def test_data():
         "y_bottom": y_bottom,
         "y_hat_bottom": y_hat_bottom,
         "y_hat_bottom_insample": y_hat_bottom_insample,
-        "idx_bottom": idx_bottom,
         "tags": tags,
         "y_base": y_base,
         "y_hat_base": y_hat_base,
@@ -77,7 +75,7 @@ def samplers(test_data):
     """Fixture to provide samplers for testing."""
     cls_bottom_up = BottomUp()
     P, W = cls_bottom_up._get_PW_matrices(
-        S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+        S=test_data["S"]
     )
 
     normality_sampler = Normality(
@@ -143,7 +141,7 @@ class TestNormalityCovarianceType:
         """Test Normality with diagonal covariance (default, backward compat)."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         # Default (diagonal) should work without residuals
@@ -162,7 +160,7 @@ class TestNormalityCovarianceType:
         """Test Normality with full empirical covariance."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         # Compute residuals from insample data
@@ -183,7 +181,7 @@ class TestNormalityCovarianceType:
         """Test Normality with shrinkage covariance (Schäfer-Strimmer)."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         # Compute residuals from insample data
@@ -205,7 +203,7 @@ class TestNormalityCovarianceType:
         """Test that W is optional when covariance_type is 'full'."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
 
@@ -225,7 +223,7 @@ class TestNormalityCovarianceType:
         """Test that W is optional when covariance_type is 'shrink'."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
 
@@ -247,7 +245,7 @@ class TestNormalityCovarianceType:
         """Test that CovarianceType enum works."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
 
@@ -268,7 +266,7 @@ class TestNormalityCovarianceType:
         """Test that covariance_type is case insensitive."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
 
@@ -290,7 +288,7 @@ class TestNormalityCovarianceType:
         """Test that invalid covariance_type raises ValueError."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         with pytest.raises(ValueError) as exc_info:
@@ -308,7 +306,7 @@ class TestNormalityCovarianceType:
         """Test that non-string/non-enum covariance_type raises ValueError."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         with pytest.raises(ValueError) as exc_info:
@@ -326,7 +324,7 @@ class TestNormalityCovarianceType:
         """Test that full covariance requires residuals."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         with pytest.raises(ValueError) as exc_info:
@@ -344,7 +342,7 @@ class TestNormalityCovarianceType:
         """Test that shrink covariance requires residuals."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         with pytest.raises(ValueError) as exc_info:
@@ -362,7 +360,7 @@ class TestNormalityCovarianceType:
         """Test that diagonal covariance requires W."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         with pytest.raises(ValueError) as exc_info:
@@ -383,7 +381,7 @@ class TestNormalityCovarianceType:
         """Test that 1D residuals raises ValueError."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals_1d = np.array([1.0, 2.0, 3.0])
 
@@ -402,7 +400,7 @@ class TestNormalityCovarianceType:
         """Test that residuals with wrong number of series raises ValueError."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         residuals_wrong = np.random.randn(5, 10)
@@ -422,7 +420,7 @@ class TestNormalityCovarianceType:
         """Test that empty residuals raises ValueError."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals_empty = np.empty((7, 0))
 
@@ -441,7 +439,7 @@ class TestNormalityCovarianceType:
         """Test that residuals with single observation raises ValueError."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals_single = np.random.randn(7, 1)
 
@@ -462,7 +460,7 @@ class TestNormalityCovarianceType:
         """Test that all-NaN series in residuals raises ValueError."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
         # Make first series all NaN
@@ -483,7 +481,7 @@ class TestNormalityCovarianceType:
         """Test that series with <2 non-NaN observations raises ValueError."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
         # Make first series have only 1 non-NaN value
@@ -505,7 +503,7 @@ class TestNormalityCovarianceType:
         """Test that residuals with some NaNs work correctly."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
         # residuals already has NaN from y_hat_base_insample
@@ -529,7 +527,7 @@ class TestNormalityCovarianceType:
         """Test that warning is issued when W is provided but ignored."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
 
@@ -548,7 +546,7 @@ class TestNormalityCovarianceType:
         """Test that warning is issued when shrinkage_ridge is provided but not used."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         with pytest.warns(UserWarning, match="shrinkage_ridge parameter is only used"):
@@ -566,7 +564,7 @@ class TestNormalityCovarianceType:
         """Test warning when n_series > n_observations for full covariance."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         # Create residuals with fewer observations than series
         n_series = test_data["S"].shape[0]  # 7 series
@@ -588,7 +586,7 @@ class TestNormalityCovarianceType:
         """Test warning when series has zero variance."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         n_series = test_data["S"].shape[0]
         residuals = np.random.randn(n_series, 10)
@@ -609,7 +607,7 @@ class TestNormalityCovarianceType:
         """Test that zero variance series doesn't crash and produces valid samples."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         n_series = test_data["S"].shape[0]
         residuals = np.random.randn(n_series, 10)
@@ -636,7 +634,7 @@ class TestNormalityCovarianceType:
         """Test that W with NaN diagonal raises ValueError."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         W_with_nan = W.copy()
         W_with_nan[0, 0] = np.nan
@@ -656,7 +654,7 @@ class TestNormalityCovarianceType:
         """Test that W with non-positive diagonal raises ValueError."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         W_with_zero = W.copy()
         W_with_zero[0, 0] = 0.0
@@ -678,7 +676,7 @@ class TestNormalityCovarianceType:
         """Test that shrink covariance handles n_series > n_observations well."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         n_series = test_data["S"].shape[0]
         # Create high-dimensional case: more series than observations
@@ -703,7 +701,7 @@ class TestNormalityCovarianceType:
         """Test that samples have approximately correct mean."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         normality = Normality(
@@ -732,7 +730,7 @@ class TestNormalityCovarianceType:
         """Test that samples have approximately correct variance."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         normality = Normality(
@@ -760,7 +758,7 @@ class TestNormalityCovarianceType:
         """Test that computed correlation matrix has valid properties."""
         cls_bottom_up = BottomUp()
         P, _ = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
         residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
 
@@ -792,7 +790,7 @@ class TestNormalityCovarianceType:
         """Test that setting seed produces reproducible samples."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         normality1 = Normality(
@@ -821,7 +819,7 @@ class TestNormalityCovarianceType:
         """Test that different seeds produce different samples."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         normality1 = Normality(
@@ -852,7 +850,7 @@ class TestNormalityCovarianceType:
         """Test get_prediction_levels method."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         normality = Normality(
@@ -887,7 +885,7 @@ class TestNormalityCovarianceType:
         """Test get_prediction_quantiles method."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         normality = Normality(
@@ -918,7 +916,7 @@ class TestNormalityCovarianceType:
         """Test that sparse S matrix is handled correctly."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(
-            S=test_data["S"], idx_bottom=test_data["idx_bottom"]
+            S=test_data["S"]
         )
 
         # Convert S to sparse matrix

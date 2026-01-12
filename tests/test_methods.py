@@ -28,7 +28,6 @@ class HierarchicalTestData:
     y_bottom: np.ndarray  # Bottom level historical data
     y_hat_bottom: np.ndarray  # Bottom level forecasts
     y_hat_bottom_insample: np.ndarray  # Bottom level insample forecasts
-    idx_bottom: list[int]  # Indices of bottom level series
     tags: dict[str, np.ndarray]  # Hierarchy level tags
 
 @pytest.fixture
@@ -61,12 +60,10 @@ def hierarchical_data():
     # Create simple forecasts for bottom series
     y_hat_bottom = np.vstack([i * np.ones(h) for i in range(1, 5)])
 
-    idx_bottom = [3, 4, 5, 6]  # Indices of bottom level in S matrix
-
     tags = {
         "level1": np.array([0]),
         "level2": np.array([1, 2]),
-        "level3": np.array(idx_bottom)
+        "level3": np.array([3, 4, 5, 6])
     }
 
     return HierarchicalTestData(
@@ -75,7 +72,6 @@ def hierarchical_data():
         y_bottom=y_bottom,
         y_hat_bottom=y_hat_bottom,
         y_hat_bottom_insample=y_hat_bottom_insample,
-        idx_bottom=idx_bottom,
         tags=tags
     )
 
@@ -83,7 +79,7 @@ def test_sigmah_hierarchy(hierarchical_data):
     """Test bottom up forecast recovery matches expected output."""
     data = hierarchical_data
     cls_bottom_up = BottomUp()
-    result = cls_bottom_up(S=data.S, y_hat=data.S @ data.y_hat_bottom, idx_bottom=data.idx_bottom)["mean"]
+    result = cls_bottom_up(S=data.S, y_hat=data.S @ data.y_hat_bottom)["mean"]
     expected = data.S @ data.y_hat_bottom
     assert result.all() == expected.all()
 
@@ -95,7 +91,7 @@ def test_btm_up_forecast_recovery(hierarchical_data):
     bu_bootstrap_intervals = cls_bottom_up(
         S=data.S,
         y_hat=data.S @ data.y_hat_bottom,
-        idx_bottom=data.idx_bottom,
+
     )
     expected = data.S @ data.y_hat_bottom
     assert bu_bootstrap_intervals["mean"].all() == expected.all()
@@ -105,7 +101,7 @@ def test_forecast_recovery_fit_predict(hierarchical_data):
     """Test forecast recovery with fit -> predict pattern."""
     data = hierarchical_data
     cls_bottom_up = BottomUp()
-    cls_bottom_up.fit(S=data.S, y_hat=data.S @ data.y_hat_bottom, idx_bottom=data.idx_bottom)
+    cls_bottom_up.fit(S=data.S, y_hat=data.S @ data.y_hat_bottom)
     y_tilde = cls_bottom_up.predict(S=data.S, y_hat=data.S @ data.y_hat_bottom)["mean"]
     expected = data.S @ data.y_hat_bottom
     assert y_tilde.all() == expected.all()
@@ -373,20 +369,22 @@ def test_min_trace_forecast_recovery(hierarchical_data, method, nonnegative):
             y_hat=data.S @ data.y_hat_bottom,
             y_insample=data.S @ data.y_bottom,
             y_hat_insample=data.S @ data.y_hat_bottom_insample,
-            idx_bottom=data.idx_bottom if nonnegative else None,
+
         )["mean"]
     else:
         result = cls_min_trace(
             S=data.S,
             y_hat=data.S @ data.y_hat_bottom,
-            idx_bottom=data.idx_bottom if nonnegative else None,
+
         )["mean"]
 
     # EMinT without nonnegative only guarantees coherence, not exact recovery
     # (when nonnegative=True, it uses BottomUp which does have exact recovery)
     if method == "emint" and not nonnegative:
         # Check coherence instead of exact recovery
-        bottom_forecasts = result[data.idx_bottom, :]
+        n_hiers, n_bottom = data.S.shape
+        idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
+        bottom_forecasts = result[idx_bottom, :]
         aggregated = data.S @ bottom_forecasts
         np.testing.assert_allclose(result, aggregated, rtol=1e-10)
     else:
@@ -419,7 +417,7 @@ def test_min_trace_mint_cov_error(hierarchical_data, nonnegative):
             y_hat=data.S @ data.y_hat_bottom,
             y_insample=data.S @ data.y_bottom,
             y_hat_insample=data.S @ data.y_hat_bottom_insample,
-            idx_bottom=data.idx_bottom if nonnegative else None,
+
         )
 
 
@@ -438,7 +436,7 @@ def test_min_trace_shrink_covariance_stress(hierarchical_data):
         y_hat=data.S @ data.y_hat_bottom,
         y_insample=diff_len_y_insample,
         y_hat_insample=diff_len_y_hat_insample,
-        idx_bottom=data.idx_bottom,
+
     )
 
     # Test passes if no exception is raised
@@ -457,14 +455,16 @@ def test_min_trace_levels(hierarchical_data, method, nonnegative):
         y_hat=data.S @ data.y_hat_bottom,
         y_insample=data.S @ data.y_bottom,
         y_hat_insample=data.S @ data.y_hat_bottom_insample,
-        idx_bottom=data.idx_bottom if nonnegative else None,
+
     )["mean"]
 
     # EMinT without nonnegative only guarantees coherence, not exact recovery
     # (when nonnegative=True, it uses BottomUp which does have exact recovery)
     if method == "emint" and not nonnegative:
         # Check coherence instead of exact recovery
-        bottom_forecasts = result[data.idx_bottom, :]
+        n_hiers, n_bottom = data.S.shape
+        idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
+        bottom_forecasts = result[idx_bottom, :]
         aggregated = data.S @ bottom_forecasts
         np.testing.assert_allclose(result, aggregated, rtol=1e-10)
     else:
@@ -483,7 +483,7 @@ def test_min_trace_sparse_functionality(hierarchical_data, method, nonnegative, 
         y_hat=data.S @ data.y_hat_bottom,
         y_insample=data.S @ data.y_bottom,
         y_hat_insample=data.S @ data.y_hat_bottom_insample,
-        idx_bottom=data.idx_bottom,
+
     )["mean"]
 
     np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
@@ -502,7 +502,7 @@ def test_optimal_combination_methods(hierarchical_data, method, nonnegative):
         cls_optimal_combination(
             S=hierarchical_data.S,
             y_hat=hierarchical_data.S @ hierarchical_data.y_hat_bottom,
-            idx_bottom=hierarchical_data.idx_bottom if nonnegative else None,
+
         )["mean"],
         hierarchical_data.S @ hierarchical_data.y_hat_bottom,
     )
@@ -519,7 +519,7 @@ def test_erm_forecast_recovery(hierarchical_data):
         y_hat=data.S @ data.y_hat_bottom,
         y_insample=data.S @ data.y_bottom,
         y_hat_insample=data.S @ data.y_hat_bottom_insample,
-        idx_bottom=data.idx_bottom,
+
     )["mean"]
 
     np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
@@ -549,18 +549,20 @@ def interval_reconciler_args(hierarchical_data):
         num_samples=200,
         seed=0,
         tags=data.tags,
-        idx_bottom=data.idx_bottom,
+
     )
 
 
 def test_bottom_up_normality_intervals(hierarchical_data, interval_reconciler_args):
     """Test bottom up normality prediction intervals recover original sigmah."""
     data = hierarchical_data
+    n_hiers, n_bottom = data.S.shape
+    idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
 
     cls_bottom_up = BottomUp()
     result = cls_bottom_up(**interval_reconciler_args)
 
-    assert np.array_equal(result["sigmah"][data.idx_bottom], interval_reconciler_args["sigmah"][data.idx_bottom])
+    assert np.array_equal(result["sigmah"][idx_bottom], interval_reconciler_args["sigmah"][idx_bottom])
 
 
 def test_bottom_up_interval_names(interval_reconciler_args):
@@ -736,7 +738,7 @@ def test_coherent_sample_shapes(hierarchical_data, intervals_method):
         sigmah=sigmah,
         intervals_method=intervals_method,
         tags=data.tags,
-        idx_bottom=data.idx_bottom,
+
     )
 
     cls_bottom_up = BottomUp()
@@ -792,7 +794,7 @@ def test_mintrace_nonnegative_samples_use_constrained_forecasts(hierarchical_dat
         num_samples=200,
         seed=42,
         tags=data.tags,
-        idx_bottom=data.idx_bottom,
+
     )
 
     # Verify the mean reconciled forecasts are non-negative
@@ -854,7 +856,7 @@ def test_mintrace_nonnegative_without_intervals(hierarchical_data):
         num_samples=None,
         seed=None,
         tags=data.tags,
-        idx_bottom=data.idx_bottom,
+
     )
 
     # Verify the mean reconciled forecasts are non-negative
@@ -892,7 +894,7 @@ def test_mintrace_sparse_nonnegative_sampler_initialization(hierarchical_data, m
         num_samples=200,
         seed=42,
         tags=data.tags,
-        idx_bottom=data.idx_bottom,
+
     )
 
     # Verify the mean reconciled forecasts are non-negative
@@ -936,7 +938,7 @@ def test_mintrace_nonnegative_raises_on_bootstrap_permbu(hierarchical_data, inte
             num_samples=200,
             seed=42,
             tags=data.tags,
-            idx_bottom=data.idx_bottom,
+
         )
 
 
@@ -944,6 +946,8 @@ def test_mintrace_nonnegative_raises_on_bootstrap_permbu(hierarchical_data, inte
 def test_emint_forecast_reconciliation(hierarchical_data, nonnegative):
     """Test EMinT method produces coherent forecasts."""
     data = hierarchical_data
+    n_hiers, n_bottom = data.S.shape
+    idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
 
     cls_emint = MinTrace(method='emint', nonnegative=nonnegative)
     result = cls_emint(
@@ -951,12 +955,12 @@ def test_emint_forecast_reconciliation(hierarchical_data, nonnegative):
         y_hat=data.S @ data.y_hat_bottom,
         y_insample=data.S @ data.y_bottom,
         y_hat_insample=data.S @ data.y_hat_bottom_insample,
-        idx_bottom=data.idx_bottom,
+
     )["mean"]
 
     # Check that result is coherent (satisfies aggregation constraints)
     # Bottom level forecasts should aggregate to upper levels
-    bottom_forecasts = result[data.idx_bottom, :]
+    bottom_forecasts = result[idx_bottom, :]
     aggregated = data.S @ bottom_forecasts
 
     np.testing.assert_allclose(result, aggregated, rtol=1e-10)
@@ -969,6 +973,8 @@ def test_emint_forecast_reconciliation(hierarchical_data, nonnegative):
 def test_emint_fit_predict_pattern(hierarchical_data):
     """Test EMinT with fit -> predict pattern."""
     data = hierarchical_data
+    n_hiers, n_bottom = data.S.shape
+    idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
 
     cls_emint = MinTrace(method='emint')
     cls_emint.fit(
@@ -976,12 +982,12 @@ def test_emint_fit_predict_pattern(hierarchical_data):
         y_hat=data.S @ data.y_hat_bottom,
         y_insample=data.S @ data.y_bottom,
         y_hat_insample=data.S @ data.y_hat_bottom_insample,
-        idx_bottom=data.idx_bottom,
+
     )
     result = cls_emint.predict(S=data.S, y_hat=data.S @ data.y_hat_bottom)["mean"]
 
     # Check coherence
-    bottom_forecasts = result[data.idx_bottom, :]
+    bottom_forecasts = result[idx_bottom, :]
     aggregated = data.S @ bottom_forecasts
 
     np.testing.assert_allclose(result, aggregated, rtol=1e-10)
@@ -997,7 +1003,7 @@ def test_emint_requires_insample_data(hierarchical_data):
         cls_emint(
             S=data.S,
             y_hat=data.S @ data.y_hat_bottom,
-            idx_bottom=data.idx_bottom,
+
         )
 
 
@@ -1014,11 +1020,13 @@ def test_insample_methods_coherence(hierarchical_data, method_class, kwargs):
         y_hat=data.S @ data.y_hat_bottom,
         y_insample=data.S @ data.y_bottom,
         y_hat_insample=data.S @ data.y_hat_bottom_insample,
-        idx_bottom=data.idx_bottom,
+
     )["mean"]
 
     # Verify coherence: S @ bottom = all
-    bottom_forecasts = result[data.idx_bottom, :]
+    n_hiers, n_bottom = data.S.shape
+    idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
+    bottom_forecasts = result[idx_bottom, :]
     aggregated = data.S @ bottom_forecasts
 
     np.testing.assert_allclose(result, aggregated, rtol=1e-10)
@@ -1047,14 +1055,16 @@ def test_emint_nonnegative_with_negative_forecasts(hierarchical_data):
         y_hat=y_hat_with_negatives,
         y_insample=y_base,
         y_hat_insample=y_hat_base_insample,
-        idx_bottom=data.idx_bottom,
+
     )
 
     # Verify the mean reconciled forecasts are non-negative
     assert np.all(result["mean"] >= -1e-6), "Mean forecasts should be non-negative"
 
     # Verify coherence
-    bottom_forecasts = result["mean"][data.idx_bottom, :]
+    n_hiers, n_bottom = data.S.shape
+    idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
+    bottom_forecasts = result["mean"][idx_bottom, :]
     aggregated = data.S @ bottom_forecasts
     np.testing.assert_allclose(result["mean"], aggregated, rtol=1e-10)
 
@@ -1084,7 +1094,7 @@ def test_emint_nonnegative_sampler_initialization(hierarchical_data):
         num_samples=200,
         seed=42,
         tags=data.tags,
-        idx_bottom=data.idx_bottom,
+
     )
 
     # Verify the mean reconciled forecasts are non-negative
@@ -1127,5 +1137,5 @@ def test_emint_nonnegative_raises_on_bootstrap_permbu(hierarchical_data, interva
             num_samples=200,
             seed=42,
             tags=data.tags,
-            idx_bottom=data.idx_bottom,
+
         )
