@@ -98,7 +98,7 @@ References:
 #### `BottomUp.fit`
 
 ```python
-fit(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 Bottom Up Fit Method.
@@ -109,7 +109,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | *required*
 `y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `horizon`). Default is None. | <code>None</code>
 `y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `horizon`). Default is None. | <code>None</code>
 `sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
@@ -151,7 +150,7 @@ Name | Type | Description
 #### `BottomUp.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 BottomUp Reconciliation Method.
@@ -162,7 +161,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | *required*
 `y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `insample_size`). Default is None. | <code>None</code>
 `y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `insample_size`). Default is None. | <code>None</code>
 `sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
@@ -224,7 +222,7 @@ See the parent class for more details.
 #### `BottomUpSparse.fit`
 
 ```python
-fit(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 Bottom Up Fit Method.
@@ -235,7 +233,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | *required*
 `y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `horizon`). Default is None. | <code>None</code>
 `y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `horizon`). Default is None. | <code>None</code>
 `sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
@@ -277,7 +274,7 @@ Name | Type | Description
 #### `BottomUpSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 BottomUp Reconciliation Method.
@@ -288,7 +285,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | *required*
 `y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `insample_size`). Default is None. | <code>None</code>
 `y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `insample_size`). Default is None. | <code>None</code>
 `sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
@@ -363,7 +359,7 @@ References:
 #### `TopDown.fit`
 
 ```python
-fit(S, y_hat, y_insample, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(S, y_hat, y_insample, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 TopDown Fit Method.
@@ -381,7 +377,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int)</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int)</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 
 **Returns:**
 
@@ -416,7 +411,7 @@ Name | Type | Description
 #### `TopDown.fit_predict`
 
 ```python
-fit_predict(S, y_hat, tags, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
+fit_predict(S, y_hat, tags, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
 ```
 
 Top Down Reconciliation Method.
@@ -428,7 +423,6 @@ Name | Type | Description | Default
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). Default is None. | <code>None</code>
 `y_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method. Default is None. | <code>None</code>
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample forecast values of size (`base`, `insample_size`). Optional for `forecast_proportions` method. Default is None. | <code>None</code>
 `sigmah` | <code>[ndarray](#numpy.ndarray)</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
@@ -482,7 +476,7 @@ See the parent class for more details.
 #### `TopDownSparse.fit`
 
 ```python
-fit(S, y_hat, y_insample, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(S, y_hat, y_insample, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 TopDown Fit Method.
@@ -500,7 +494,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int)</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int)</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 
 **Returns:**
 
@@ -535,7 +528,7 @@ Name | Type | Description
 #### `TopDownSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, tags, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
+fit_predict(S, y_hat, tags, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None)
 ```
 
 #### `TopDownSparse.sample`
@@ -767,7 +760,7 @@ References:
 #### `MinTrace.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Fit Method.
@@ -785,7 +778,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`idx_bottom` | <code>[ndarray](#numpy.ndarray) | None</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 
 **Returns:**
 
@@ -820,7 +812,7 @@ Name | Type | Description
 #### `MinTrace.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Reconciliation Method.
@@ -831,7 +823,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 `y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
 `sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
@@ -900,7 +891,7 @@ Name | Type | Description | Default
 #### `MinTraceSparse.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTraceSparse Fit Method.
@@ -918,7 +909,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`idx_bottom` | <code>[ndarray](#numpy.ndarray) | None</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 
 **Returns:**
 
@@ -953,7 +943,7 @@ Name | Type | Description
 #### `MinTraceSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Reconciliation Method.
@@ -964,7 +954,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 `y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
 `sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
@@ -1043,7 +1032,7 @@ Name | Type | Description | Default
 #### `OptimalCombination.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Fit Method.
@@ -1061,7 +1050,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`idx_bottom` | <code>[ndarray](#numpy.ndarray) | None</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 
 **Returns:**
 
@@ -1096,7 +1084,7 @@ Name | Type | Description
 #### `OptimalCombination.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Reconciliation Method.
@@ -1107,7 +1095,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 `y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
 `sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
@@ -1188,7 +1175,7 @@ Name | Type | Description | Default
 #### `ERM.fit`
 
 ```python
-fit(S, y_hat, y_insample, y_hat_insample, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, idx_bottom=None)
+fit(S, y_hat, y_insample, y_hat_insample, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 ERM Fit Method.
@@ -1206,7 +1193,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`idx_bottom` | <code>[ndarray](#numpy.ndarray) | None</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 
 **Returns:**
 
@@ -1241,7 +1227,7 @@ Name | Type | Description
 #### `ERM.fit_predict`
 
 ```python
-fit_predict(S, y_hat, idx_bottom=None, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 ERM Reconciliation Method.
@@ -1252,7 +1238,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`idx_bottom` | <code>[ndarray](#numpy.ndarray)</code> | Indices corresponding to the bottom level of `S`, size (`bottom`). | <code>None</code>
 `y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Train values of size (`base`, `insample_size`). | <code>None</code>
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample train predictions of size (`base`, `insample_size`). | <code>None</code>
 `sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
