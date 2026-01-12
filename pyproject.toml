@@ -9,7 +9,7 @@ authors = [
 ]
 keywords = ["time-series", "forecasting", "datasets", "hierarchical"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "License :: OSI Approved :: Apache Software License",
@@ -17,6 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 requires-python = ">=3.10,<4.0"
 dependencies = [
@@ -84,13 +85,6 @@ select = [
     "B", # flake8-bugbear
     "UP", # pyupgrade
     "YTT", # flake8-2020
-]
-
-# TODO: address, then remove the below ignore clauses` eventually:
-ignore = [
-    "E402", # module level import not at top of file
-    "E501", # line too long
-    'B028',
 ]
 
 [tool.ruff.lint.per-file-ignores]
