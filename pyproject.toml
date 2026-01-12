@@ -70,7 +70,7 @@ module-root = "."
 [tool.ruff]
 fix = true
 indent-width = 4
-line-length = 120
+line-length = 88
 target-version = "py310"
 
 [tool.ruff.format]
