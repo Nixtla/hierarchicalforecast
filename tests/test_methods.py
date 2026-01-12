@@ -357,7 +357,7 @@ def test_middle_out_vs_sparse_equivalence(hierarchical_data, method):
     np.testing.assert_allclose(result_dense, result_sparse, tolerance)
 
 
-@pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "mint_shrink"])
+@pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "mint_shrink", "emint"])
 @pytest.mark.parametrize("nonnegative", [False, True])
 def test_min_trace_forecast_recovery(hierarchical_data, method, nonnegative):
     """Test MinTrace methods can recover forecasts and nonnegative behavior."""
@@ -367,7 +367,7 @@ def test_min_trace_forecast_recovery(hierarchical_data, method, nonnegative):
     assert cls_min_trace.nonnegative is nonnegative
 
     if cls_min_trace.insample:
-        assert method in ["wls_var", "mint_cov", "mint_shrink"]
+        assert method in ["wls_var", "mint_cov", "mint_shrink", "emint"]
         result = cls_min_trace(
             S=data.S,
             y_hat=data.S @ data.y_hat_bottom,
@@ -382,7 +382,15 @@ def test_min_trace_forecast_recovery(hierarchical_data, method, nonnegative):
             idx_bottom=data.idx_bottom if nonnegative else None,
         )["mean"]
 
-    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
+    # EMinT without nonnegative only guarantees coherence, not exact recovery
+    # (when nonnegative=True, it uses BottomUp which does have exact recovery)
+    if method == "emint" and not nonnegative:
+        # Check coherence instead of exact recovery
+        bottom_forecasts = result[data.idx_bottom, :]
+        aggregated = data.S @ bottom_forecasts
+        np.testing.assert_allclose(result, aggregated, rtol=1e-10)
+    else:
+        np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 def test_min_trace_threading(hierarchical_data):
@@ -437,7 +445,7 @@ def test_min_trace_shrink_covariance_stress(hierarchical_data):
     assert result_min_trace is not None
 
 
-@pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "mint_shrink"])
+@pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "mint_shrink", "emint"])
 @pytest.mark.parametrize("nonnegative", [False, True])
 def test_min_trace_levels(hierarchical_data, method, nonnegative):
     """Test MinTrace with all levels."""
@@ -452,7 +460,15 @@ def test_min_trace_levels(hierarchical_data, method, nonnegative):
         idx_bottom=data.idx_bottom if nonnegative else None,
     )["mean"]
 
-    np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
+    # EMinT without nonnegative only guarantees coherence, not exact recovery
+    # (when nonnegative=True, it uses BottomUp which does have exact recovery)
+    if method == "emint" and not nonnegative:
+        # Check coherence instead of exact recovery
+        bottom_forecasts = result[data.idx_bottom, :]
+        aggregated = data.S @ bottom_forecasts
+        np.testing.assert_allclose(result, aggregated, rtol=1e-10)
+    else:
+        np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
 
 
 @pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var"])
@@ -664,7 +680,7 @@ def test_top_down_sparse_forecast_proportions_intervals_missing_insample(hierarc
         )
 
 
-@pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "mint_shrink"])
+@pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "mint_shrink", "emint"])
 @pytest.mark.parametrize("intervals_method", ["normality", "bootstrap", "permbu"])
 def test_min_trace_intervals(interval_reconciler_args, method, intervals_method):
     """Test MinTrace with different interval methods."""

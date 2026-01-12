@@ -1419,7 +1419,7 @@ class MinTrace(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray,
         y_hat_insample: np.ndarray,
-        idx_bottom: np.ndarray,
+        idx_bottom: np.ndarray | None = None,
     ):
         """Compute the projection matrix P and weight matrix W for EMinT.
 
@@ -1441,8 +1441,17 @@ class MinTrace(HReconciler):
                 "Check `Y_df`. For method `emint` you need to pass insample predictions and insample values."
             )
 
+        # Infer idx_bottom if not provided
+        if idx_bottom is None:
+            idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
+
         # Remove observations with nan values
         nan_idx = np.isnan(y_hat_insample).any(axis=0)
+        # Raise warning if any nan values are found
+        if np.any(nan_idx):
+            warnings.warn(
+                f"Found {np.sum(nan_idx)} out of {y_hat_insample.shape[1]} insample observations with NaN values. These will be ignored when computing the EMinT projection matrix."
+            )
         y_insample_clean = y_insample[:, ~nan_idx]
         y_hat_insample_clean = y_hat_insample[:, ~nan_idx]
 
@@ -2030,7 +2039,7 @@ class ERM(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray,
         y_hat_insample: np.ndarray,
-        idx_bottom: np.ndarray,
+        idx_bottom: np.ndarray | None = None,
     ):
         n_hiers, n_bottom = S.shape
         # y_hat_insample shape (n_hiers, obs)
@@ -2038,8 +2047,18 @@ class ERM(HReconciler):
             raise ValueError(
                 "Check `Y_df`. For method `ERM` you need to pass insample predictions and insample values."
             )
+
+        # Infer idx_bottom if not provided
+        if idx_bottom is None:
+            idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
+
         # remove obs with nan values
         nan_idx = np.isnan(y_hat_insample).any(axis=0)
+        # Raise warning if any nan values are found
+        if np.any(nan_idx):
+            warnings.warn(
+                f"Found {np.sum(nan_idx)} out of {y_hat_insample.shape[1]} insample observations with NaN values. These will be ignored when computing the EMinT projection matrix."
+            )
         y_insample = y_insample[:, ~nan_idx]
         y_hat_insample = y_hat_insample[:, ~nan_idx]
         # only using h validation steps to avoid
