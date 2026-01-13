@@ -93,6 +93,8 @@ Name | Type | Description | Default
 `id_col` | <code>[str](#str)</code> | column that identifies each serie. Default is "unique_id". | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | column that identifies each timestep, its values can be timestamps or integers. Default is "ds". | <code>'ds'</code>
 `target_col` | <code>[str](#str)</code> | column that contains the target. Default is "y". | <code>'y'</code>
+`id_time_col` | <code>[str](#str)</code> | column that identifies each temporal aggregation level (required when `temporal=True`). Default is "temporal_id". | <code>'temporal_id'</code>
+`temporal` | <code>[bool](#bool)</code> | if True, perform temporal reconciliation. Default is False. | <code>False</code>
 `diagnostics` | <code>[bool](#bool)</code> | if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False. | <code>False</code>
 `diagnostics_atol` | <code>[float](#float)</code> | absolute tolerance for numerical coherence check. Default is 1e-6. | <code>1e-06</code>
 

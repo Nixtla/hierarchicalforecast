@@ -18,7 +18,7 @@ here](https://nixtlaverse.nixtla.io/hierarchicalforecast/examples/introduction.h
 ### `Normality`
 
 ```python
-Normality(S, P, y_hat, sigmah, W, seed=0)
+Normality(S, P, y_hat, sigmah, W=None, seed=0, covariance_type='diagonal', residuals=None, shrinkage_ridge=_DEFAULT_SHRINKAGE_RIDGE)
 ```
 
 Normality Probabilistic Reconciliation Class.
@@ -44,19 +44,72 @@ The reconciled forecasts are also normally distributed:
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
-`P` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, reconciliation matrix of size (`bottom`, `base`). | *required*
+`S` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | Summing matrix of size (`base`, `bottom`). | *required*
+`P` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | Reconciliation matrix of size (`bottom`, `base`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Point forecasts values of size (`base`, `horizon`). | *required*
-`W` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | np.array, hierarchical covariance matrix of size (`base`, `base`). | *required*
-`sigmah` | <code>[ndarray](#numpy.ndarray)</code> | np.array, forecast standard dev. of size (`base`, `horizon`). | *required*
-`seed` | <code>[int](#int)</code> | int, random seed for numpy generator's replicability. Default is 0. | <code>0</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray)</code> | Forecast standard dev. of size (`base`, `horizon`). | *required*
+`W` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | Hierarchical covariance matrix of size (`base`, `base`). Required when `covariance_type='diagonal'` (default). **Ignored** when `covariance_type` is `'full'` or `'shrink'` (covariance is computed from residuals instead). Default is None. | <code>None</code>
+`seed` | <code>[int](#int)</code> | Random seed for numpy generator's replicability. Default is 0. | <code>0</code>
+`covariance_type` | <code>[Union](#Union)\[[str](#str), [CovarianceType](#hierarchicalforecast.probabilistic_methods.CovarianceType)\]</code> | Type of covariance estimator. Can be a string or CovarianceType enum. Options are:<br/>- `'diagonal'` / `CovarianceType.DIAGONAL`: Uses the W matrix diagonal with correlation scaling (default, backward compatible). W is required. - `'full'` / `CovarianceType.FULL`: Uses full empirical covariance from residuals. W is ignored. Warning: may be non-positive-definite if n_series > n_observations. - `'shrink'` / `CovarianceType.SHRINK`: Uses Schäfer-Strimmer shrinkage estimator. W is ignored. Recommended for numerical stability with many series.<br/>Default is `'diagonal'`. | <code>'diagonal'</code>
+`residuals` | <code>[ndarray](#numpy.ndarray)</code> | Insample residuals of size (`base`, `obs`). Required when `covariance_type` is `'full'` or `'shrink'`. Default is None. | <code>None</code>
+`shrinkage_ridge` | <code>[float](#float)</code> | Ridge parameter for shrinkage covariance estimator. Only used when `covariance_type='shrink'`. A warning is issued if provided with other covariance types. Default is 2e-8. | <code>[\_DEFAULT_SHRINKAGE_RIDGE](#hierarchicalforecast.probabilistic_methods.Normality._DEFAULT_SHRINKAGE_RIDGE)</code>
+
+**Raises:**
+
+Type | Description
+---- | -----------
+<code>[ValueError](#ValueError)</code>| If `covariance_type` is invalid.
+<code>[ValueError](#ValueError)</code>| If `covariance_type='diagonal'` and `W` is None.
+<code>[ValueError](#ValueError)</code>| If `covariance_type` is `'full'` or `'shrink'` and `residuals` is None.
+<code>[ValueError](#ValueError)</code>| If `residuals` shape doesn't match expected (`base`, `obs`).
+<code>[ValueError](#ValueError)</code>| If `residuals` has fewer than 2 observations.
+<code>[ValueError](#ValueError)</code>| If `residuals` is empty.
+<code>[ValueError](#ValueError)</code>| If any series in `residuals` has all NaN values.
+
+**Warns:**
+
+Type | Description
+---- | -----------
+<code>UserWarning</code>| If `shrinkage_ridge` is provided but `covariance_type` is not `'shrink'`.
+<code>UserWarning</code>| If `W` is provided but `covariance_type` is not `'diagonal'` (W is ignored).
+<code>UserWarning</code>| If any series has zero or near-zero variance (may affect correlation estimates).
+<code>UserWarning</code>| If `covariance_type='full'` and n_series > n_observations (non-PSD risk).
 
 <details class="references" open markdown="1">
 <summary>References</summary>
 
-- [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022). "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation". European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+- [Panagiotelis A., Gamakumara P. Athanasopoulos G., and Hyndman R. J. (2022).
+  "Probabilistic forecast reconciliation: Properties, evaluation and score optimisation".
+  European Journal of Operational Research.](https://www.sciencedirect.com/science/article/pii/S0377221722006087)
+- [Schäfer, Juliane, and Korbinian Strimmer. "A Shrinkage Approach to Large-Scale
+  Covariance Matrix Estimation". Statistical Applications in Genetics and Molecular
+  Biology 4, no. 1 (2005).](https://doi.org/10.2202/1544-6115.1175)
 
 </details>
+
+**Examples:**
+
+```pycon
+>>> # Using diagonal covariance (default, backward compatible)
+>>> normality = Normality(S=S, P=P, y_hat=y_hat, sigmah=sigmah, W=W)
+>>> samples = normality.get_samples(num_samples=100)
+```
+
+```pycon
+>>> # Using full empirical covariance from residuals
+>>> normality = Normality(
+...     S=S, P=P, y_hat=y_hat, sigmah=sigmah,
+...     covariance_type="full", residuals=residuals
+... )
+```
+
+```pycon
+>>> # Using shrinkage covariance (recommended for stability)
+>>> normality = Normality(
+...     S=S, P=P, y_hat=y_hat, sigmah=sigmah,
+...     covariance_type=CovarianceType.SHRINK, residuals=residuals
+... )
+```
 
 #### `Normality.get_samples`
 
