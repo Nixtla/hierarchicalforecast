@@ -15,6 +15,7 @@ from hierarchicalforecast.methods import BottomUp
 from hierarchicalforecast.probabilistic_methods import (
     PERMBU,
     Bootstrap,
+    ConformalReconciliation,
     CovarianceType,
     Normality,
 )
@@ -980,3 +981,129 @@ def test_quantile_loss_protections(test_data, samplers):
         scaled_crps(test_data["y_test"], bootstrap_quantiles, invalid_quantiles)
 
     assert "between 0 and 1" in str(exc_info.value)
+
+
+class TestConformalReconciliation:
+    """Tests for ConformalReconciliation class."""
+
+    def test_conformal_basic_functionality(self, test_data):
+        """Test basic conformal reconciliation functionality."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+            alpha=0.1,
+        )
+        samples = conformal.get_samples(num_samples=50)
+        assert samples.shape == (test_data["S"].shape[0], test_data["h"], 50)
+
+    def test_conformal_prediction_levels(self, test_data):
+        """Test that prediction levels are computed correctly."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+            alpha=0.1,
+        )
+
+        res = {"mean": conformal.y_hat_rec}
+        res = conformal.get_prediction_levels(res, level=[90, 95])
+
+        assert "lo-90" in res
+        assert "hi-90" in res
+        assert "lo-95" in res
+        assert "hi-95" in res
+        assert np.all(res["hi-90"] >= res["lo-90"])
+        assert np.all(res["hi-95"] >= res["lo-95"])
+
+    def test_conformal_coverage_guarantee(self, test_data):
+        """Test that coverage guarantee is computed correctly."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+            alpha=0.1,
+        )
+
+        coverage = conformal.get_coverage_guarantee()
+        n_cal = conformal.n_cal
+        expected = 0.9 * n_cal / (n_cal + 1)
+        assert abs(coverage - expected) < 1e-10
+
+    def test_conformal_invalid_alpha(self, test_data):
+        """Test that invalid alpha raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        with pytest.raises(ValueError) as exc_info:
+            ConformalReconciliation(
+                S=test_data["S"],
+                P=P,
+                y_hat=test_data["y_hat_base"],
+                y_cal=test_data["y_base"],
+                y_hat_cal=test_data["y_hat_base_insample"],
+                alpha=0.0,
+            )
+        assert "alpha must be in (0, 1)" in str(exc_info.value)
+
+    def test_conformal_insufficient_calibration(self, test_data):
+        """Test that insufficient calibration observations raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        with pytest.raises(ValueError) as exc_info:
+            ConformalReconciliation(
+                S=test_data["S"],
+                P=P,
+                y_hat=test_data["y_hat_base"],
+                y_cal=np.random.randn(7, 1),
+                y_hat_cal=np.random.randn(7, 1),
+                alpha=0.1,
+            )
+        assert "At least 2 observations are required" in str(exc_info.value)
+
+    def test_conformal_reproducibility_with_seed(self, test_data):
+        """Test that setting seed produces reproducible samples."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal1 = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+            alpha=0.1,
+            seed=42,
+        )
+
+        conformal2 = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+            alpha=0.1,
+            seed=42,
+        )
+
+        samples1 = conformal1.get_samples(num_samples=50)
+        samples2 = conformal2.get_samples(num_samples=50)
+        np.testing.assert_array_equal(samples1, samples2)
+
+

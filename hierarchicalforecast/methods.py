@@ -21,7 +21,7 @@ from hierarchicalforecast.utils import (
     is_strictly_hierarchical,
 )
 
-from .probabilistic_methods import PERMBU, Bootstrap, Normality
+from .probabilistic_methods import PERMBU, Bootstrap, ConformalReconciliation, Normality
 
 
 class HReconciler:
@@ -85,6 +85,16 @@ class HReconciler:
                 y_hat_insample=y_hat_insample,
                 num_samples=num_samples,
                 seed=seed,
+            )
+        elif intervals_method == "conformal":
+            sampler = ConformalReconciliation(
+                S=S,
+                P=P,
+                y_hat=y_hat,
+                y_cal=y_insample,
+                y_hat_cal=y_hat_insample,
+                alpha=0.1,
+                seed=seed if seed is not None else 0,
             )
         else:
             sampler = None
