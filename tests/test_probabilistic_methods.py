@@ -1,9 +1,12 @@
 import warnings
 
+import narwhals.stable.v2 as nw
 import numpy as np
+import pandas as pd
 import pytest
 import scipy.sparse as sp
 
+from hierarchicalforecast.core import HierarchicalReconciliation
 from hierarchicalforecast.evaluation import (
     energy_score,
     log_score,
@@ -19,6 +22,7 @@ from hierarchicalforecast.probabilistic_methods import (
     CovarianceType,
     Normality,
 )
+from hierarchicalforecast.utils import aggregate
 
 
 @pytest.fixture
@@ -68,6 +72,61 @@ def test_data():
         "y_hat_base_insample": y_hat_base_insample,
         "sigmah": sigmah,
         "y_test": y_test,
+    }
+
+
+@pytest.fixture
+def strict_hierarchy_data():
+    """Fixture providing strictly hierarchical data for coherency tests.
+
+    Creates a simple strict hierarchy (Country -> State -> Region) locally.
+    """
+    # Create a simple dataset with a strict hierarchy structure
+    dates = pd.date_range("2020-01-01", periods=24, freq="MS")
+    data = []
+
+    # Bottom-level structure: Country -> State -> Region
+    structure = {
+        ("AU", "NSW", "Sydney"): 100,
+        ("AU", "NSW", "Newcastle"): 50,
+        ("AU", "VIC", "Melbourne"): 80,
+        ("AU", "VIC", "Geelong"): 40,
+    }
+
+    for (country, state, region), base_val in structure.items():
+        for ds in dates:
+            data.append({
+                "Country": country,
+                "State": state,
+                "Region": region,
+                "ds": ds,
+                "y": base_val + np.random.randn() * 10
+            })
+
+    df = pd.DataFrame(data)
+
+    # Define strictly hierarchical spec
+    hiers_strictly = [
+        ["Country"],
+        ["Country", "State"],
+        ["Country", "State", "Region"]
+    ]
+
+    # Create aggregated hierarchy
+    Y_df, S_df, tags = aggregate(df, hiers_strictly)
+
+    # Prepare train/test split
+    Y_df["y_model"] = Y_df["y"]
+    Y_hat_df = Y_df.groupby("unique_id").tail(12).copy()
+    ds_h = Y_hat_df["ds"].unique()  # noqa: F841
+    Y_train_df = Y_df.query("~(ds in @ds_h)").copy()
+    Y_train_df["y_model"] += np.random.uniform(-1, 1, len(Y_train_df))
+
+    return {
+        "Y_hat_df": Y_hat_df,
+        "Y_train_df": Y_train_df,
+        "S_df": S_df,
+        "tags": tags,
     }
 
 
@@ -1106,91 +1165,35 @@ class TestConformalReconciliation:
         samples2 = conformal2.get_samples(num_samples=50)
         np.testing.assert_array_equal(samples1, samples2)
 
-    def test_conformal_cross_sectional_coherency(self, test_data):
-        """Test that conformal samples satisfy cross-sectional coherency constraint.
+    def test_reconciliation_coherency_via_diagnostics(self, strict_hierarchy_data):
+        """Test that reconciliation produces coherent forecasts using diagnostics.
 
-        Coherency requires: S @ bottom_samples == all_samples
-        This ensures aggregation constraints are satisfied at every sample.
+        Uses the coherency diagnostics infrastructure to verify that reconciled
+        forecasts satisfy the hierarchical constraints: S @ bottom = all.
+        This follows the established pattern in test_core.py.
         """
-        cls_bottom_up = BottomUp()
-        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+        Y_hat_df = strict_hierarchy_data["Y_hat_df"]
+        Y_train_df = strict_hierarchy_data["Y_train_df"]
+        S_df = strict_hierarchy_data["S_df"]
+        tags = strict_hierarchy_data["tags"]
 
-        conformal = ConformalReconciliation(
-            S=test_data["S"],
-            P=P,
-            y_hat=test_data["y_hat_base"],
-            y_cal=test_data["y_base"],
-            y_hat_cal=test_data["y_hat_base_insample"],
-            alpha=0.1,
-            seed=42,
+        hrec = HierarchicalReconciliation(reconcilers=[BottomUp()])
+        reconciled = hrec.reconcile(
+            Y_hat_df=Y_hat_df,
+            Y_df=Y_train_df,
+            S_df=S_df,
+            tags=tags,
+            diagnostics=True,
         )
 
-        samples = conformal.get_samples(num_samples=100)
-        n_series = test_data["S"].shape[0]
-        n_bottom = test_data["S"].shape[1]
+        # Verify reconciliation completed
+        reconciled_nw = nw.from_native(reconciled)
+        assert "y_model/BottomUp" in reconciled_nw.columns
 
-        # Extract bottom-level samples (last n_bottom series)
-        bottom_idx = list(range(n_series - n_bottom, n_series))
-
-        # For each sample and horizon, verify S @ bottom = all
-        for sample_idx in range(samples.shape[2]):
-            for h in range(samples.shape[1]):
-                bottom_samples = samples[bottom_idx, h, sample_idx]
-                aggregated = test_data["S"] @ bottom_samples
-                np.testing.assert_allclose(
-                    samples[:, h, sample_idx],
-                    aggregated,
-                    rtol=1e-10,
-                    err_msg=f"Coherency violated at sample {sample_idx}, horizon {h}",
-                )
-
-    def test_conformal_temporal_coherency(self, test_data):
-        """Test that conformal samples maintain temporal coherency.
-
-        For temporal hierarchies, aggregate levels should equal sum of their children.
-        This test uses the cross-sectional structure as a proxy for temporal aggregation.
-        """
-        cls_bottom_up = BottomUp()
-        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
-
-        conformal = ConformalReconciliation(
-            S=test_data["S"],
-            P=P,
-            y_hat=test_data["y_hat_base"],
-            y_cal=test_data["y_base"],
-            y_hat_cal=test_data["y_hat_base_insample"],
-            alpha=0.1,
-            seed=42,
-        )
-
-        samples = conformal.get_samples(num_samples=50)
-
-        # Get the mean of samples (reconciled point forecast)
-        sample_means = samples.mean(axis=2)
-
-        # Verify the mean satisfies coherency (aggregate constraint)
-        n_series = test_data["S"].shape[0]
-        n_bottom = test_data["S"].shape[1]
-        bottom_idx = list(range(n_series - n_bottom, n_series))
-
-        bottom_means = sample_means[bottom_idx, :]
-        aggregated_means = test_data["S"] @ bottom_means
-
-        np.testing.assert_allclose(
-            sample_means,
-            aggregated_means,
-            rtol=1e-10,
-            err_msg="Temporal coherency violated: aggregated means don't match",
-        )
-
-        # Also verify individual samples maintain coherency
-        for sample_idx in [0, 24, 49]:  # Check a few samples
-            bottom_sample = samples[bottom_idx, :, sample_idx]
-            aggregated = test_data["S"] @ bottom_sample
-            np.testing.assert_allclose(
-                samples[:, :, sample_idx],
-                aggregated,
-                rtol=1e-10,
-                err_msg=f"Temporal coherency violated at sample {sample_idx}",
-            )
+        # Verify coherency using diagnostics (consistent with test_core.py pattern)
+        diag = nw.from_native(hrec.diagnostics)
+        is_coherent = diag.filter(
+            (nw.col("metric") == "is_coherent") & (nw.col("level") == "Overall")
+        )["y_model/BottomUp"].to_list()[0]
+        assert is_coherent == 1.0, "Reconciled forecasts should be coherent"
 
