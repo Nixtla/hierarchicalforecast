@@ -1106,4 +1106,91 @@ class TestConformalReconciliation:
         samples2 = conformal2.get_samples(num_samples=50)
         np.testing.assert_array_equal(samples1, samples2)
 
+    def test_conformal_cross_sectional_coherency(self, test_data):
+        """Test that conformal samples satisfy cross-sectional coherency constraint.
+
+        Coherency requires: S @ bottom_samples == all_samples
+        This ensures aggregation constraints are satisfied at every sample.
+        """
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+            alpha=0.1,
+            seed=42,
+        )
+
+        samples = conformal.get_samples(num_samples=100)
+        n_series = test_data["S"].shape[0]
+        n_bottom = test_data["S"].shape[1]
+
+        # Extract bottom-level samples (last n_bottom series)
+        bottom_idx = list(range(n_series - n_bottom, n_series))
+
+        # For each sample and horizon, verify S @ bottom = all
+        for sample_idx in range(samples.shape[2]):
+            for h in range(samples.shape[1]):
+                bottom_samples = samples[bottom_idx, h, sample_idx]
+                aggregated = test_data["S"] @ bottom_samples
+                np.testing.assert_allclose(
+                    samples[:, h, sample_idx],
+                    aggregated,
+                    rtol=1e-10,
+                    err_msg=f"Coherency violated at sample {sample_idx}, horizon {h}",
+                )
+
+    def test_conformal_temporal_coherency(self, test_data):
+        """Test that conformal samples maintain temporal coherency.
+
+        For temporal hierarchies, aggregate levels should equal sum of their children.
+        This test uses the cross-sectional structure as a proxy for temporal aggregation.
+        """
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+            alpha=0.1,
+            seed=42,
+        )
+
+        samples = conformal.get_samples(num_samples=50)
+
+        # Get the mean of samples (reconciled point forecast)
+        sample_means = samples.mean(axis=2)
+
+        # Verify the mean satisfies coherency (aggregate constraint)
+        n_series = test_data["S"].shape[0]
+        n_bottom = test_data["S"].shape[1]
+        bottom_idx = list(range(n_series - n_bottom, n_series))
+
+        bottom_means = sample_means[bottom_idx, :]
+        aggregated_means = test_data["S"] @ bottom_means
+
+        np.testing.assert_allclose(
+            sample_means,
+            aggregated_means,
+            rtol=1e-10,
+            err_msg="Temporal coherency violated: aggregated means don't match",
+        )
+
+        # Also verify individual samples maintain coherency
+        for sample_idx in [0, 24, 49]:  # Check a few samples
+            bottom_sample = samples[bottom_idx, :, sample_idx]
+            aggregated = test_data["S"] @ bottom_sample
+            np.testing.assert_allclose(
+                samples[:, :, sample_idx],
+                aggregated,
+                rtol=1e-10,
+                err_msg=f"Temporal coherency violated at sample {sample_idx}",
+            )
 

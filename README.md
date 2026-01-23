@@ -30,7 +30,7 @@ A vast amount of time series datasets are organized into structures with differe
     - `Normality`: Uses MinTrace variance-covariance closed form matrix under a normality assumption.
     - `Bootstrap`: Generates distribution of hierarchically reconciled predictions using Gamakumara's bootstrap approach.
     - `PERMBU`: Reconciles independent sample predictions by reinjecting multivariate dependence with estimated rank permutation copulas, and performing a Bottom-Up aggregation.
-    - `Conformal` (**NEW**): Distribution-free prediction intervals with guaranteed finite-sample coverage. No distributional assumptions required.
+    - `Conformal` (**NEW**): Distribution-free prediction intervals using conformal prediction. Provides valid coverage under exchangeability assumptions.
 * Temporal reconciliation methods:
     - All reconciliation methods (except for the insample methods) are available to use with temporal hierarchies too.
 
