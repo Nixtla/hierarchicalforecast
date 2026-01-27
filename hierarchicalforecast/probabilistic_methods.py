@@ -1,4 +1,4 @@
-__all__ = ['Normality', 'CovarianceType', 'Conformal']
+__all__ = ['Normality', 'Bootstrap', 'PERMBU', 'Conformal']
 
 
 import warnings

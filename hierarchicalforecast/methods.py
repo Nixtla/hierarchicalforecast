@@ -93,7 +93,7 @@ class HReconciler:
                 y_hat=y_hat,
                 y_cal=y_insample,
                 y_hat_cal=y_hat_insample,
-                seed=seed if seed is not None else 0,
+                seed=seed,
             )
         else:
             sampler = None
