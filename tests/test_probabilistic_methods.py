@@ -18,7 +18,7 @@ from hierarchicalforecast.methods import BottomUp
 from hierarchicalforecast.probabilistic_methods import (
     PERMBU,
     Bootstrap,
-    ConformalReconciliation,
+    Conformal,
     CovarianceType,
     Normality,
 )
@@ -1042,15 +1042,15 @@ def test_quantile_loss_protections(test_data, samplers):
     assert "between 0 and 1" in str(exc_info.value)
 
 
-class TestConformalReconciliation:
-    """Tests for ConformalReconciliation class."""
+class TestConformal:
+    """Tests for Conformal class."""
 
     def test_conformal_basic_functionality(self, test_data):
         """Test basic conformal reconciliation functionality."""
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
 
-        conformal = ConformalReconciliation(
+        conformal = Conformal(
             S=test_data["S"],
             P=P,
             y_hat=test_data["y_hat_base"],
@@ -1065,7 +1065,7 @@ class TestConformalReconciliation:
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
 
-        conformal = ConformalReconciliation(
+        conformal = Conformal(
             S=test_data["S"],
             P=P,
             y_hat=test_data["y_hat_base"],
@@ -1089,7 +1089,7 @@ class TestConformalReconciliation:
         P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
 
         with pytest.raises(ValueError) as exc_info:
-            ConformalReconciliation(
+            Conformal(
                 S=test_data["S"],
                 P=P,
                 y_hat=test_data["y_hat_base"],
@@ -1103,7 +1103,7 @@ class TestConformalReconciliation:
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
 
-        conformal1 = ConformalReconciliation(
+        conformal1 = Conformal(
             S=test_data["S"],
             P=P,
             y_hat=test_data["y_hat_base"],
@@ -1112,7 +1112,7 @@ class TestConformalReconciliation:
             seed=42,
         )
 
-        conformal2 = ConformalReconciliation(
+        conformal2 = Conformal(
             S=test_data["S"],
             P=P,
             y_hat=test_data["y_hat_base"],
@@ -1188,7 +1188,7 @@ class TestConformalReconciliation:
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
 
-        conformal = ConformalReconciliation(
+        conformal = Conformal(
             S=test_data["S"],
             P=P,
             y_hat=test_data["y_hat_base"],
@@ -1215,7 +1215,7 @@ class TestConformalReconciliation:
         cls_bottom_up = BottomUp()
         P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
 
-        conformal = ConformalReconciliation(
+        conformal = Conformal(
             S=test_data["S"],
             P=P,
             y_hat=test_data["y_hat_base"],

@@ -1,4 +1,4 @@
-__all__ = ['Normality', 'CovarianceType', 'ConformalReconciliation']
+__all__ = ['Normality', 'CovarianceType', 'Conformal']
 
 
 import warnings
@@ -839,7 +839,7 @@ class PERMBU:
         return res
 
 
-class ConformalReconciliation:
+class Conformal:
     r"""Conformal Prediction for Hierarchical Reconciliation Class.
 
     This class implements distribution-free prediction intervals with guaranteed
@@ -861,6 +861,14 @@ class ConformalReconciliation:
     For a calibration set of size n and confidence level L (e.g., 90), the theoretical
     coverage is at least $(L/100) \cdot n/(n+1)$.
 
+    **Important:**
+    The coverage guarantee assumes a proper calibration set that is independent from
+    the training data. When using in-sample residuals (i.e., `y_cal` and `y_hat_cal`
+    from the same data used to train the forecasting model), this assumption is violated.
+    In-sample residuals typically underestimate true forecast errors, which may result
+    in prediction intervals that are narrower than their nominal coverage suggests.
+    For valid coverage guarantees, use a held-out calibration set.
+
     Args:
         S (Union[np.ndarray, sp.spmatrix]): Summing matrix of size (`n_series`, `n_bottom`).
         P (Union[np.ndarray, sp.spmatrix]): Reconciliation matrix of size (`n_bottom`, `n_series`).
@@ -881,7 +889,7 @@ class ConformalReconciliation:
           Journal of the American Statistical Association.](https://doi.org/10.1080/01621459.2017.1307116)
 
     Examples:
-        >>> conformal = ConformalReconciliation(
+        >>> conformal = Conformal(
         ...     S=S, P=P, y_hat=y_hat,
         ...     y_cal=y_insample, y_hat_cal=y_hat_insample,
         ... )
