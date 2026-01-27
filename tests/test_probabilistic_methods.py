@@ -1056,7 +1056,6 @@ class TestConformalReconciliation:
             y_hat=test_data["y_hat_base"],
             y_cal=test_data["y_base"],
             y_hat_cal=test_data["y_hat_base_insample"],
-            alpha=0.1,
         )
         samples = conformal.get_samples(num_samples=50)
         assert samples.shape == (test_data["S"].shape[0], test_data["h"], 50)
@@ -1072,7 +1071,6 @@ class TestConformalReconciliation:
             y_hat=test_data["y_hat_base"],
             y_cal=test_data["y_base"],
             y_hat_cal=test_data["y_hat_base_insample"],
-            alpha=0.1,
         )
 
         res = {"mean": conformal.y_hat_rec}
@@ -1084,41 +1082,6 @@ class TestConformalReconciliation:
         assert "hi-95" in res
         assert np.all(res["hi-90"] >= res["lo-90"])
         assert np.all(res["hi-95"] >= res["lo-95"])
-
-    def test_conformal_coverage_guarantee(self, test_data):
-        """Test that coverage guarantee is computed correctly."""
-        cls_bottom_up = BottomUp()
-        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
-
-        conformal = ConformalReconciliation(
-            S=test_data["S"],
-            P=P,
-            y_hat=test_data["y_hat_base"],
-            y_cal=test_data["y_base"],
-            y_hat_cal=test_data["y_hat_base_insample"],
-            alpha=0.1,
-        )
-
-        coverage = conformal.get_coverage_guarantee()
-        n_cal = conformal.n_cal
-        expected = 0.9 * n_cal / (n_cal + 1)
-        assert abs(coverage - expected) < 1e-10
-
-    def test_conformal_invalid_alpha(self, test_data):
-        """Test that invalid alpha raises ValueError."""
-        cls_bottom_up = BottomUp()
-        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
-
-        with pytest.raises(ValueError) as exc_info:
-            ConformalReconciliation(
-                S=test_data["S"],
-                P=P,
-                y_hat=test_data["y_hat_base"],
-                y_cal=test_data["y_base"],
-                y_hat_cal=test_data["y_hat_base_insample"],
-                alpha=0.0,
-            )
-        assert "alpha must be in (0, 1)" in str(exc_info.value)
 
     def test_conformal_insufficient_calibration(self, test_data):
         """Test that insufficient calibration observations raises ValueError."""
@@ -1132,7 +1095,6 @@ class TestConformalReconciliation:
                 y_hat=test_data["y_hat_base"],
                 y_cal=np.random.randn(7, 1),
                 y_hat_cal=np.random.randn(7, 1),
-                alpha=0.1,
             )
         assert "At least 2 observations are required" in str(exc_info.value)
 
@@ -1147,7 +1109,6 @@ class TestConformalReconciliation:
             y_hat=test_data["y_hat_base"],
             y_cal=test_data["y_base"],
             y_hat_cal=test_data["y_hat_base_insample"],
-            alpha=0.1,
             seed=42,
         )
 
@@ -1157,7 +1118,6 @@ class TestConformalReconciliation:
             y_hat=test_data["y_hat_base"],
             y_cal=test_data["y_base"],
             y_hat_cal=test_data["y_hat_base_insample"],
-            alpha=0.1,
             seed=42,
         )
 
@@ -1196,4 +1156,78 @@ class TestConformalReconciliation:
             (nw.col("metric") == "is_coherent") & (nw.col("level") == "Overall")
         )["y_model/BottomUp"].to_list()[0]
         assert is_coherent == 1.0, "Reconciled forecasts should be coherent"
+
+    def test_conformal_integration_via_intervals_method(self, strict_hierarchy_data):
+        """Test that conformal works through the HierarchicalReconciliation API."""
+        Y_hat_df = strict_hierarchy_data["Y_hat_df"]
+        Y_train_df = strict_hierarchy_data["Y_train_df"]
+        S_df = strict_hierarchy_data["S_df"]
+        tags = strict_hierarchy_data["tags"]
+
+        hrec = HierarchicalReconciliation(reconcilers=[BottomUp()])
+        reconciled = hrec.reconcile(
+            Y_hat_df=Y_hat_df,
+            Y_df=Y_train_df,
+            S_df=S_df,
+            tags=tags,
+            level=[90],
+            intervals_method="conformal",
+        )
+
+        reconciled_nw = nw.from_native(reconciled)
+        # Check that conformal intervals were computed
+        assert "y_model/BottomUp-lo-90" in reconciled_nw.columns
+        assert "y_model/BottomUp-hi-90" in reconciled_nw.columns
+        # Check that hi >= lo
+        lo_vals = reconciled_nw["y_model/BottomUp-lo-90"].to_numpy()
+        hi_vals = reconciled_nw["y_model/BottomUp-hi-90"].to_numpy()
+        assert np.all(hi_vals >= lo_vals)
+
+    def test_conformal_prediction_quantiles(self, test_data):
+        """Test that prediction quantiles are computed correctly."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+        )
+
+        quantiles = np.array([0.025, 0.5, 0.975])
+        res = {"mean": conformal.y_hat_rec}
+        res = conformal.get_prediction_quantiles(res, quantiles)
+
+        assert "quantiles" in res
+        assert res["quantiles"].shape == (
+            test_data["S"].shape[0],
+            test_data["h"],
+            len(quantiles),
+        )
+        # Check quantiles are monotonically increasing
+        for i in range(len(quantiles) - 1):
+            assert np.all(res["quantiles"][:, :, i] <= res["quantiles"][:, :, i + 1])
+
+    def test_conformal_invalid_num_samples(self, test_data):
+        """Test that invalid num_samples raises ValueError."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        conformal = ConformalReconciliation(
+            S=test_data["S"],
+            P=P,
+            y_hat=test_data["y_hat_base"],
+            y_cal=test_data["y_base"],
+            y_hat_cal=test_data["y_hat_base_insample"],
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            conformal.get_samples(num_samples=0)
+        assert "positive integer" in str(exc_info.value)
+
+        with pytest.raises(ValueError) as exc_info:
+            conformal.get_samples(num_samples=-5)
+        assert "positive integer" in str(exc_info.value)
 

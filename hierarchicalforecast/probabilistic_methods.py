@@ -858,8 +858,8 @@ class ConformalReconciliation:
     5. Prediction intervals use empirical quantiles of non-conformity scores
 
     **Coverage Guarantee:**
-    For a calibration set of size n and target miscoverage α, the theoretical
-    coverage is at least $(1-\alpha) \cdot n/(n+1)$.
+    For a calibration set of size n and confidence level L (e.g., 90), the theoretical
+    coverage is at least $(L/100) \cdot n/(n+1)$.
 
     Args:
         S (Union[np.ndarray, sp.spmatrix]): Summing matrix of size (`n_series`, `n_bottom`).
@@ -867,16 +867,14 @@ class ConformalReconciliation:
         y_hat (np.ndarray): Point forecasts of size (`n_series`, `horizon`).
         y_cal (np.ndarray): Calibration actual values of size (`n_series`, `n_cal`).
         y_hat_cal (np.ndarray): Calibration predictions of size (`n_series`, `n_cal`).
-        alpha (float, optional): Miscoverage rate. E.g., 0.1 for 90% coverage. Default is 0.1.
         seed (int, optional): Random seed for numpy generator's replicability. Default is 0.
 
     Raises:
         ValueError: If calibration set is empty or has fewer than 2 observations.
         ValueError: If y_cal and y_hat_cal shapes don't match.
-        ValueError: If alpha is not in (0, 1).
 
     References:
-        - [Principato G., Amara-Ouali Y., Goude Y., Hamrouche B., Poggi J-M., Stoltz G. (2024).
+        - [Principato G., Stoltz G., Amara-Ouali Y., Goude Y., Hamrouche B., Poggi J-M. (2024).
           "Conformal Prediction for Hierarchical Data". arXiv:2411.13479](https://arxiv.org/abs/2411.13479)
         - [Lei J., G'Sell M., Rinaldo A., Tibshirani R., Wasserman L. (2018).
           "Distribution-Free Predictive Inference For Regression".
@@ -886,7 +884,6 @@ class ConformalReconciliation:
         >>> conformal = ConformalReconciliation(
         ...     S=S, P=P, y_hat=y_hat,
         ...     y_cal=y_insample, y_hat_cal=y_hat_insample,
-        ...     alpha=0.1
         ... )
         >>> samples = conformal.get_samples(num_samples=100)
         >>> res = {"mean": y_reconciled}
@@ -900,16 +897,8 @@ class ConformalReconciliation:
         y_hat: np.ndarray,
         y_cal: np.ndarray,
         y_hat_cal: np.ndarray,
-        alpha: float = 0.1,
         seed: int = 0,
-        W: np.ndarray | sp.spmatrix | None = None,
     ):
-        if not (0 < alpha < 1):
-            raise ValueError(
-                f"alpha must be in (0, 1), got {alpha}. "
-                "Use alpha=0.1 for 90% coverage, alpha=0.05 for 95% coverage."
-            )
-
         if y_cal.ndim != 2:
             raise ValueError(
                 f"y_cal must be a 2D array of shape (n_series, n_cal), "
@@ -963,9 +952,7 @@ class ConformalReconciliation:
         self.S = S
         self.P = P
         self.y_hat = y_hat
-        self.alpha = alpha
         self.seed = seed
-        self.W = W
 
         if isinstance(P, sp.linalg.LinearOperator) and sp.issparse(S):
             self.SP = sp.linalg.aslinearoperator(self.S) @ self.P
@@ -980,21 +967,6 @@ class ConformalReconciliation:
         self.scores = y_cal_clean - y_hat_cal_rec
         self.sorted_scores = np.sort(self.scores, axis=1)
         self.y_hat_rec = self.SP @ self.y_hat
-        self._compute_quantile_bounds()
-
-    def _compute_quantile_bounds(self):
-        """Compute prediction interval bounds based on sorted non-conformity scores."""
-        n = self.n_cal
-        alpha = self.alpha
-
-        k_lo = int(np.floor((n + 1) * (alpha / 2)))
-        k_hi = int(np.ceil((n + 1) * (1 - alpha / 2)))
-
-        k_lo = max(0, min(k_lo, n - 1))
-        k_hi = max(0, min(k_hi - 1, n - 1))
-
-        self.lo_bound = self.sorted_scores[:, k_lo]
-        self.hi_bound = self.sorted_scores[:, k_hi]
 
     def get_samples(self, num_samples: int) -> np.ndarray:
         """Generate samples from the conformal prediction distribution.
@@ -1003,11 +975,19 @@ class ConformalReconciliation:
         coherent samples.
 
         Args:
-            num_samples (int): Number of samples to generate.
+            num_samples (int): Number of samples to generate. Must be positive.
 
         Returns:
             np.ndarray: Samples of size (n_series, horizon, num_samples).
+
+        Raises:
+            ValueError: If num_samples is not positive.
         """
+        if num_samples <= 0:
+            raise ValueError(
+                f"num_samples must be a positive integer, got {num_samples}."
+            )
+
         rng = np.random.default_rng(self.seed)
         n_series, n_horizon = self.y_hat_rec.shape
 
@@ -1042,9 +1022,8 @@ class ConformalReconciliation:
             lo_bound = self.sorted_scores[:, k_lo]
             hi_bound = self.sorted_scores[:, k_hi]
 
-            n_horizon = self.y_hat_rec.shape[1]
-            res[f"lo-{lv}"] = self.y_hat_rec + lo_bound[:, np.newaxis] * np.ones((1, n_horizon))
-            res[f"hi-{lv}"] = self.y_hat_rec + hi_bound[:, np.newaxis] * np.ones((1, n_horizon))
+            res[f"lo-{lv}"] = self.y_hat_rec + lo_bound[:, np.newaxis]
+            res[f"hi-{lv}"] = self.y_hat_rec + hi_bound[:, np.newaxis]
 
         return res
 
@@ -1072,25 +1051,4 @@ class ConformalReconciliation:
 
         res["quantiles"] = result_quantiles
         return res
-
-    def get_coverage_guarantee(self) -> float:
-        """Return the theoretical coverage guarantee.
-
-        For a calibration set of size n and miscoverage alpha, the coverage
-        guarantee is at least (1-alpha) * n/(n+1).
-
-        Returns:
-            float: Theoretical coverage guarantee.
-        """
-        return (1 - self.alpha) * self.n_cal / (self.n_cal + 1)
-
-    def get_interval_widths(self) -> np.ndarray:
-        """Return the width of prediction intervals for each series.
-
-        Useful for comparing efficiency with other methods like Normality.
-
-        Returns:
-            np.ndarray: Interval widths of size (n_series,).
-        """
-        return self.hi_bound - self.lo_bound
 
