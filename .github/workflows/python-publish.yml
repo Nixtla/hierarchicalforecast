@@ -36,7 +36,9 @@ jobs:
         uses: pypa/cibuildwheel@v3.0.0
         env:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
+          CIBW_ENABLE: cpython-prerelease
           CIBW_BEFORE_BUILD_MACOS: brew install libomp
+          CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=14.0
 
       - uses: actions/upload-artifact@v4
         with:
