@@ -51,6 +51,7 @@ jobs:
         env:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
           CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_BUILD_FRONTEND_WINDOWS: build
           CIBW_ENABLE: cpython-prerelease
           CIBW_TEST_SKIP: "*linux_aarch64"
           CIBW_BEFORE_BUILD_MACOS: brew install libomp
