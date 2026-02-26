@@ -41,7 +41,6 @@ jobs:
           platforms: arm64
 
       - name: Set up uv
-        if: matrix.os-platform[1] != 'win_amd64'
         uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
@@ -50,14 +49,13 @@ jobs:
         uses: pypa/cibuildwheel@v3.0.0
         env:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
-          CIBW_BUILD_FRONTEND_LINUX: build[uv]
-          CIBW_BUILD_FRONTEND_MACOS: build[uv]
+          CIBW_BUILD_FRONTEND: build[uv]
           CIBW_ENABLE: cpython-prerelease
           CIBW_TEST_SKIP: "*linux_aarch64 *cp314*"
           CIBW_BEFORE_BUILD_MACOS: brew install libomp
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=14.0
-          CIBW_TEST_REQUIRES: >
-            datasetsforecast statsforecast>=1.0.0 scipy polars[numpy]<=1.32.0
-            pytest pytest-benchmark pytest-cov
+          CIBW_BEFORE_TEST: >
+            uv pip install datasetsforecast "statsforecast>=1.0.0"
+            scipy "polars[numpy]<=1.32.0" pytest pytest-benchmark pytest-cov
           CIBW_TEST_COMMAND: >
             pytest {project}/tests --no-cov --import-mode=importlib
