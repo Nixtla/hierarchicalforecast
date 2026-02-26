@@ -15,7 +15,12 @@ uv venv --python 3.10
 source .venv/bin/activate  # MacOS/Linux
 # .\.venv\Scripts\activate  # Windows
 
-# Install in editable mode with dev dependencies
+# Prerequisites: C++ compiler with C++20 support and OpenMP
+# macOS: brew install libomp
+# Linux: gcc/g++ (typically pre-installed)
+# Windows: MSVC with OpenMP support
+
+# Install in editable mode with dev dependencies (compiles C++ extension)
 uv pip install -e ".[dev]"
 
 # Install pre-commit hooks
@@ -88,24 +93,37 @@ make preview_docs
 - Hierarchy validation and summing matrix construction
 - Aggregation and disaggregation operations
 - Sparse matrix utilities for large hierarchies
+- Imports C++ kernels via `from hierarchicalforecast._lib import reconciliation as _lib_recon`
 
 **`hierarchicalforecast/evaluation.py`** - Evaluation metrics
 - Compute accuracy metrics across hierarchy levels
 - Per-level and aggregate evaluation
 
+**`src/reconciliation.cpp`** - Native C++ extension (`hierarchicalforecast._lib`)
+- Compiled via pybind11 with Eigen (vendored in `external_libs/eigen`)
+- Uses OpenMP for parallelism, C++20 standard
+- Exports: `_ma_cov`, `_shrunk_covariance_schaferstrimmer_no_nans`, `_shrunk_covariance_schaferstrimmer_with_nans`, `_lasso`
+- `setup.py` handles platform-specific compilation flags (OpenMP, optimization)
+
+**`setup.py`** - C++ extension build configuration
+- Build backend: `setuptools.build_meta` with pybind11
+- Platform-specific OpenMP flags (Linux: `-fopenmp`, macOS: `libomp` via homebrew, Windows: `/openmp`)
+- Optimization: `-O2`, `-DNDEBUG`, `-ffast-math`, `-funroll-loops`
+
 ### Key Reconciliation Methods
 
-**BottomUp / TopDown / MiddleOut** (`methods.py:46-1251`)
-- Simple aggregation-based reconciliation
+**BottomUp / TopDown / MiddleOut** (`methods.py:184-1241`)
+- Simple aggregation-based reconciliation (includes Sparse variants)
 - No optimization required
 - Fast, interpretable baselines
 
-**MinTrace** (`methods.py:1281-2150`)
+**MinTrace** (`methods.py:1242-1933`)
 - Optimal reconciliation minimizing trace of forecast error covariance
 - Multiple variants: `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`, `emint`
 - Supports non-negative constraints via quadratic programming
+- Includes `MinTraceSparse` variant for large hierarchies
 
-**ERM** (`methods.py:2151+`)
+**ERM** (`methods.py:1975-2174`)
 - Empirical Risk Minimization with L1 regularization
 - Learns optimal reconciliation matrix from data
 
@@ -125,6 +143,17 @@ make preview_docs
 - Only compatible with `intervals_method="normality"` for probabilistic forecasts
 - Bootstrap/PERMBU samplers incompatible with nonnegative constraints
 
+### C++ Extension (`hierarchicalforecast._lib`)
+- Hot-path numerical kernels (covariance estimation, lasso) are compiled C++ via pybind11 + Eigen
+- Replaces previous Numba JIT-compiled functions; `numba` is no longer a dependency
+- All intermediate computation happens in native memory (Eigen + OpenMP), keeping Python allocations minimal
+- Source in `src/reconciliation.cpp`; Eigen vendored as submodule in `external_libs/eigen`
+
+### Build System
+- Build backend: `setuptools.build_meta` (not `uv_build`) due to C++ extension compilation
+- `setup.py` compiles the pybind11 extension with platform-specific flags
+- CI uses `cibuildwheel` to build wheels for Python 3.10-3.14 on Linux (x86_64 + aarch64), macOS (x86_64 + ARM64), and Windows
+
 ### Type Annotations
 - Narwhals frames use `FrameT` generic for polars/pandas compatibility
 
@@ -134,6 +163,7 @@ make preview_docs
 - `tests/conftest.py` - Fixtures for hierarchical test data
 - `hierarchical_data` fixture provides S matrix, bottom forecasts, tags
 - `interval_reconciler_args` fixture for probabilistic methods
+- `tests/test_benchmarks.py` - pytest-benchmark tests for C++ extension functions
 
 ### Common Test Patterns
 ```python
@@ -165,6 +195,10 @@ with pytest.raises(ValueError, match="expected error message"):
 4. **idx_bottom**: When `None`, inferred as last n_bottom rows; must be validated against S dimensions
 
 5. **Method state mutation**: Avoid temporarily changing `self.method` during execution (not thread-safe); prefer helper methods with explicit parameters
+
+6. **C++ extension must be compiled**: `pip install -e .` triggers `setup.py` to compile the C++ extension. If you modify `src/reconciliation.cpp`, re-run the install to rebuild
+
+7. **macOS OpenMP**: Requires `brew install libomp`; the `setup.py` auto-detects homebrew paths
 
 ## Git Workflow
 

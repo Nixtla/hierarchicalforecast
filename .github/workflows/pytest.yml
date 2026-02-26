@@ -55,4 +55,4 @@ jobs:
             datasetsforecast statsforecast>=1.0.0 scipy polars[numpy]<=1.32.0
             pytest pytest-benchmark pytest-cov
           CIBW_TEST_COMMAND: >
-            pytest {project}/tests --no-cov
+            pytest {project}/tests --no-cov --import-mode=importlib
