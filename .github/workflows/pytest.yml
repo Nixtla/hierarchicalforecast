@@ -27,7 +27,6 @@ jobs:
           - [ubuntu-latest, manylinux_x86_64]
           - [ubuntu-latest, manylinux_aarch64]
           - [windows-latest, win_amd64]
-          - [macos-13, macosx_x86_64]
           - [macos-14, macosx_arm64]
     steps:
       - name: Clone repo
@@ -51,8 +50,8 @@ jobs:
         uses: pypa/cibuildwheel@v3.0.0
         env:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
-          CIBW_BUILD_FRONTEND: build[uv]
-          CIBW_BUILD_FRONTEND_WINDOWS: build
+          CIBW_BUILD_FRONTEND_LINUX: build[uv]
+          CIBW_BUILD_FRONTEND_MACOS: build[uv]
           CIBW_ENABLE: cpython-prerelease
           CIBW_TEST_SKIP: "*linux_aarch64 *cp314*"
           CIBW_BEFORE_BUILD_MACOS: brew install libomp

@@ -1270,7 +1270,7 @@ class MinTrace(HReconciler):
         self,
         method: str,
         nonnegative: bool = False,
-        mint_shr_ridge: float | None = 2e-8,
+        mint_shr_ridge: float = 2e-8,
         num_threads: int = 1,
     ):
         if method not in ["ols", "wls_struct", "wls_var", "mint_cov", "mint_shrink", "emint"]:
