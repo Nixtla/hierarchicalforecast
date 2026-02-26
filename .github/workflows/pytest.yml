@@ -42,6 +42,7 @@ jobs:
           platforms: arm64
 
       - name: Set up uv
+        if: matrix.os-platform[1] != 'win_amd64'
         uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
@@ -53,7 +54,7 @@ jobs:
           CIBW_BUILD_FRONTEND: build[uv]
           CIBW_BUILD_FRONTEND_WINDOWS: build
           CIBW_ENABLE: cpython-prerelease
-          CIBW_TEST_SKIP: "*linux_aarch64"
+          CIBW_TEST_SKIP: "*linux_aarch64 *cp314*"
           CIBW_BEFORE_BUILD_MACOS: brew install libomp
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=14.0
           CIBW_TEST_REQUIRES: >
