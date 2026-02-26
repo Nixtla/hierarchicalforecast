@@ -70,6 +70,9 @@ jobs:
     name: Upload to PyPI
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/hierarchicalforecast/
     permissions:
       id-token: write
     steps:

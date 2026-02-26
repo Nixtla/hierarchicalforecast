@@ -12,6 +12,29 @@
 #endif
 
 namespace reconciliation {
+
+// ---------- OpenMP thread control ----------
+// WARNING: Do NOT call Eigen matrix operations (e.g. matmul, decomposition)
+// inside OpenMP parallel regions. Eigen has its own internal parallelism and
+// nesting it within OpenMP threads can cause thread oversubscription, incorrect
+// results, or deadlocks. Only use scalar/element-wise operations inside
+// #pragma omp parallel blocks.
+
+int get_num_threads() {
+#ifdef _OPENMP
+  return omp_get_max_threads();
+#else
+  return 1;
+#endif
+}
+
+void set_num_threads(int n) {
+#ifdef _OPENMP
+  omp_set_num_threads(n);
+#else
+  (void)n;
+#endif
+}
 namespace py = pybind11;
 
 using Eigen::MatrixXd;
@@ -341,6 +364,10 @@ VectorXd lasso(const Eigen::Ref<const MatrixXd> &X,
 // ---------- Module init ----------
 void init(py::module_ &m) {
   py::module_ recon = m.def_submodule("reconciliation");
+  recon.def("get_num_threads", &get_num_threads,
+            "Return the maximum number of OpenMP threads.");
+  recon.def("set_num_threads", &set_num_threads, py::arg("n"),
+            "Set the number of OpenMP threads.");
   recon.def("_ma_cov", &ma_cov, py::call_guard<py::gil_scoped_release>());
   recon.def("_shrunk_covariance_schaferstrimmer_no_nans",
             &shrunk_covariance_ss_no_nans,

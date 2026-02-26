@@ -1,7 +1,13 @@
-__all__ = ['aggregate', 'aggregate_temporal', 'make_future_dataframe', 'get_cross_temporal_tags', 'HierarchicalPlot']
+__all__ = ['aggregate', 'aggregate_temporal', 'make_future_dataframe', 'get_cross_temporal_tags', 'HierarchicalPlot', 'set_num_threads', 'get_num_threads']
 
 
 import itertools
+
+# Default OpenMP to physical cores (logical / 2) to avoid oversubscription,
+# matching PyTorch's convention. This matters when running reconciliation
+# inside multiprocessing.Pool — without it each worker silently spawns
+# all-CPU OpenMP threads.
+import os as _os
 import reprlib
 import sys
 import timeit
@@ -18,6 +24,32 @@ from scipy import sparse
 from sklearn.preprocessing import OneHotEncoder
 
 from hierarchicalforecast._lib import reconciliation as _lib_recon
+
+_default_threads = int(
+    _os.environ.get(
+        "OMP_NUM_THREADS", max(1, (_os.cpu_count() or 1) // 2)
+    )
+)
+_lib_recon.set_num_threads(_default_threads)
+del _os, _default_threads
+
+
+def set_num_threads(n: int) -> None:
+    """Set the number of OpenMP threads used by the C++ backend.
+
+    Args:
+        n (int): Number of threads. Must be >= 1.
+    """
+    _lib_recon.set_num_threads(n)
+
+
+def get_num_threads() -> int:
+    """Return the current maximum number of OpenMP threads.
+
+    Returns:
+        int: Number of threads.
+    """
+    return _lib_recon.get_num_threads()
 
 
 class CodeTimer:
