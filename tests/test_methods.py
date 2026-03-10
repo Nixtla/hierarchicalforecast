@@ -406,7 +406,7 @@ def test_min_trace_mint_cov_error(hierarchical_data, nonnegative):
     data = hierarchical_data
 
     cls_min_trace = MinTrace(method="mint_cov", nonnegative=nonnegative)
-    with pytest.raises(Exception, match="min_trace.*mint_cov"):
+    with pytest.raises(Exception, match="min_trace.*ill-conditioned"):
         cls_min_trace(
             S=data.S,
             y_hat=data.S @ data.y_hat_bottom,

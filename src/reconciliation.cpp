@@ -361,6 +361,207 @@ VectorXd lasso(const Eigen::Ref<const MatrixXd> &X,
   return beta;
 }
 
+// ---------- _oasd_no_nans ----------
+// Oracle Approximating Shrinkage Diagonal (Ando & Xiao, 2023), no NaN
+// handling.
+// Shrinks each off-diagonal element of the sample correlation toward zero
+// individually. The shrinkage intensity for pair (i,j) is:
+//   rho_ij* = max(0, 1 - kappa * Var(r_ij) / r_ij^2)
+// where r_ij is the sample correlation and kappa = n/(n-2).
+// residuals: (n_ts, T) row-major float64
+// Returns: (n_ts, n_ts) symmetric float64 covariance matrix
+MatrixXd oasd_no_nans(
+    const py::array_t<double, py::array::c_style | py::array::forcecast>
+        &residuals_arr) {
+  auto res = residuals_arr.unchecked<2>();
+  const Eigen::Index n_ts = res.shape(0);
+  const Eigen::Index T = res.shape(1);
+
+  constexpr double eps = 2e-8;
+  const double kappa = static_cast<double>(T) / (T - 2);
+
+  // Precompute per-row means and standard deviations
+  VectorXd means(n_ts), stds(n_ts), vars(n_ts);
+  for (Eigen::Index i = 0; i < n_ts; ++i) {
+    double s = 0.0;
+    for (Eigen::Index k = 0; k < T; ++k)
+      s += res(i, k);
+    means(i) = s / T;
+
+    double var = 0.0;
+    for (Eigen::Index k = 0; k < T; ++k) {
+      double d = res(i, k) - means(i);
+      var += d * d;
+    }
+    vars(i) = var / (T - 1); // sample variance
+    stds(i) = std::sqrt(var / (T - 1)) + eps;
+  }
+
+  MatrixXd W = MatrixXd::Zero(n_ts, n_ts);
+
+  // Set diagonal to sample variances
+  for (Eigen::Index i = 0; i < n_ts; ++i) {
+    W(i, i) = std::max(vars(i), eps);
+  }
+
+#pragma omp parallel for schedule(dynamic)
+  for (Eigen::Index i = 0; i < n_ts; ++i) {
+    for (Eigen::Index j = 0; j < i; ++j) {
+      // Compute sample correlation r_ij and Var(r_ij)
+      // Using Fisher-type variance approximation:
+      // Var(r_ij) ≈ (1/T) * (1/(T-1)^2) * sum_k((x_ik*x_jk - r_ij)^2)
+      // where x_ik, x_jk are standardized residuals
+
+      double r_sum = 0.0;
+      for (Eigen::Index k = 0; k < T; ++k) {
+        double xi = (res(i, k) - means(i)) / stds(i);
+        double xj = (res(j, k) - means(j)) / stds(j);
+        r_sum += xi * xj;
+      }
+      double r_ij = r_sum / (T - 1);
+
+      // Variance of r_ij
+      double var_r = 0.0;
+      for (Eigen::Index k = 0; k < T; ++k) {
+        double xi = (res(i, k) - means(i)) / stds(i);
+        double xj = (res(j, k) - means(j)) / stds(j);
+        double d = xi * xj - r_ij;
+        var_r += d * d;
+      }
+      var_r /= (static_cast<double>(T) * (T - 1));
+
+      // Shrinkage: rho_ij* = r_ij * max(0, 1 - kappa * var_r / r_ij^2)
+      double r_sq = r_ij * r_ij;
+      double shrink_factor;
+      if (r_sq < eps) {
+        shrink_factor = 0.0;
+      } else {
+        shrink_factor = std::max(0.0, 1.0 - kappa * var_r / r_sq);
+      }
+      double r_shrunk = r_ij * shrink_factor;
+
+      // Convert back to covariance scale
+      double cov_ij = r_shrunk * stds(i) * stds(j);
+      W(i, j) = cov_ij;
+      W(j, i) = cov_ij;
+    }
+  }
+  return W;
+}
+
+// ---------- _oasd_with_nans ----------
+// OASD with NaN masking.
+MatrixXd oasd_with_nans(
+    const py::array_t<double, py::array::c_style | py::array::forcecast>
+        &residuals_arr,
+    const py::array_t<bool, py::array::c_style | py::array::forcecast>
+        &mask_arr) {
+  auto res = residuals_arr.unchecked<2>();
+  auto mask = mask_arr.unchecked<2>();
+  const Eigen::Index n_ts = res.shape(0);
+  const Eigen::Index n_samples = res.shape(1);
+
+  constexpr double eps = 2e-8;
+
+  MatrixXd W = MatrixXd::Zero(n_ts, n_ts);
+
+  // Precompute per-row means, stds using valid observations only
+  VectorXd diag_vars(n_ts);
+  for (Eigen::Index i = 0; i < n_ts; ++i) {
+    int64_t count = 0;
+    double s = 0.0;
+    for (Eigen::Index k = 0; k < n_samples; ++k) {
+      if (mask(i, k)) {
+        s += res(i, k);
+        ++count;
+      }
+    }
+    double mean_i = (count > 0) ? s / count : 0.0;
+    double var = 0.0;
+    for (Eigen::Index k = 0; k < n_samples; ++k) {
+      if (mask(i, k)) {
+        double d = res(i, k) - mean_i;
+        var += d * d;
+      }
+    }
+    diag_vars(i) = (count > 1) ? var / (count - 1) : eps;
+    W(i, i) = std::max(diag_vars(i), eps);
+  }
+
+#pragma omp parallel for schedule(dynamic)
+  for (Eigen::Index i = 0; i < n_ts; ++i) {
+    for (Eigen::Index j = 0; j < i; ++j) {
+      // Count and compute means for valid pairs
+      int64_t count = 0;
+      double sum_i = 0.0, sum_j = 0.0;
+      for (Eigen::Index k = 0; k < n_samples; ++k) {
+        if (mask(i, k) && mask(j, k)) {
+          sum_i += res(i, k);
+          sum_j += res(j, k);
+          ++count;
+        }
+      }
+      if (count < 3) {
+        W(i, j) = 0.0;
+        W(j, i) = 0.0;
+        continue;
+      }
+
+      double mean_i = sum_i / count;
+      double mean_j = sum_j / count;
+      double kappa = static_cast<double>(count) / (count - 2);
+
+      // Compute stds and correlation
+      double var_i = 0.0, var_j = 0.0;
+      for (Eigen::Index k = 0; k < n_samples; ++k) {
+        if (mask(i, k) && mask(j, k)) {
+          double di = res(i, k) - mean_i;
+          double dj = res(j, k) - mean_j;
+          var_i += di * di;
+          var_j += dj * dj;
+        }
+      }
+      double std_i = std::sqrt(var_i / (count - 1)) + eps;
+      double std_j = std::sqrt(var_j / (count - 1)) + eps;
+
+      // Compute sample correlation and its variance
+      double r_sum = 0.0;
+      for (Eigen::Index k = 0; k < n_samples; ++k) {
+        if (mask(i, k) && mask(j, k)) {
+          double xi = (res(i, k) - mean_i) / std_i;
+          double xj = (res(j, k) - mean_j) / std_j;
+          r_sum += xi * xj;
+        }
+      }
+      double r_ij = r_sum / (count - 1);
+
+      double var_r = 0.0;
+      for (Eigen::Index k = 0; k < n_samples; ++k) {
+        if (mask(i, k) && mask(j, k)) {
+          double xi = (res(i, k) - mean_i) / std_i;
+          double xj = (res(j, k) - mean_j) / std_j;
+          double d = xi * xj - r_ij;
+          var_r += d * d;
+        }
+      }
+      var_r /= (static_cast<double>(count) * (count - 1));
+
+      double r_sq = r_ij * r_ij;
+      double shrink_factor;
+      if (r_sq < eps) {
+        shrink_factor = 0.0;
+      } else {
+        shrink_factor = std::max(0.0, 1.0 - kappa * var_r / r_sq);
+      }
+      double r_shrunk = r_ij * shrink_factor;
+      double cov_ij = r_shrunk * std_i * std_j;
+      W(i, j) = cov_ij;
+      W(j, i) = cov_ij;
+    }
+  }
+  return W;
+}
+
 // ---------- Module init ----------
 void init(py::module_ &m) {
   py::module_ recon = m.def_submodule("reconciliation");
@@ -378,6 +579,10 @@ void init(py::module_ &m) {
   recon.def("_lasso", &lasso, py::arg("X"), py::arg("y"),
             py::arg("lambda_reg"), py::arg("max_iters") = 1000,
             py::arg("tol") = 1e-4, py::call_guard<py::gil_scoped_release>());
+  recon.def("_oasd_no_nans", &oasd_no_nans,
+            py::call_guard<py::gil_scoped_release>());
+  recon.def("_oasd_with_nans", &oasd_with_nans,
+            py::call_guard<py::gil_scoped_release>());
 }
 
 } // namespace reconciliation
