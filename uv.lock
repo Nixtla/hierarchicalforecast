@@ -1621,7 +1621,7 @@ wheels = [
 [[package]]
 name = "mkdocstrings-parser"
 version = "0.0.1"
-source = { git = "https://github.com/Nixtla/mkdocstrings-parser?rev=main#b28e6925beba7e05d7f40047d99244c9c8d6baed" }
+source = { git = "https://github.com/Nixtla/mkdocstrings-parser?rev=main#b5ed819eb90b0fe367a923d40482535a1f796568" }
 dependencies = [
     { name = "griffe2md" },
     { name = "pip-licenses" },
