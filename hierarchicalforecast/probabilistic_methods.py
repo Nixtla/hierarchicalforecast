@@ -615,8 +615,8 @@ class PERMBU:
     with empirical copula functions (describing bottom-level dependencies) to
     generate the distribution of aggregate-level distributions using BottomUp
     reconciliation. The sample reordering technique in the PERMBU method reinjects
-    multivariate dependencies into independent bottom-level samples. 
-    
+    multivariate dependencies into independent bottom-level samples.
+
     ```math
     residuals = \hat{\epsilon}_{i,t}
     ```
