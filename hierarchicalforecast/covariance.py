@@ -45,7 +45,7 @@ Name           Description
 =============  ================================================
 ``wlsv``       Variance scaling across temporal aggregations.
                 Diagonal.
-``wlsh``       Structural variance scaling (nobs_agg * h).
+``wlsh``       Per-series variance scaling from residuals.
                 Diagonal.
 ``acov``       Auto-covariance from overlapping residual blocks.
 ``strar1``     Structural AR(1) correlation model.
@@ -96,9 +96,9 @@ References
    genomics". Statistical Applications in Genetics and Molecular Biology,
    4(1). https://doi.org/10.2202/1544-6115.1175
 
-.. [3] Ando, T. & Xiao, Z. (2023). "High-dimensional minimum variance
-   portfolio estimation under statistical factor models". Journal of
-   Financial Econometrics. https://doi.org/10.1093/jjfinec/nbad022
+.. [3] Ando, S. & Xiao, M. (2023). "High-dimensional covariance matrix
+   estimation: Shrinkage toward a diagonal target". IMF Working Paper
+   WP/23/257. https://doi.org/10.5089/9798400261718.001
 
 .. [4] Athanasopoulos, G., Hyndman, R. J., Kourentzes, N., & Petropoulos, F.
    (2017). "Forecasting with temporal hierarchies". European Journal of
@@ -245,6 +245,13 @@ def _validate_residuals(residuals: np.ndarray) -> np.ndarray:
             f"residuals must have at least {_MIN_OBS} observations (columns), "
             f"got {residuals.shape[1]}"
         )
+    # Check for non-finite values (inf/-inf) that would corrupt C++ backends.
+    finite_mask = np.isfinite(residuals) | np.isnan(residuals)
+    if not np.all(finite_mask):
+        raise ValueError(
+            "residuals contain non-finite values (inf/-inf). "
+            "Check Y_df for overflow or invalid computations."
+        )
     # Check per-series variance to detect overfitting.
     # Use mean of squared residuals (not sum) to avoid scale dependence on n_obs.
     per_series_var = np.nanmean(residuals**2, axis=1)
@@ -365,7 +372,7 @@ def _cov_oasd(
     residuals: np.ndarray | None = None,
     **kw,
 ) -> np.ndarray:
-    """Oracle Approximating Shrinkage Diagonal (Ando & Xiao, 2023).
+    """Oracle Approximating Shrinkage Diagonal (Ando & Xiao, 2023) [3]_.
 
     Shrinks each off-diagonal element of the sample correlation matrix
     toward zero individually, then rescales back to covariance scale.
@@ -861,7 +868,7 @@ def _safe_cov_sam(res: np.ndarray) -> np.ndarray:
     nan_mask = np.isnan(res)
     if np.any(nan_mask):
         return _ma_cov(res, ~nan_mask)
-    return np.cov(res) if res.shape[0] > 1 else np.atleast_2d(np.nanvar(res))
+    return np.cov(res) if res.shape[0] > 1 else np.atleast_2d(np.nanvar(res, ddof=1))
 
 
 def _safe_cov_shr(res: np.ndarray, ridge: float = _DEFAULT_RIDGE) -> np.ndarray:
@@ -1170,7 +1177,8 @@ register_covariance("hbsam", _cov_hbsam, requires_residuals=True)
 # --- bshr/bsam: Bottom time series covariance ---
 # Estimates (n_bottom_cs * n_te) covariance from bottom CS residuals across
 # all temporal levels, then propagates through kron(S_cs, I_{n_te}).
-# Uses block-wise computation to avoid materializing the full Kronecker product.
+# Uses einsum to contract over bottom CS dimensions without materializing
+# the full Kronecker product.
 
 def _cov_bottom_cs_propagated(
     residuals: np.ndarray,
@@ -1183,7 +1191,7 @@ def _cov_bottom_cs_propagated(
     """Bottom CS covariance propagated through kron(S_cs, I_{n_te}).
 
     Computes W = kron(S_cs, I) @ cov_bottom_all_te @ kron(S_cs, I)' + ridge * I
-    using the Kronecker mixed-product property to avoid materializing
+    using einsum to contract over bottom CS dimensions without materializing
     the full Kronecker product.
     """
     res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
@@ -1199,25 +1207,14 @@ def _cov_bottom_cs_propagated(
     if cov_bottom.ndim == 0:
         cov_bottom = cov_bottom.reshape(1, 1)
 
-    # Block-wise: kron(S_cs, I_{n_te}) has blocks S_cs[i,j] * I_{n_te}.
-    # W block [i,j] = sum_a sum_b S_cs[i,a] * S_cs[j,b] * cov_bottom[a_block, b_block]
-    # where each block is n_te x n_te.
+    # W = kron(S_cs, I_{n_te}) @ cov_bottom @ kron(S_cs, I_{n_te}).T
+    # Use einsum to contract over bottom CS dimensions without materializing
+    # the full Kronecker product.
     n_ct = n_cs * n_te
-    W = np.zeros((n_ct, n_ct), dtype=np.float64)
-    for i in range(n_cs):
-        for j in range(i + 1):
-            block = np.zeros((n_te, n_te), dtype=np.float64)
-            for a in range(n_bottom_cs):
-                for b in range(n_bottom_cs):
-                    s_ia = S_cs[i, a]
-                    s_jb = S_cs[j, b]
-                    if abs(s_ia) < 1e-15 or abs(s_jb) < 1e-15:
-                        continue
-                    cov_ab = cov_bottom[a * n_te:(a + 1) * n_te, b * n_te:(b + 1) * n_te]
-                    block += s_ia * s_jb * cov_ab
-            W[i * n_te:(i + 1) * n_te, j * n_te:(j + 1) * n_te] = block
-            if i != j:
-                W[j * n_te:(j + 1) * n_te, i * n_te:(i + 1) * n_te] = block.T
+    # Reshape cov_bottom to (n_bottom_cs, n_te, n_bottom_cs, n_te) block view
+    C = cov_bottom.reshape(n_bottom_cs, n_te, n_bottom_cs, n_te)
+    # Contract: W_block[i,t,j,u] = sum_a sum_b S_cs[i,a] * S_cs[j,b] * C[a,t,b,u]
+    W = np.einsum('ia,jb,atbu->itju', S_cs, S_cs, C).reshape(n_ct, n_ct)
 
     return _ridge_regularize(W)
 

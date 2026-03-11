@@ -1257,7 +1257,11 @@ class MinTrace(HReconciler):
     ```
 
     Args:
-        method (str): One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`, `emint`.
+        method (str): Covariance estimation method. Cross-sectional methods:
+            `ols`, `wls_struct`, `wls_var`, `sam`/`mint_cov`, `shr`/`mint_shrink`,
+            `bu`, `oasd`, `emint`. Use ``list_covariance_methods()`` for all
+            registered methods. Temporal and cross-temporal methods are not yet
+            supported via MinTrace; use ``estimate_covariance`` directly.
         nonnegative (bool): Reconciled forecasts should be nonnegative?
         mint_shr_ridge (float): Ridge numeric protection to MinTrace-shr covariance estimator.
         num_threads (int): Number of threads for the C++ covariance backend (OpenMP) and for solving the optimization problems (when nonnegative=True).
@@ -1274,6 +1278,14 @@ class MinTrace(HReconciler):
     # Methods that are handled outside the covariance module
     _SPECIAL_METHODS = {"emint"}
 
+    # Temporal and cross-temporal methods require extra kwargs (agg_order,
+    # n_cs, n_te, S_cs, S_te) that MinTrace does not yet support.
+    _TEMPORAL_METHODS = {"wlsv", "wlsh", "acov", "strar1", "sar1", "har1"}
+    _CT_METHODS = {
+        "csstr", "testr", "bdshr", "bdsam", "sshr", "ssam",
+        "hshr", "hsam", "hbshr", "hbsam", "bshr", "bsam",
+    }
+
     def __init__(
         self,
         method: str,
@@ -1285,6 +1297,18 @@ class MinTrace(HReconciler):
         if method not in _available:
             raise ValueError(
                 f"Unknown method `{method}`. Available: {sorted(_available)}."
+            )
+        if method in self._TEMPORAL_METHODS:
+            raise NotImplementedError(
+                f"Temporal covariance method '{method}' requires extra kwargs "
+                f"(agg_order) that MinTrace does not yet support. "
+                f"Use estimate_covariance('{method}', ...) directly."
+            )
+        if method in self._CT_METHODS:
+            raise NotImplementedError(
+                f"Cross-temporal covariance method '{method}' requires extra kwargs "
+                f"(n_cs, n_te, S_cs, S_te) that MinTrace does not yet support. "
+                f"Use estimate_covariance('{method}', ...) directly."
             )
         self.method = method
         self.nonnegative = nonnegative

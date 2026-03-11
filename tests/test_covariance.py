@@ -4,8 +4,11 @@ import numpy as np
 import pytest
 
 from hierarchicalforecast.covariance import (
+    _REGISTRY,
     REQUIRES_RESIDUALS,
+    _estimate_ar1_phi,
     estimate_covariance,
+    is_diagonal_method,
     list_covariance_methods,
     register_covariance,
 )
@@ -101,9 +104,13 @@ def test_register_custom_method(hierarchy_data):
         return np.eye(S.shape[0]) * 2.0
 
     register_covariance("test_custom", my_cov, requires_residuals=False)
-    W = estimate_covariance("test_custom", S=hierarchy_data)
-    np.testing.assert_array_equal(W, np.eye(7) * 2.0)
-    assert "test_custom" in list_covariance_methods()
+    try:
+        W = estimate_covariance("test_custom", S=hierarchy_data)
+        np.testing.assert_array_equal(W, np.eye(7) * 2.0)
+        assert "test_custom" in list_covariance_methods()
+    finally:
+        _REGISTRY.pop("test_custom", None)
+        REQUIRES_RESIDUALS.discard("test_custom")
 
 
 # ---------------------------------------------------------------------------
@@ -638,20 +645,6 @@ def test_mintrace_with_covariance_method(mintrace_data, method):
     assert y_rec.shape == mintrace_data["y_hat"].shape
 
     # Check coherence: S @ bottom == all
-    n_bottom = S.shape[1]
-    bottom = y_rec[S.shape[0] - n_bottom:]
-    np.testing.assert_allclose(y_rec, S @ bottom, rtol=1e-8)
-
-
-@pytest.mark.parametrize("method", ["wlsv", "wlsh", "acov", "strar1", "sar1", "har1"])
-def test_mintrace_with_temporal_methods(mintrace_data, method):
-    """MinTrace should work with temporal covariance methods (without agg_order they fall back)."""
-    mt = MinTrace(method=method)
-    result = mt.fit_predict(**mintrace_data)
-
-    assert "mean" in result
-    y_rec = result["mean"]
-    S = mintrace_data["S"]
     n_bottom = S.shape[1]
     bottom = y_rec[S.shape[0] - n_bottom:]
     np.testing.assert_allclose(y_rec, S @ bottom, rtol=1e-8)
@@ -1281,3 +1274,81 @@ def test_bsam_matches_explicit_kronecker(ct_data):
         S_te=d["S_te"],
     )
     np.testing.assert_allclose(W_actual, W_expected, atol=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# is_diagonal_method tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("method", ["ols", "wls_struct", "wls_var", "wlsv", "wlsh", "csstr", "testr"])
+def test_is_diagonal_method_true(method):
+    assert is_diagonal_method(method) is True
+
+
+@pytest.mark.parametrize("method", [
+    "sam", "shr", "bu", "oasd", "acov", "strar1", "sar1", "har1",
+    "bdshr", "bdsam", "sshr", "ssam", "hshr", "hsam",
+    "hbshr", "hbsam", "bshr", "bsam",
+])
+def test_is_diagonal_method_false(method):
+    assert is_diagonal_method(method) is False
+
+
+def test_is_diagonal_method_unknown():
+    with pytest.raises(ValueError, match="Unknown covariance method"):
+        is_diagonal_method("nonexistent")
+
+
+# ---------------------------------------------------------------------------
+# _estimate_ar1_phi tests
+# ---------------------------------------------------------------------------
+
+def test_ar1_phi_iid_near_zero():
+    rng = np.random.default_rng(42)
+    phi = _estimate_ar1_phi(rng.standard_normal((3, 500)))
+    assert phi < 0.15
+
+
+def test_ar1_phi_short_series_returns_zero():
+    phi = _estimate_ar1_phi(np.array([[1.0, 2.0]]))
+    assert phi == 0.0
+
+
+def test_ar1_phi_all_zero_variance_returns_zero():
+    res = np.ones((2, 10))
+    phi = _estimate_ar1_phi(res)
+    assert phi == 0.0
+
+
+def test_ar1_phi_clipped_below_one():
+    # Monotonically increasing series has lag-1 autocorrelation > 0.99
+    x = np.arange(1000, dtype=float).reshape(1, -1)
+    phi = _estimate_ar1_phi(x)
+    assert phi == 0.99
+
+
+# ---------------------------------------------------------------------------
+# Validation edge cases
+# ---------------------------------------------------------------------------
+
+def test_validate_residuals_rejects_inf(hierarchy_data):
+    res = np.ones((7, 10))
+    res[0, 0] = np.inf
+    with pytest.raises(ValueError, match="non-finite"):
+        estimate_covariance("wls_var", S=hierarchy_data, residuals=res)
+
+
+# ---------------------------------------------------------------------------
+# MinTrace temporal/CT gating
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("method", ["wlsv", "acov", "strar1", "sar1", "har1"])
+def test_mintrace_rejects_temporal_methods(method):
+    with pytest.raises(NotImplementedError, match="Temporal covariance method"):
+        MinTrace(method=method)
+
+
+@pytest.mark.parametrize("method", ["csstr", "bdshr", "sshr", "hshr", "hbshr", "bshr"])
+def test_mintrace_rejects_ct_methods(method):
+    with pytest.raises(NotImplementedError, match="Cross-temporal covariance method"):
+        MinTrace(method=method)

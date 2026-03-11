@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 
 #include <Eigen/Dense>
 #include <pybind11/eigen.h>
@@ -30,6 +31,9 @@ int get_num_threads() {
 
 void set_num_threads(int n) {
 #ifdef _OPENMP
+  if (n < 1) {
+    throw std::invalid_argument("num_threads must be >= 1");
+  }
   omp_set_num_threads(n);
 #else
   (void)n;
@@ -357,7 +361,7 @@ VectorXd lasso(const Eigen::Ref<const MatrixXd> &X,
 }
 
 // ---------- _oasd_no_nans ----------
-// Oracle Approximating Shrinkage Diagonal (Ando & Xiao, 2023), no NaN
+// Oracle Approximating Shrinkage Diagonal (Ando, S. & Xiao, M., 2023), no NaN
 // handling.
 // Shrinks each off-diagonal element of the sample correlation toward zero
 // individually. The shrinkage intensity for pair (i,j) is:
