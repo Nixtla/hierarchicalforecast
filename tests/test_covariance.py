@@ -1339,16 +1339,18 @@ def test_validate_residuals_rejects_inf(hierarchy_data):
 
 
 # ---------------------------------------------------------------------------
-# MinTrace temporal/CT gating
+# MinTrace temporal/CT method acceptance
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("method", ["wlsv", "acov", "strar1", "sar1", "har1"])
-def test_mintrace_rejects_temporal_methods(method):
-    with pytest.raises(NotImplementedError, match="Temporal covariance method"):
-        MinTrace(method=method)
+def test_mintrace_accepts_temporal_methods(method):
+    """MinTrace now accepts temporal methods; kwargs are passed via method_kwargs at reconcile time."""
+    mt = MinTrace(method=method)
+    assert mt.method == method
 
 
 @pytest.mark.parametrize("method", ["csstr", "bdshr", "sshr", "hshr", "hbshr", "bshr"])
-def test_mintrace_rejects_ct_methods(method):
-    with pytest.raises(NotImplementedError, match="Cross-temporal covariance method"):
-        MinTrace(method=method)
+def test_mintrace_accepts_ct_methods(method):
+    """MinTrace now accepts cross-temporal methods; kwargs are passed via method_kwargs at reconcile time."""
+    mt = MinTrace(method=method)
+    assert mt.method == method

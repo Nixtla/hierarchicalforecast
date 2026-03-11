@@ -1259,9 +1259,12 @@ class MinTrace(HReconciler):
     Args:
         method (str): Covariance estimation method. Cross-sectional methods:
             `ols`, `wls_struct`, `wls_var`, `sam`/`mint_cov`, `shr`/`mint_shrink`,
-            `bu`, `oasd`, `emint`. Use ``list_covariance_methods()`` for all
-            registered methods. Temporal and cross-temporal methods are not yet
-            supported via MinTrace; use ``estimate_covariance`` directly.
+            `bu`, `oasd`, `emint`. Temporal methods: `wlsv`, `wlsh`, `acov`,
+            `strar1`, `sar1`, `har1`. Cross-temporal methods: `csstr`, `testr`,
+            `bdshr`, `bdsam`, `sshr`, `ssam`, `hshr`, `hsam`, `hbshr`, `hbsam`,
+            `bshr`, `bsam`. Use ``list_covariance_methods()`` for all registered
+            methods. Temporal and cross-temporal methods require extra kwargs
+            passed via ``method_kwargs`` in ``reconcile()``.
         nonnegative (bool): Reconciled forecasts should be nonnegative?
         mint_shr_ridge (float): Ridge numeric protection to MinTrace-shr covariance estimator.
         num_threads (int): Number of threads for the C++ covariance backend (OpenMP) and for solving the optimization problems (when nonnegative=True).
@@ -1298,18 +1301,6 @@ class MinTrace(HReconciler):
             raise ValueError(
                 f"Unknown method `{method}`. Available: {sorted(_available)}."
             )
-        if method in self._TEMPORAL_METHODS:
-            raise NotImplementedError(
-                f"Temporal covariance method '{method}' requires extra kwargs "
-                f"(agg_order) that MinTrace does not yet support. "
-                f"Use estimate_covariance('{method}', ...) directly."
-            )
-        if method in self._CT_METHODS:
-            raise NotImplementedError(
-                f"Cross-temporal covariance method '{method}' requires extra kwargs "
-                f"(n_cs, n_te, S_cs, S_te) that MinTrace does not yet support. "
-                f"Use estimate_covariance('{method}', ...) directly."
-            )
         self.method = method
         self.nonnegative = nonnegative
         self.insample = method in REQUIRES_RESIDUALS or method in self._SPECIAL_METHODS
@@ -1327,6 +1318,7 @@ class MinTrace(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
         # Temporarily set OpenMP threads to match num_threads
         prev_threads = get_num_threads()
@@ -1338,6 +1330,7 @@ class MinTrace(HReconciler):
                 y_hat=y_hat,
                 y_insample=y_insample,
                 y_hat_insample=y_hat_insample,
+                method_kwargs=method_kwargs,
             )
         finally:
             if self.num_threads != prev_threads:
@@ -1349,6 +1342,7 @@ class MinTrace(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
         # Handle emint method separately (not a covariance method)
         if self.method == "emint":
@@ -1373,6 +1367,8 @@ class MinTrace(HReconciler):
         cov_kwargs = {}
         if self.method in ("mint_shrink", "shr"):
             cov_kwargs["mint_shr_ridge"] = self.mint_shr_ridge
+        if method_kwargs:
+            cov_kwargs.update(method_kwargs)
 
         # Estimate W via the covariance module
         W = estimate_covariance(
@@ -1502,6 +1498,7 @@ class MinTrace(HReconciler):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ):
         """MinTrace Fit Method.
 
@@ -1515,6 +1512,7 @@ class MinTrace(HReconciler):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods).
 
         Returns:
             self: object, fitted reconciler.
@@ -1524,6 +1522,7 @@ class MinTrace(HReconciler):
             y_hat=y_hat,
             y_insample=y_insample,
             y_hat_insample=y_hat_insample,
+            method_kwargs=method_kwargs,
         )
         self.y_hat = y_hat
 
@@ -1599,6 +1598,7 @@ class MinTrace(HReconciler):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ):
         """MinTrace Reconciliation Method.
 
@@ -1613,6 +1613,7 @@ class MinTrace(HReconciler):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods).
 
         Returns:
             y_tilde: Reconciliated y_hat using the MinTrace approach.
@@ -1634,6 +1635,7 @@ class MinTrace(HReconciler):
             num_samples=num_samples,
             seed=seed,
             tags=tags,
+            method_kwargs=method_kwargs,
         )
 
         return self._reconcile(
@@ -1687,6 +1689,7 @@ class MinTraceSparse(MinTrace):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
         # shape residuals_insample (n_hiers, obs)
         res_methods = ["wls_var", "mint_cov", "mint_shrink"]
@@ -1777,6 +1780,7 @@ class MinTraceSparse(MinTrace):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ) -> "MinTraceSparse":
         """MinTraceSparse Fit Method.
 
@@ -1790,6 +1794,7 @@ class MinTraceSparse(MinTrace):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments (unused in sparse variant, accepted for API compatibility).
 
         Returns:
             self: object, fitted reconciler.

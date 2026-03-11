@@ -1,4 +1,4 @@
-__all__ = ['aggregate', 'aggregate_temporal', 'make_future_dataframe', 'get_cross_temporal_tags', 'HierarchicalPlot', 'set_num_threads', 'get_num_threads']
+__all__ = ['aggregate', 'aggregate_temporal', 'make_future_dataframe', 'get_cross_temporal_tags', 'build_cross_temporal_S', 'HierarchicalPlot', 'set_num_threads', 'get_num_threads']
 
 
 import itertools
@@ -555,6 +555,60 @@ def get_cross_temporal_tags(
     df = df_nw.to_native()
 
     return df, tags_ct
+
+
+def build_cross_temporal_S(
+    S_cs: np.ndarray,
+    S_te: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build the cross-temporal summing matrix via the Kronecker product.
+
+    Computes ``S_ct = S_cs ⊗ S_te`` and reorders rows so that bottom-level
+    cross-temporal combinations (where both CS and temporal indices are
+    bottom-level) appear at the end, forming an identity block as required
+    by the reconciliation framework.
+
+    Args:
+        S_cs (np.ndarray): Cross-sectional summing matrix of shape ``(n_cs, n_bottom_cs)``.
+        S_te (np.ndarray): Temporal summing matrix of shape ``(n_te, n_bottom_te)``.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]:
+            S_ct: Reordered cross-temporal summing matrix of shape
+                ``(n_cs * n_te, n_bottom_cs * n_bottom_te)``.
+            row_order: Permutation array mapping reordered rows to original
+                Kronecker row indices.
+
+    References:
+        - Di Fonzo, T. & Girolimetto, D. (2023). "Cross-temporal forecast
+          reconciliation: Optimal combination method and heuristic alternatives."
+          International Journal of Forecasting.
+    """
+    S_kron = np.kron(S_cs, S_te)
+    n_cs, n_bottom_cs = S_cs.shape
+    n_te, n_bottom_te = S_te.shape
+
+    # Identify bottom-level rows: row i corresponds to (cs_idx, te_idx) where
+    # cs_idx = i // n_te, te_idx = i % n_te.
+    # A row is bottom-level if both cs_idx >= n_cs - n_bottom_cs
+    # AND te_idx >= n_te - n_bottom_te.
+    n_ct = n_cs * n_te
+    cs_bottom_start = n_cs - n_bottom_cs
+    te_bottom_start = n_te - n_bottom_te
+
+    upper_rows = []
+    bottom_rows = []
+    for i in range(n_ct):
+        cs_idx = i // n_te
+        te_idx = i % n_te
+        if cs_idx >= cs_bottom_start and te_idx >= te_bottom_start:
+            bottom_rows.append(i)
+        else:
+            upper_rows.append(i)
+
+    row_order = np.array(upper_rows + bottom_rows)
+    S_ct = S_kron[row_order]
+    return S_ct, row_order
 
 
 class HierarchicalPlot:
