@@ -36,7 +36,7 @@ example ([AutoARIMA](../../../statsforecast/docs/models/AutoARIMA#autoarima-mode
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`- reconcilers` | <code>[list](#list)\[[HReconciler](#hierarchicalforecast.methods.HReconciler)\]</code> | A list of instantiated classes of the [reconciliation methods](./methods) module. | *required*
+`- reconcilers` | <code>[list](#list)[[HReconciler](#hierarchicalforecast.methods.HReconciler)]</code> | A list of instantiated classes of the [reconciliation methods](./methods) module. | *required*
 
 <details class="references" open markdown="1">
 <summary>References</summary>
@@ -63,8 +63,8 @@ linear algebra notation:
 \tilde{\mathbf{y}}_{[a,b],\\tau} = \mathbf{S}_{[a,b][b]} \mathbf{P}_{[b][a,b]} \hat{\mathbf{y}}_{[a,b],\\tau}
 ```
 
-where $a, b$ represent the aggregate and bottom levels, $\\mathbf{S}_{[a,b][b]}$ contains
-the hierarchical aggregation constraints, and $\\mathbf{P}_{[b][a,b]}$ varies across
+where $a, b$ represent the aggregate and bottom levels, $\mathbf{S}_{[a,b][b]}$ contains
+the hierarchical aggregation constraints, and $\mathbf{P}_{[b][a,b]}$ varies across
 reconciliation methods. The reconciled predictions are
 
 ```math
@@ -82,10 +82,10 @@ and the base predictions
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and its value contains tags associated to that level. | *required*
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and its value contains tags associated to that level. | *required*
 `S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). Default is None. | <code>None</code>
-`Y_df` | <code>[Optional](#Optional)\[[Frame](#narwhals.typing.Frame)\]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | positive float list \[0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
+`Y_df` | <code>[Optional](#Optional)[[Frame](#narwhals.typing.Frame)]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | positive float list [0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". | <code>'normality'</code>
 `num_samples` | <code>[int](#int)</code> | if positive return that many probabilistic coherent samples. Default is -1. | <code>-1</code>
 `seed` | <code>[int](#int)</code> | random seed for numpy generator's replicability. Default is 0. | <code>0</code>
@@ -109,7 +109,6 @@ Type | Description
 
 When `diagnostics=True`, after reconciliation completes, `self.diagnostics` will contain
 a DataFrame with coherence metrics per hierarchical level, including:
-
 - `coherence_residual_mae_before/after`: Mean absolute coherence residual before/after reconciliation
 - `adjustment_mae/rmse/max/mean`: Statistics on the adjustments made by reconciliation
 - `negative_count_before/after`: Count of negative values before/after reconciliation
@@ -135,9 +134,9 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
 `S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). | *required*
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and its value contains tags associated to that level. | *required*
-`Y_df` | <code>[Optional](#Optional)\[[Frame](#narwhals.typing.Frame)\]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | positive float list \[0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and its value contains tags associated to that level. | *required*
+`Y_df` | <code>[Optional](#Optional)[[Frame](#narwhals.typing.Frame)]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | positive float list [0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". | <code>'normality'</code>
 `num_samples` | <code>[int](#int)</code> | if positive return that many probabilistic coherent samples. Default is -1. | <code>-1</code>
 `num_seeds` | <code>[int](#int)</code> | random seed for numpy generator's replicability. Default is 1. | <code>1</code>
@@ -150,6 +149,7 @@ Name | Type | Description | Default
 Type | Description
 ---- | -----------
 <code>[FrameT](#narwhals.typing.FrameT)</code> | DataFrame, with bootstraped reconciled predictions.
+
 
 ### Example
 
