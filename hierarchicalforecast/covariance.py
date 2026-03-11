@@ -5,18 +5,126 @@ MinTrace and other reconciliation approaches. Each method estimates the
 error covariance matrix W from in-sample residuals and/or the structural
 matrix S.
 
-Methods fall into three categories:
-- **OLS/WLS** (diagonal): `ols`, `wls_struct`, `wls_var`
-- **GLS** (full matrix): `mint_cov`, `mint_shrink`, `sam`, `shr`, `oasd`
-- **Structural**: `bu` (bottom-up covariance)
+Available Methods
+-----------------
 
-Users can register custom methods via `register_covariance`.
+**Cross-sectional methods** (standard hierarchies):
+
+Methods ``ols``, ``wls_struct``, ``wls_var``, ``sam``/``mint_cov``, and
+``shr``/``mint_shrink`` implement the covariance estimators from
+Wickramasuriya et al. (2019) [1]_. The ``mint_cov`` and ``mint_shrink``
+aliases match the naming in the original MinTrace paper.
+
+=============  ===========  ================================================
+Name           Alias for    Description
+=============  ===========  ================================================
+``ols``                     Identity (OLS reconciliation). Diagonal.
+``wls_struct``              Structural scaling (proportional to number of
+                            bottom nodes). Diagonal.
+``wls_var``                 Variance scaling from in-sample residuals.
+                            Diagonal.
+``sam``                     Sample covariance of residuals.
+``mint_cov``   ``sam``      Alias from the original MinTrace paper.
+``shr``                     Schafer-Strimmer shrinkage covariance [2]_.
+``mint_shrink`` ``shr``     Alias from the original MinTrace paper.
+``bu``                      Bottom-up covariance (zero weight on upper
+                            levels).
+``oasd``                    Oracle Approximating Shrinkage Diagonal [3]_.
+                            Per-element shrinkage of the correlation matrix.
+=============  ===========  ================================================
+
+**Temporal methods** (single series, multiple aggregation levels):
+
+Temporal methods follow the framework of Athanasopoulos et al. (2017) [4]_
+for temporal hierarchies. The AR(1) correlation models (``strar1``,
+``sar1``, ``har1``) are from Nystrup et al. (2020) [5]_. Method names
+and definitions follow the FoReco package [6]_.
+
+=============  ================================================
+Name           Description
+=============  ================================================
+``wlsv``       Variance scaling across temporal aggregations.
+                Diagonal.
+``wlsh``       Structural variance scaling (nobs_agg * h).
+                Diagonal.
+``acov``       Auto-covariance from overlapping residual blocks.
+``strar1``     Structural AR(1) correlation model.
+``sar1``       Shrinkage AR(1) correlation model.
+``har1``       Heterogeneous AR(1) correlation model.
+=============  ================================================
+
+**Cross-temporal methods** (both cross-sectional and temporal):
+
+Cross-temporal methods implement the reconciliation framework of
+Di Fonzo & Girolimetto (2023) [7]_. Method names match the FoReco
+package [6]_.
+
+=============  ================================================
+Name           Description
+=============  ================================================
+``csstr``      Cross-sectional structural scaling. Diagonal.
+``testr``      Temporal structural scaling. Diagonal.
+``bdshr``      Block-diagonal shrinkage by aggregation order.
+``bdsam``      Block-diagonal sample covariance by aggregation
+                order.
+``sshr``       Series-level block-diagonal shrinkage.
+``ssam``       Series-level block-diagonal sample covariance.
+``hshr``       High-frequency shrinkage, propagated to full
+                cross-temporal dimension.
+``hsam``       High-frequency sample covariance, propagated.
+``hbshr``      High-frequency bottom-level shrinkage, propagated.
+``hbsam``      High-frequency bottom-level sample covariance,
+                propagated.
+``bshr``       Bottom cross-sectional shrinkage, propagated
+                through temporal structure.
+``bsam``       Bottom cross-sectional sample covariance,
+                propagated.
+=============  ================================================
+
+Users can register custom methods via :func:`register_covariance`.
+
+References
+----------
+.. [1] Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019).
+   "Optimal forecast reconciliation for hierarchical and grouped time series
+   through trace minimization". Journal of the American Statistical
+   Association, 114(526), 804-819.
+   https://doi.org/10.1080/01621459.2018.1448825
+
+.. [2] Schafer, J. & Strimmer, K. (2005). "A shrinkage approach to
+   large-scale covariance matrix estimation and implications for functional
+   genomics". Statistical Applications in Genetics and Molecular Biology,
+   4(1). https://doi.org/10.2202/1544-6115.1175
+
+.. [3] Ando, T. & Xiao, Z. (2023). "High-dimensional minimum variance
+   portfolio estimation under statistical factor models". Journal of
+   Financial Econometrics. https://doi.org/10.1093/jjfinec/nbad022
+
+.. [4] Athanasopoulos, G., Hyndman, R. J., Kourentzes, N., & Petropoulos, F.
+   (2017). "Forecasting with temporal hierarchies". European Journal of
+   Operational Research, 262(1), 60-74.
+   https://doi.org/10.1016/j.ejor.2017.02.046
+
+.. [5] Nystrup, P., Lindstrom, E., Pinson, P., & Madsen, H. (2020).
+   "Temporal hierarchies with autocorrelation for conditional reconciliation".
+   European Journal of Operational Research, 280(3), 876-888.
+   https://doi.org/10.1016/j.ejor.2019.07.061
+
+.. [6] Girolimetto, D. & Di Fonzo, T. (2024). "FoReco: Forecast
+   reconciliation". R package version 1.0.
+   https://CRAN.R-project.org/package=FoReco
+
+.. [7] Di Fonzo, T. & Girolimetto, D. (2023). "Cross-temporal forecast
+   reconciliation: Optimal combination method and heuristic alternatives".
+   International Journal of Forecasting, 39(1), 39-57.
+   https://doi.org/10.1016/j.ijforecast.2021.08.004
 """
 
 __all__ = [
     "estimate_covariance",
     "register_covariance",
     "list_covariance_methods",
+    "is_diagonal_method",
     "REQUIRES_RESIDUALS",
 ]
 
@@ -30,8 +138,14 @@ from hierarchicalforecast.utils import (
     _shrunk_covariance_schaferstrimmer_with_nans,
 )
 
-# Registry: method_name -> (callable, requires_residuals)
-_REGISTRY: dict[str, tuple[Callable, bool]] = {}
+# Default ridge/epsilon value for diagonal regularization
+_DEFAULT_RIDGE: float = 2e-8
+
+# Minimum number of observations required by C++ backends
+_MIN_OBS: int = 3
+
+# Registry: method_name -> (callable, requires_residuals, diagonal)
+_REGISTRY: dict[str, tuple[Callable, bool, bool]] = {}
 
 # Set of method names that require residuals
 REQUIRES_RESIDUALS: set[str] = set()
@@ -41,6 +155,7 @@ def register_covariance(
     name: str,
     fn: Callable,
     requires_residuals: bool = True,
+    diagonal: bool = False,
 ):
     """Register a covariance estimation method.
 
@@ -51,8 +166,9 @@ def register_covariance(
             where S is (n_hiers, n_bottom) and residuals is (n_hiers, n_obs).
             Must return W of shape (n_hiers, n_hiers).
         requires_residuals: Whether this method needs in-sample residuals.
+        diagonal: Whether this method always produces a diagonal W matrix.
     """
-    _REGISTRY[name] = (fn, requires_residuals)
+    _REGISTRY[name] = (fn, requires_residuals, diagonal)
     if requires_residuals:
         REQUIRES_RESIDUALS.add(name)
     elif name in REQUIRES_RESIDUALS:
@@ -62,6 +178,16 @@ def register_covariance(
 def list_covariance_methods() -> list[str]:
     """Return names of all registered covariance methods."""
     return sorted(_REGISTRY.keys())
+
+
+def is_diagonal_method(method: str) -> bool:
+    """Return True if the named method always produces a diagonal W matrix."""
+    if method not in _REGISTRY:
+        raise ValueError(
+            f"Unknown covariance method '{method}'. "
+            f"Available: {list_covariance_methods()}"
+        )
+    return _REGISTRY[method][2]
 
 
 def estimate_covariance(
@@ -91,7 +217,7 @@ def estimate_covariance(
             f"Unknown covariance method '{method}'. "
             f"Available: {list_covariance_methods()}"
         )
-    fn, needs_res = _REGISTRY[method]
+    fn, needs_res, _diag = _REGISTRY[method]
     if needs_res and residuals is None:
         raise ValueError(
             f"Covariance method '{method}' requires residuals. "
@@ -107,14 +233,22 @@ def estimate_covariance(
 def _validate_residuals(residuals: np.ndarray) -> np.ndarray:
     """Validate and return residuals in (n_hiers, n_obs) layout.
 
-    Also checks for degenerate residuals (nearly all zero).
+    Also checks for degenerate residuals (nearly all zero) and
+    enforces a minimum number of observations for numerical stability.
     """
     if residuals.ndim != 2:
         raise ValueError(
             f"residuals must be 2-d (n_hiers, n_obs), got shape {residuals.shape}"
         )
-    residuals_sum = np.sum(residuals, axis=1)
-    zero_prc = np.mean(np.abs(residuals_sum) < 1e-4)
+    if residuals.shape[1] < _MIN_OBS:
+        raise ValueError(
+            f"residuals must have at least {_MIN_OBS} observations (columns), "
+            f"got {residuals.shape[1]}"
+        )
+    # Check per-series variance to detect overfitting.
+    # Use mean of squared residuals (not sum) to avoid scale dependence on n_obs.
+    per_series_var = np.nanmean(residuals**2, axis=1)
+    zero_prc = np.mean(per_series_var < 1e-8)
     if zero_prc > 0.98:
         raise ValueError(
             f"Insample residuals close to 0 (zero_prc={zero_prc:.2f}). "
@@ -129,7 +263,7 @@ def _cov_ols(S: np.ndarray, residuals: np.ndarray | None = None, **kw) -> np.nda
     return np.eye(n_hiers, dtype=np.float64)
 
 
-register_covariance("ols", _cov_ols, requires_residuals=False)
+register_covariance("ols", _cov_ols, requires_residuals=False, diagonal=True)
 
 
 # --- WLS structural ---
@@ -140,7 +274,7 @@ def _cov_wls_struct(
     return np.diag(Wdiag)
 
 
-register_covariance("wls_struct", _cov_wls_struct, requires_residuals=False)
+register_covariance("wls_struct", _cov_wls_struct, requires_residuals=False, diagonal=True)
 
 
 # --- WLS variance ---
@@ -148,20 +282,23 @@ def _cov_wls_var(
     S: np.ndarray, residuals: np.ndarray | None = None, **kw
 ) -> np.ndarray:
     residuals = _validate_residuals(residuals)
-    n_hiers = S.shape[0]
     Wdiag = np.nanmean(residuals**2, axis=1, dtype=np.float64)
-    Wdiag += np.full(n_hiers, 2e-8, dtype=np.float64)
+    Wdiag += _DEFAULT_RIDGE
     return np.diag(Wdiag)
 
 
-register_covariance("wls_var", _cov_wls_var, requires_residuals=True)
+register_covariance("wls_var", _cov_wls_var, requires_residuals=True, diagonal=True)
 
 
 # --- Sample covariance (full, unregularized) ---
 def _cov_sam(
     S: np.ndarray, residuals: np.ndarray | None = None, **kw
 ) -> np.ndarray:
-    """Full sample covariance (same as mint_cov, explicit alias)."""
+    """Full sample covariance (same as mint_cov, explicit alias).
+
+    Note: produces a rank-deficient matrix when n_hiers > n_obs.
+    In that case, consider using 'shr' or 'mint_shrink' instead.
+    """
     residuals = _validate_residuals(residuals)
     nan_mask = np.isnan(residuals)
     if np.any(nan_mask):
@@ -178,7 +315,7 @@ register_covariance("mint_cov", _cov_sam, requires_residuals=True)
 def _cov_shr(
     S: np.ndarray,
     residuals: np.ndarray | None = None,
-    mint_shr_ridge: float = 2e-8,
+    mint_shr_ridge: float = _DEFAULT_RIDGE,
     **kw,
 ) -> np.ndarray:
     """Shrunk covariance (Schäfer-Strimmer, 2005)."""
@@ -277,7 +414,7 @@ def _cov_wlsv(
     if agg_order is None:
         # Fall back to wls_var if no aggregation order provided
         Wdiag = np.nanmean(residuals**2, axis=1, dtype=np.float64)
-        Wdiag += 2e-8
+        Wdiag += _DEFAULT_RIDGE
         return np.diag(Wdiag)
 
     agg_order = np.asarray(agg_order)
@@ -288,11 +425,11 @@ def _cov_wlsv(
         res_k = residuals[mask]
         var_k = np.nanmean(res_k**2)
         Wdiag[mask] = var_k
-    Wdiag += 2e-8
+    Wdiag += _DEFAULT_RIDGE
     return np.diag(Wdiag)
 
 
-register_covariance("wlsv", _cov_wlsv, requires_residuals=True)
+register_covariance("wlsv", _cov_wlsv, requires_residuals=True, diagonal=True)
 
 
 def _cov_wlsh(
@@ -308,7 +445,7 @@ def _cov_wlsh(
     return _cov_wls_var(S=S, residuals=residuals, **kw)
 
 
-register_covariance("wlsh", _cov_wlsh, requires_residuals=True)
+register_covariance("wlsh", _cov_wlsh, requires_residuals=True, diagonal=True)
 
 
 def _cov_acov(
@@ -366,28 +503,76 @@ def _build_ar1_correlation(n: int, phi: float) -> np.ndarray:
 def _estimate_ar1_phi(residuals: np.ndarray) -> float:
     """Estimate AR(1) parameter from residuals using lag-1 autocorrelation.
 
+    Vectorized implementation that handles NaNs by masking.
+
     Args:
         residuals: (n_series, n_obs) array. May contain NaNs.
 
     Returns:
         phi: Estimated AR(1) parameter, clipped to [0, 0.99].
     """
-    phis = []
-    for i in range(residuals.shape[0]):
-        r = residuals[i]
-        valid = ~np.isnan(r)
-        r_clean = r[valid]
-        if len(r_clean) < 3:
-            continue
-        r_cent = r_clean - np.mean(r_clean)
-        var = np.dot(r_cent, r_cent)
-        if var < 1e-12:
-            continue
-        cov1 = np.dot(r_cent[:-1], r_cent[1:])
-        phis.append(cov1 / var)
-    if not phis:
+    if residuals.shape[1] < 3:
         return 0.0
-    return float(np.clip(np.mean(phis), 0.0, 0.99))
+
+    valid = ~np.isnan(residuals)
+    counts = valid.sum(axis=1)
+
+    # Compute means ignoring NaNs
+    means = np.nanmean(residuals, axis=1, keepdims=True)
+    r_cent = np.where(valid, residuals - means, 0.0)
+
+    var = np.sum(r_cent**2, axis=1)
+
+    # Lag-1 autocovariance: only where both t and t+1 are valid
+    valid_lag = valid[:, :-1] & valid[:, 1:]
+    cov1 = np.sum(
+        np.where(valid_lag, r_cent[:, :-1] * r_cent[:, 1:], 0.0),
+        axis=1,
+    )
+
+    good = (counts >= 3) & (var > 1e-12)
+    if not np.any(good):
+        return 0.0
+    return float(np.clip(np.mean(cov1[good] / var[good]), 0.0, 0.99))
+
+
+def _build_ar1_covariance(
+    residuals: np.ndarray,
+    std_diag: np.ndarray,
+    agg_order: np.ndarray | None,
+) -> np.ndarray:
+    """Build AR(1) covariance from standard deviations and residuals.
+
+    Shared helper for strar1, sar1, and har1 methods.
+
+    Args:
+        residuals: Validated residuals (n_hiers, n_obs).
+        std_diag: Per-series standard deviation vector (n_hiers,).
+        agg_order: Aggregation order per row (None for no blocking).
+
+    Returns:
+        W: Covariance matrix (n_hiers, n_hiers).
+    """
+    n = residuals.shape[0]
+
+    if agg_order is None:
+        phi = _estimate_ar1_phi(residuals)
+        R = _build_ar1_correlation(n, phi)
+        return np.outer(std_diag, std_diag) * R
+
+    agg_order = np.asarray(agg_order)
+    W = np.zeros((n, n), dtype=np.float64)
+
+    for k in np.unique(agg_order):
+        mask = agg_order == k
+        idx = np.where(mask)[0]
+        n_k = len(idx)
+        phi = _estimate_ar1_phi(residuals[mask])
+        R_k = _build_ar1_correlation(n_k, phi)
+        std_k = std_diag[idx]
+        W[np.ix_(idx, idx)] = np.outer(std_k, std_k) * R_k
+
+    return W
 
 
 def _cov_strar1(
@@ -408,27 +593,8 @@ def _cov_strar1(
         agg_order: Aggregation order per row of S.
     """
     residuals = _validate_residuals(residuals)
-    n = S.shape[0]
     std_diag = np.sqrt(np.sum(S, axis=1, dtype=np.float64))
-
-    if agg_order is None:
-        phi = _estimate_ar1_phi(residuals)
-        R = _build_ar1_correlation(n, phi)
-        return np.outer(std_diag, std_diag) * R
-
-    agg_order = np.asarray(agg_order)
-    W = np.zeros((n, n), dtype=np.float64)
-
-    for k in np.unique(agg_order):
-        mask = agg_order == k
-        idx = np.where(mask)[0]
-        n_k = len(idx)
-        phi = _estimate_ar1_phi(residuals[mask])
-        R_k = _build_ar1_correlation(n_k, phi)
-        std_k = std_diag[idx]
-        W[np.ix_(idx, idx)] = np.outer(std_k, std_k) * R_k
-
-    return W
+    return _build_ar1_covariance(residuals, std_diag, agg_order)
 
 
 register_covariance("strar1", _cov_strar1, requires_residuals=True)
@@ -451,27 +617,8 @@ def _cov_sar1(
         agg_order: Aggregation order per row.
     """
     residuals = _validate_residuals(residuals)
-    n = S.shape[0]
-    std_diag = np.sqrt(np.nanmean(residuals**2, axis=1, dtype=np.float64) + 2e-8)
-
-    if agg_order is None:
-        phi = _estimate_ar1_phi(residuals)
-        R = _build_ar1_correlation(n, phi)
-        return np.outer(std_diag, std_diag) * R
-
-    agg_order = np.asarray(agg_order)
-    W = np.zeros((n, n), dtype=np.float64)
-
-    for k in np.unique(agg_order):
-        mask = agg_order == k
-        idx = np.where(mask)[0]
-        n_k = len(idx)
-        phi = _estimate_ar1_phi(residuals[mask])
-        R_k = _build_ar1_correlation(n_k, phi)
-        std_k = std_diag[idx]
-        W[np.ix_(idx, idx)] = np.outer(std_k, std_k) * R_k
-
-    return W
+    std_diag = np.sqrt(np.nanmean(residuals**2, axis=1, dtype=np.float64) + _DEFAULT_RIDGE)
+    return _build_ar1_covariance(residuals, std_diag, agg_order)
 
 
 register_covariance("sar1", _cov_sar1, requires_residuals=True)
@@ -498,26 +645,17 @@ def _cov_har1(
     n = S.shape[0]
 
     if agg_order is None:
-        std_val = np.sqrt(np.nanmean(residuals**2) + 2e-8)
-        phi = _estimate_ar1_phi(residuals)
-        R = _build_ar1_correlation(n, phi)
-        return std_val**2 * R
+        std_val = np.sqrt(np.nanmean(residuals**2) + _DEFAULT_RIDGE)
+        std_diag = np.full(n, std_val, dtype=np.float64)
+    else:
+        agg_order = np.asarray(agg_order)
+        std_diag = np.zeros(n, dtype=np.float64)
+        for k in np.unique(agg_order):
+            mask = agg_order == k
+            var_k = np.nanmean(residuals[mask] ** 2) + _DEFAULT_RIDGE
+            std_diag[mask] = np.sqrt(var_k)
 
-    agg_order = np.asarray(agg_order)
-    W = np.zeros((n, n), dtype=np.float64)
-
-    for k in np.unique(agg_order):
-        mask = agg_order == k
-        idx = np.where(mask)[0]
-        n_k = len(idx)
-        res_k = residuals[mask]
-        var_k = np.nanmean(res_k**2) + 2e-8
-        std_k = np.sqrt(var_k)
-        phi = _estimate_ar1_phi(res_k)
-        R_k = _build_ar1_correlation(n_k, phi)
-        W[np.ix_(idx, idx)] = std_k**2 * R_k
-
-    return W
+    return _build_ar1_covariance(residuals, std_diag, agg_order)
 
 
 register_covariance("har1", _cov_har1, requires_residuals=True)
@@ -597,7 +735,7 @@ def _cov_csstr(
     return np.diag(Wdiag)
 
 
-register_covariance("csstr", _cov_csstr, requires_residuals=False)
+register_covariance("csstr", _cov_csstr, requires_residuals=False, diagonal=True)
 
 
 # --- testr: Temporal structural ---
@@ -625,7 +763,7 @@ def _cov_testr(
     return np.diag(Wdiag)
 
 
-register_covariance("testr", _cov_testr, requires_residuals=False)
+register_covariance("testr", _cov_testr, requires_residuals=False, diagonal=True)
 
 
 # --- Helpers ---
@@ -637,7 +775,7 @@ def _block_diagonal_by_series(
     n_te: int,
     cov_fn,
 ) -> np.ndarray:
-    """Build block-diagonal W with n_cs blocks of size n_te × n_te.
+    """Build block-diagonal W with n_cs blocks of size n_te x n_te.
 
     Each block captures temporal covariance for one cross-sectional series.
 
@@ -664,6 +802,60 @@ def _block_diagonal_by_series(
     return W
 
 
+def _block_diagonal_by_agg_order(
+    res_3d: np.ndarray,
+    n_cs: int,
+    n_te: int,
+    agg_order_te: np.ndarray | None,
+    cov_fn,
+) -> np.ndarray:
+    """Build block-diagonal W with blocks by temporal aggregation order.
+
+    For each temporal aggregation order k, pools residuals across all
+    temporal periods at that frequency to estimate one (n_cs x n_cs)
+    cross-sectional covariance. Periods at the same aggregation order
+    share the same block. Cross-frequency covariances are zero.
+
+    Args:
+        res_3d: (n_cs, n_te, n_obs) residuals.
+        n_cs: number of cross-sectional series.
+        n_te: number of temporal periods.
+        agg_order_te: array mapping each temporal period to its aggregation
+            order. If None, falls back to one block per period.
+        cov_fn: callable(residuals_2d) -> covariance matrix.
+
+    Returns:
+        W: (n_ct, n_ct) block-diagonal matrix.
+    """
+    n_ct = n_cs * n_te
+    W = np.zeros((n_ct, n_ct), dtype=np.float64)
+
+    if agg_order_te is not None:
+        agg_order_te = np.asarray(agg_order_te)
+        for k in np.unique(agg_order_te):
+            te_mask = agg_order_te == k
+            te_indices = np.where(te_mask)[0]
+            res_k = res_3d[:, te_indices, :]
+            n_periods_k = len(te_indices)
+            res_pooled = res_k.reshape(n_cs, n_periods_k * res_3d.shape[2])
+            cov_k = cov_fn(res_pooled)
+            if cov_k.ndim == 0:
+                cov_k = cov_k.reshape(1, 1)
+            for j in te_indices:
+                idx = np.arange(n_cs) * n_te + j
+                W[np.ix_(idx, idx)] = cov_k
+    else:
+        for j in range(n_te):
+            res_j = res_3d[:, j, :]
+            cov_j = cov_fn(res_j)
+            if cov_j.ndim == 0:
+                cov_j = cov_j.reshape(1, 1)
+            idx = np.arange(n_cs) * n_te + j
+            W[np.ix_(idx, idx)] = cov_j
+
+    return W
+
+
 def _safe_cov_sam(res: np.ndarray) -> np.ndarray:
     """Sample covariance with NaN handling."""
     nan_mask = np.isnan(res)
@@ -672,7 +864,7 @@ def _safe_cov_sam(res: np.ndarray) -> np.ndarray:
     return np.cov(res) if res.shape[0] > 1 else np.atleast_2d(np.nanvar(res))
 
 
-def _safe_cov_shr(res: np.ndarray, ridge: float = 2e-8) -> np.ndarray:
+def _safe_cov_shr(res: np.ndarray, ridge: float = _DEFAULT_RIDGE) -> np.ndarray:
     """Shrinkage covariance with NaN handling."""
     nan_mask = np.isnan(res)
     if np.any(nan_mask):
@@ -683,16 +875,13 @@ def _safe_cov_shr(res: np.ndarray, ridge: float = 2e-8) -> np.ndarray:
 def _ridge_regularize(W: np.ndarray) -> np.ndarray:
     """Add minimal ridge to ensure positive definiteness.
 
-    Uses FoReco's strategy: add the smallest positive eigenvalue (above 1e-6)
-    as a ridge parameter.
+    Uses a trace-based ridge: eps = max(1e-6, 1e-6 * trace(W) / n).
+    This is cheaper than eigendecomposition and scale-adaptive.
     """
-    eigvals = np.linalg.eigvalsh(W)
-    pos_eigvals = eigvals[eigvals > 1e-6]
-    if len(pos_eigvals) > 0:
-        eps = pos_eigvals.min()
-    else:
-        eps = 1e-6
-    return W + eps * np.eye(W.shape[0], dtype=np.float64)
+    n = W.shape[0]
+    trace_val = np.trace(W)
+    eps = max(1e-6, 1e-6 * trace_val / n) if n > 0 else 1e-6
+    return W + eps * np.eye(n, dtype=np.float64)
 
 
 def _extract_bottom_temporal_residuals(
@@ -729,7 +918,7 @@ def _extract_bottom_cs_residuals(
     return residuals_3d[-n_bottom_cs:, :, :]
 
 
-# --- bdshr: Block-diagonal shrinkage (by temporal period) ---
+# --- bdshr/bdsam: Block-diagonal covariance (by temporal period) ---
 def _cov_bdshr(
     S: np.ndarray,
     residuals: np.ndarray | None = None,
@@ -743,7 +932,7 @@ def _cov_bdshr(
     """Block-diagonal shrinkage covariance (blocks by aggregation order).
 
     For each temporal aggregation order k, pools residuals across all
-    temporal periods at that frequency to estimate one (n_cs × n_cs)
+    temporal periods at that frequency to estimate one (n_cs x n_cs)
     cross-sectional shrinkage covariance. Periods at the same aggregation
     order share the same block. Cross-frequency covariances are zero.
 
@@ -757,45 +946,12 @@ def _cov_bdshr(
     n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
     residuals = _validate_residuals(residuals)
     res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
-
-    n_ct = n_cs * n_te
-    W = np.zeros((n_ct, n_ct), dtype=np.float64)
-
-    if agg_order_te is not None:
-        agg_order_te = np.asarray(agg_order_te)
-        for k in np.unique(agg_order_te):
-            te_mask = agg_order_te == k
-            te_indices = np.where(te_mask)[0]
-            # Pool residuals across all temporal periods at this level
-            # res_3d[:, te_indices, :] -> (n_cs, n_periods_at_k, n_obs)
-            res_k = res_3d[:, te_indices, :]
-            n_periods_k = len(te_indices)
-            # Reshape to (n_cs, n_periods_k * n_obs) to pool
-            res_pooled = res_k.reshape(n_cs, n_periods_k * res_3d.shape[2])
-            cov_k = _safe_cov_shr(res_pooled)
-            if cov_k.ndim == 0:
-                cov_k = cov_k.reshape(1, 1)
-            # Place this block at each temporal period with this order
-            for j in te_indices:
-                idx = np.arange(n_cs) * n_te + j
-                W[np.ix_(idx, idx)] = cov_k
-    else:
-        # Fallback: one block per temporal period
-        for j in range(n_te):
-            res_j = res_3d[:, j, :]
-            cov_j = _safe_cov_shr(res_j)
-            if cov_j.ndim == 0:
-                cov_j = cov_j.reshape(1, 1)
-            idx = np.arange(n_cs) * n_te + j
-            W[np.ix_(idx, idx)] = cov_j
-
-    return W
+    return _block_diagonal_by_agg_order(res_3d, n_cs, n_te, agg_order_te, _safe_cov_shr)
 
 
 register_covariance("bdshr", _cov_bdshr, requires_residuals=True)
 
 
-# --- bdsam: Block-diagonal sample covariance (by aggregation order) ---
 def _cov_bdsam(
     S: np.ndarray,
     residuals: np.ndarray | None = None,
@@ -813,94 +969,55 @@ def _cov_bdsam(
     n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
     residuals = _validate_residuals(residuals)
     res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
-
-    n_ct = n_cs * n_te
-    W = np.zeros((n_ct, n_ct), dtype=np.float64)
-
-    if agg_order_te is not None:
-        agg_order_te = np.asarray(agg_order_te)
-        for k in np.unique(agg_order_te):
-            te_mask = agg_order_te == k
-            te_indices = np.where(te_mask)[0]
-            res_k = res_3d[:, te_indices, :]
-            n_periods_k = len(te_indices)
-            res_pooled = res_k.reshape(n_cs, n_periods_k * res_3d.shape[2])
-            cov_k = _safe_cov_sam(res_pooled)
-            if cov_k.ndim == 0:
-                cov_k = cov_k.reshape(1, 1)
-            for j in te_indices:
-                idx = np.arange(n_cs) * n_te + j
-                W[np.ix_(idx, idx)] = cov_k
-    else:
-        for j in range(n_te):
-            res_j = res_3d[:, j, :]
-            cov_j = _safe_cov_sam(res_j)
-            if cov_j.ndim == 0:
-                cov_j = cov_j.reshape(1, 1)
-            idx = np.arange(n_cs) * n_te + j
-            W[np.ix_(idx, idx)] = cov_j
-
-    return W
+    return _block_diagonal_by_agg_order(res_3d, n_cs, n_te, agg_order_te, _safe_cov_sam)
 
 
 register_covariance("bdsam", _cov_bdsam, requires_residuals=True)
 
 
-# --- Sshr: Series-level block-diagonal shrinkage ---
-def _cov_Sshr(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """Series-level block-diagonal shrinkage covariance.
+# --- Sshr/Ssam: Series-level block-diagonal covariance ---
 
-    Constructs n_cs blocks of size n_te × n_te. Each block is the
-    Schäfer-Strimmer shrinkage covariance of residuals across all
-    temporal periods for that cross-sectional series.
-
-    Each series gets its own shrinkage intensity (following FoReco).
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
-    return _block_diagonal_by_series(res_3d, n_cs, n_te, _safe_cov_shr)
+def _make_ct_series_method(cov_fn):
+    """Factory for series-level block-diagonal CT methods."""
+    def _cov(
+        S: np.ndarray,
+        residuals: np.ndarray | None = None,
+        n_cs: int | None = None,
+        n_te: int | None = None,
+        S_cs: np.ndarray | None = None,
+        S_te: np.ndarray | None = None,
+        **kw,
+    ) -> np.ndarray:
+        n_cs_, n_te_, S_cs_, S_te_ = _validate_ct_args(n_cs, n_te, S_cs, S_te)
+        residuals = _validate_residuals(residuals)
+        res_3d = _reshape_ct_residuals(residuals, n_cs_, n_te_)
+        return _block_diagonal_by_series(res_3d, n_cs_, n_te_, cov_fn)
+    return _cov
 
 
-register_covariance("Sshr", _cov_Sshr, requires_residuals=True)
+_cov_Sshr = _make_ct_series_method(_safe_cov_shr)
+_cov_Sshr.__doc__ = """Series-level block-diagonal shrinkage covariance.
 
+Constructs n_cs blocks of size n_te x n_te. Each block is the
+Schafer-Strimmer shrinkage covariance of residuals across all
+temporal periods for that cross-sectional series.
+"""
+register_covariance("sshr", _cov_Sshr, requires_residuals=True)
 
-# --- Ssam: Series-level block-diagonal sample covariance ---
-def _cov_Ssam(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """Series-level block-diagonal sample covariance.
+_cov_Ssam = _make_ct_series_method(_safe_cov_sam)
+_cov_Ssam.__doc__ = """Series-level block-diagonal sample covariance.
 
-    Constructs n_cs blocks of size n_te × n_te. Each block is the
-    sample covariance of residuals across all temporal periods for
-    that cross-sectional series.
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
-    return _block_diagonal_by_series(res_3d, n_cs, n_te, _safe_cov_sam)
-
-
-register_covariance("Ssam", _cov_Ssam, requires_residuals=True)
+Constructs n_cs blocks of size n_te x n_te. Each block is the
+sample covariance of residuals across all temporal periods for
+that cross-sectional series.
+"""
+register_covariance("ssam", _cov_Ssam, requires_residuals=True)
 
 
 # --- hshr/hsam: High-frequency covariance ---
 # Estimates (n_cs * n_bottom_te) covariance from high-frequency residuals,
-# then propagates through kron(I_n, S_te) to get full (n_ct × n_ct).
+# then propagates through kron(I_n, S_te) to get full (n_ct x n_ct).
+# Uses block-wise computation to avoid materializing the full Kronecker product.
 
 def _cov_hf_propagated(
     residuals: np.ndarray,
@@ -912,10 +1029,9 @@ def _cov_hf_propagated(
 ) -> np.ndarray:
     """High-frequency covariance propagated through temporal summing matrix.
 
-    Estimates covariance from high-frequency (bottom temporal) residuals
-    across ALL cross-sectional series, then propagates via kron(I_n, S_te).
-
-    W = kron(I_n, S_te) @ cov_hf @ kron(I_n, S_te)' + ridge * I
+    Computes W = kron(I_n, S_te) @ cov_hf @ kron(I_n, S_te)' + ridge * I
+    using block-wise multiplication to avoid materializing the full
+    Kronecker product.
     """
     res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
     n_bottom_te = S_te.shape[1]
@@ -930,60 +1046,60 @@ def _cov_hf_propagated(
     if cov_hf.ndim == 0:
         cov_hf = cov_hf.reshape(1, 1)
 
-    # Propagate: kron(I_n, S_te) @ cov_hf @ kron(I_n, S_te)'
-    kI_Ste = np.kron(np.eye(n_cs, dtype=np.float64), S_te)
-    W = kI_Ste @ cov_hf @ kI_Ste.T
+    # Block-wise: kron(I_n, S_te) has n_cs diagonal blocks of S_te.
+    # W[i,j] block = S_te @ cov_hf[i_block, j_block] @ S_te.T
+    n_ct = n_cs * n_te
+    n_bt = n_bottom_te
+    W = np.zeros((n_ct, n_ct), dtype=np.float64)
+    for i in range(n_cs):
+        for j in range(i + 1):
+            cov_block = cov_hf[i * n_bt:(i + 1) * n_bt, j * n_bt:(j + 1) * n_bt]
+            block = S_te @ cov_block @ S_te.T
+            W[i * n_te:(i + 1) * n_te, j * n_te:(j + 1) * n_te] = block
+            if i != j:
+                W[j * n_te:(j + 1) * n_te, i * n_te:(i + 1) * n_te] = block.T
 
     return _ridge_regularize(W)
 
 
-def _cov_hshr(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """High-frequency shrinkage covariance.
-
-    Estimates (n_cs * n_bottom_te) shrinkage covariance from high-frequency
-    residuals across all cross-sectional series, then propagates through
-    kron(I_n, S_te) to the full CT space. Ridge-regularized.
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    return _cov_hf_propagated(residuals, n_cs, n_te, S_cs, S_te, _safe_cov_shr)
+def _make_ct_hf_method(cov_fn):
+    """Factory for high-frequency CT methods."""
+    def _cov(
+        S: np.ndarray,
+        residuals: np.ndarray | None = None,
+        n_cs: int | None = None,
+        n_te: int | None = None,
+        S_cs: np.ndarray | None = None,
+        S_te: np.ndarray | None = None,
+        **kw,
+    ) -> np.ndarray:
+        n_cs_, n_te_, S_cs_, S_te_ = _validate_ct_args(n_cs, n_te, S_cs, S_te)
+        residuals = _validate_residuals(residuals)
+        return _cov_hf_propagated(residuals, n_cs_, n_te_, S_cs_, S_te_, cov_fn)
+    return _cov
 
 
+_cov_hshr = _make_ct_hf_method(_safe_cov_shr)
+_cov_hshr.__doc__ = """High-frequency shrinkage covariance.
+
+Estimates (n_cs * n_bottom_te) shrinkage covariance from high-frequency
+residuals across all cross-sectional series, then propagates through
+kron(I_n, S_te) to the full CT space. Ridge-regularized.
+"""
 register_covariance("hshr", _cov_hshr, requires_residuals=True)
 
+_cov_hsam = _make_ct_hf_method(_safe_cov_sam)
+_cov_hsam.__doc__ = """High-frequency sample covariance.
 
-def _cov_hsam(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """High-frequency sample covariance.
-
-    Same as hshr but uses unregularized sample covariance.
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    return _cov_hf_propagated(residuals, n_cs, n_te, S_cs, S_te, _safe_cov_sam)
-
-
+Same as hshr but uses unregularized sample covariance.
+"""
 register_covariance("hsam", _cov_hsam, requires_residuals=True)
 
 
 # --- hbshr/hbsam: High-frequency bottom time series covariance ---
-# Estimates (n_bottom_cs * n_bottom_te) covariance from bottom CS × bottom
+# Estimates (n_bottom_cs * n_bottom_te) covariance from bottom CS x bottom
 # temporal residuals, then propagates through kron(S_cs, S_te).
+# Uses the Kronecker mixed-product property: (A kron B)(C kron D) = (AC) kron (BD).
 
 def _cov_hf_bottom_propagated(
     residuals: np.ndarray,
@@ -995,14 +1111,14 @@ def _cov_hf_bottom_propagated(
 ) -> np.ndarray:
     """High-frequency bottom covariance propagated through full CT summing matrix.
 
-    W = kron(S_cs, S_te) @ cov_bottom_hf @ kron(S_cs, S_te)' + ridge * I
+    Computes W = kron(S_cs, S_te) @ cov_bottom_hf @ kron(S_cs, S_te)' + ridge * I
     """
     res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
     n_bottom_cs = S_cs.shape[1]
     n_bottom_te = S_te.shape[1]
     n_obs = res_3d.shape[2]
 
-    # Extract bottom CS × bottom temporal: (n_bottom_cs, n_bottom_te, n_obs)
+    # Extract bottom CS x bottom temporal: (n_bottom_cs, n_bottom_te, n_obs)
     res_bottom = res_3d[-n_bottom_cs:, -n_bottom_te:, :]
     # Flatten to (n_bottom_cs * n_bottom_te, n_obs)
     res_bottom_flat = res_bottom.reshape(n_bottom_cs * n_bottom_te, n_obs)
@@ -1018,52 +1134,43 @@ def _cov_hf_bottom_propagated(
     return _ridge_regularize(W)
 
 
-def _cov_hbshr(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """High-frequency bottom time series shrinkage covariance.
-
-    Estimates covariance from bottom CS × bottom temporal residuals,
-    propagates through kron(S_cs, S_te). Ridge-regularized.
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    return _cov_hf_bottom_propagated(residuals, n_cs, n_te, S_cs, S_te, _safe_cov_shr)
+def _make_ct_hf_bottom_method(cov_fn):
+    """Factory for high-frequency bottom CT methods."""
+    def _cov(
+        S: np.ndarray,
+        residuals: np.ndarray | None = None,
+        n_cs: int | None = None,
+        n_te: int | None = None,
+        S_cs: np.ndarray | None = None,
+        S_te: np.ndarray | None = None,
+        **kw,
+    ) -> np.ndarray:
+        n_cs_, n_te_, S_cs_, S_te_ = _validate_ct_args(n_cs, n_te, S_cs, S_te)
+        residuals = _validate_residuals(residuals)
+        return _cov_hf_bottom_propagated(residuals, n_cs_, n_te_, S_cs_, S_te_, cov_fn)
+    return _cov
 
 
+_cov_hbshr = _make_ct_hf_bottom_method(_safe_cov_shr)
+_cov_hbshr.__doc__ = """High-frequency bottom time series shrinkage covariance.
+
+Estimates covariance from bottom CS x bottom temporal residuals,
+propagates through kron(S_cs, S_te). Ridge-regularized.
+"""
 register_covariance("hbshr", _cov_hbshr, requires_residuals=True)
 
+_cov_hbsam = _make_ct_hf_bottom_method(_safe_cov_sam)
+_cov_hbsam.__doc__ = """High-frequency bottom time series sample covariance.
 
-def _cov_hbsam(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """High-frequency bottom time series sample covariance.
-
-    Same as hbshr but uses unregularized sample covariance.
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    return _cov_hf_bottom_propagated(residuals, n_cs, n_te, S_cs, S_te, _safe_cov_sam)
-
-
+Same as hbshr but uses unregularized sample covariance.
+"""
 register_covariance("hbsam", _cov_hbsam, requires_residuals=True)
 
 
 # --- bshr/bsam: Bottom time series covariance ---
 # Estimates (n_bottom_cs * n_te) covariance from bottom CS residuals across
 # all temporal levels, then propagates through kron(S_cs, I_{n_te}).
+# Uses block-wise computation to avoid materializing the full Kronecker product.
 
 def _cov_bottom_cs_propagated(
     residuals: np.ndarray,
@@ -1075,7 +1182,9 @@ def _cov_bottom_cs_propagated(
 ) -> np.ndarray:
     """Bottom CS covariance propagated through kron(S_cs, I_{n_te}).
 
-    W = kron(S_cs, I) @ cov_bottom_all_te @ kron(S_cs, I)' + ridge * I
+    Computes W = kron(S_cs, I) @ cov_bottom_all_te @ kron(S_cs, I)' + ridge * I
+    using the Kronecker mixed-product property to avoid materializing
+    the full Kronecker product.
     """
     res_3d = _reshape_ct_residuals(residuals, n_cs, n_te)
     n_bottom_cs = S_cs.shape[1]
@@ -1090,52 +1199,58 @@ def _cov_bottom_cs_propagated(
     if cov_bottom.ndim == 0:
         cov_bottom = cov_bottom.reshape(1, 1)
 
-    # Propagate through kron(S_cs, I_{n_te})
-    kScs_I = np.kron(S_cs, np.eye(n_te, dtype=np.float64))
-    W = kScs_I @ cov_bottom @ kScs_I.T
+    # Block-wise: kron(S_cs, I_{n_te}) has blocks S_cs[i,j] * I_{n_te}.
+    # W block [i,j] = sum_a sum_b S_cs[i,a] * S_cs[j,b] * cov_bottom[a_block, b_block]
+    # where each block is n_te x n_te.
+    n_ct = n_cs * n_te
+    W = np.zeros((n_ct, n_ct), dtype=np.float64)
+    for i in range(n_cs):
+        for j in range(i + 1):
+            block = np.zeros((n_te, n_te), dtype=np.float64)
+            for a in range(n_bottom_cs):
+                for b in range(n_bottom_cs):
+                    s_ia = S_cs[i, a]
+                    s_jb = S_cs[j, b]
+                    if abs(s_ia) < 1e-15 or abs(s_jb) < 1e-15:
+                        continue
+                    cov_ab = cov_bottom[a * n_te:(a + 1) * n_te, b * n_te:(b + 1) * n_te]
+                    block += s_ia * s_jb * cov_ab
+            W[i * n_te:(i + 1) * n_te, j * n_te:(j + 1) * n_te] = block
+            if i != j:
+                W[j * n_te:(j + 1) * n_te, i * n_te:(i + 1) * n_te] = block.T
 
     return _ridge_regularize(W)
 
 
-def _cov_bshr(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """Bottom time series shrinkage covariance.
-
-    Estimates (n_bottom_cs * n_te) shrinkage covariance from bottom CS
-    residuals across all temporal levels, then propagates through
-    kron(S_cs, I_{n_te}). Ridge-regularized.
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    return _cov_bottom_cs_propagated(residuals, n_cs, n_te, S_cs, S_te, _safe_cov_shr)
+def _make_ct_bottom_cs_method(cov_fn):
+    """Factory for bottom CS CT methods."""
+    def _cov(
+        S: np.ndarray,
+        residuals: np.ndarray | None = None,
+        n_cs: int | None = None,
+        n_te: int | None = None,
+        S_cs: np.ndarray | None = None,
+        S_te: np.ndarray | None = None,
+        **kw,
+    ) -> np.ndarray:
+        n_cs_, n_te_, S_cs_, S_te_ = _validate_ct_args(n_cs, n_te, S_cs, S_te)
+        residuals = _validate_residuals(residuals)
+        return _cov_bottom_cs_propagated(residuals, n_cs_, n_te_, S_cs_, S_te_, cov_fn)
+    return _cov
 
 
+_cov_bshr = _make_ct_bottom_cs_method(_safe_cov_shr)
+_cov_bshr.__doc__ = """Bottom time series shrinkage covariance.
+
+Estimates (n_bottom_cs * n_te) shrinkage covariance from bottom CS
+residuals across all temporal levels, then propagates through
+kron(S_cs, I_{n_te}). Ridge-regularized.
+"""
 register_covariance("bshr", _cov_bshr, requires_residuals=True)
 
+_cov_bsam = _make_ct_bottom_cs_method(_safe_cov_sam)
+_cov_bsam.__doc__ = """Bottom time series sample covariance.
 
-def _cov_bsam(
-    S: np.ndarray,
-    residuals: np.ndarray | None = None,
-    n_cs: int | None = None,
-    n_te: int | None = None,
-    S_cs: np.ndarray | None = None,
-    S_te: np.ndarray | None = None,
-    **kw,
-) -> np.ndarray:
-    """Bottom time series sample covariance.
-
-    Same as bshr but uses unregularized sample covariance.
-    """
-    n_cs, n_te, S_cs, S_te = _validate_ct_args(n_cs, n_te, S_cs, S_te)
-    residuals = _validate_residuals(residuals)
-    return _cov_bottom_cs_propagated(residuals, n_cs, n_te, S_cs, S_te, _safe_cov_sam)
-
-
+Same as bshr but uses unregularized sample covariance.
+"""
 register_covariance("bsam", _cov_bsam, requires_residuals=True)

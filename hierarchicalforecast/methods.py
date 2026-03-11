@@ -14,6 +14,7 @@ from scipy import sparse
 from hierarchicalforecast.covariance import (
     REQUIRES_RESIDUALS,
     estimate_covariance,
+    is_diagonal_method,
     list_covariance_methods,
 )
 from hierarchicalforecast.utils import (
@@ -1358,12 +1359,12 @@ class MinTrace(HReconciler):
         )
 
         # Compute P from W using the MinTrace formula
-        P = self._compute_P_from_W(S, W)
+        P = self._compute_P_from_W(S, W, is_diagonal_method(self.method))
 
         return P, W
 
     @staticmethod
-    def _compute_P_from_W(S: np.ndarray, W: np.ndarray) -> np.ndarray:
+    def _compute_P_from_W(S: np.ndarray, W: np.ndarray, diagonal_W: bool = False) -> np.ndarray:
         """Compute the MinTrace projection matrix P from S and W.
 
         Uses the structural approach with J and Ut matrices for
@@ -1372,6 +1373,8 @@ class MinTrace(HReconciler):
         Args:
             S: Summing matrix (n_hiers, n_bottom).
             W: Covariance matrix (n_hiers, n_hiers).
+            diagonal_W: If True, W is known to be diagonal and a
+                faster element-wise multiply is used instead of matmul.
 
         Returns:
             P: Projection matrix (n_bottom, n_hiers).
@@ -1388,8 +1391,7 @@ class MinTrace(HReconciler):
         )
 
         # Compute UtW efficiently: for diagonal W, avoid full matmul
-        is_diagonal = (W.ndim == 2 and np.count_nonzero(W - np.diag(np.diag(W))) == 0)
-        if is_diagonal:
+        if diagonal_W:
             Wdiag = np.diag(W)
             UtW = Ut * Wdiag
         else:
