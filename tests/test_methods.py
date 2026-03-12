@@ -17,7 +17,10 @@ from hierarchicalforecast.methods import (
     _is_strictly_hierarchical,
     is_strictly_hierarchical,
 )
-from hierarchicalforecast.utils import _construct_adjacency_matrix
+from hierarchicalforecast.utils import (
+    _construct_adjacency_matrix,
+    build_cross_temporal_S,
+)
 
 
 @dataclass
@@ -406,7 +409,7 @@ def test_min_trace_mint_cov_error(hierarchical_data, nonnegative):
     data = hierarchical_data
 
     cls_min_trace = MinTrace(method="mint_cov", nonnegative=nonnegative)
-    with pytest.raises(Exception, match="min_trace.*mint_cov"):
+    with pytest.raises(Exception, match="min_trace.*ill-conditioned"):
         cls_min_trace(
             S=data.S,
             y_hat=data.S @ data.y_hat_bottom,
@@ -1104,3 +1107,398 @@ def test_emint_nonnegative_raises_on_bootstrap_permbu(hierarchical_data, interva
             seed=42,
             tags=data.tags,
             )
+
+
+# ===========================================================================
+# Temporal reconciliation tests (unit-level, numpy arrays)
+# ===========================================================================
+
+@dataclass
+class TemporalTestData:
+    """Test data for temporal reconciliation methods."""
+    S: np.ndarray          # Temporal summing matrix
+    h: int                 # Forecast horizon (number of unique timestamps)
+    y_bottom: np.ndarray   # Bottom-level historical values
+    y_hat_bottom: np.ndarray           # Bottom-level forecasts
+    y_hat_bottom_insample: np.ndarray  # Bottom-level insample forecasts
+    tags: dict[str, np.ndarray]        # Temporal level tags
+    agg_order: np.ndarray              # Aggregation order per temporal level
+
+
+@pytest.fixture
+def temporal_data():
+    """Fixture providing temporal hierarchy test data.
+
+    Temporal hierarchy with 2 aggregation levels:
+    - Year (aggregates 4 quarters): 2 yearly rows
+    - Quarter (bottom level): 8 quarterly rows
+    Total: 10 temporal levels, 8 bottom columns.
+    """
+    # Build the temporal S matrix: 2 years + 8 quarters = 10 rows, 8 bottom cols
+    S_year = np.array([
+        [1, 1, 1, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+    ])
+    S_quarter = np.eye(8)
+    S = np.vstack([S_year, S_quarter])
+
+    h = 8  # horizon = number of bottom-level periods
+    rng = np.random.default_rng(42)
+
+    # Bottom-level historical data (8 quarters x 20 obs)
+    y_bottom = rng.normal(100, 10, (8, 20))
+
+    # Bottom-level forecasts
+    y_hat_bottom = rng.normal(100, 10, (8, h))
+
+    # Bottom-level insample forecasts (with noise)
+    y_hat_bottom_insample = y_bottom + rng.normal(0, 5, y_bottom.shape)
+
+    tags = {
+        "year": np.array([0, 1]),
+        "quarter": np.array([2, 3, 4, 5, 6, 7, 8, 9]),
+    }
+    agg_order = np.sum(S, axis=1).astype(int)
+
+    return TemporalTestData(
+        S=S, h=h, y_bottom=y_bottom, y_hat_bottom=y_hat_bottom,
+        y_hat_bottom_insample=y_hat_bottom_insample,
+        tags=tags, agg_order=agg_order,
+    )
+
+
+# -- BottomUp / TopDown / MiddleOut with temporal S --
+
+def test_bottomup_temporal(temporal_data):
+    """BottomUp works with temporal S matrix — coherence check."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    result = BottomUp()(S=data.S, y_hat=y_hat)["mean"]
+    # BottomUp recovers exactly
+    np.testing.assert_allclose(result, y_hat)
+
+
+def test_topdown_temporal(temporal_data):
+    """TopDown works with temporal S matrix — coherence check."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    result = TopDown(method="forecast_proportions")(
+        S=data.S, y_hat=y_hat, tags=data.tags,
+    )["mean"]
+    # Check coherence: S @ bottom == all levels
+    n_bottom = data.S.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S @ bottom, rtol=1e-10)
+
+
+def test_middleout_temporal(temporal_data):
+    """MiddleOut works with temporal S matrix — coherence check."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    # Middle level is "year" (first 2 rows)
+    result = MiddleOut(middle_level="year", top_down_method="forecast_proportions")(
+        S=data.S, y_hat=y_hat, tags=data.tags,
+    )["mean"]
+    n_bottom = data.S.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S @ bottom, rtol=1e-10)
+
+
+# -- MinTrace with cross-sectional covariance methods on temporal S --
+
+@pytest.mark.parametrize("method", ["ols", "wls_struct"])
+def test_mintrace_cs_methods_on_temporal_s(temporal_data, method):
+    """MinTrace with cross-sectional covariance methods works on temporal S."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    result = MinTrace(method=method)(S=data.S, y_hat=y_hat)["mean"]
+    n_bottom = data.S.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S @ bottom, rtol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["wls_var", "mint_shrink"])
+def test_mintrace_cs_residual_methods_on_temporal_s(temporal_data, method):
+    """MinTrace with residual-based CS methods works on temporal S."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    y_insample = data.S @ data.y_bottom
+    y_hat_insample = data.S @ data.y_hat_bottom_insample
+    result = MinTrace(method=method)(
+        S=data.S, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+    )["mean"]
+    n_bottom = data.S.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S @ bottom, rtol=1e-10)
+
+
+# -- MinTrace with temporal covariance methods --
+
+@pytest.mark.parametrize("method", ["wlsv", "wlsh"])
+def test_mintrace_temporal_diagonal_methods(temporal_data, method):
+    """MinTrace with temporal diagonal covariance methods (wlsv, wlsh)."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    y_insample = data.S @ data.y_bottom
+    y_hat_insample = data.S @ data.y_hat_bottom_insample
+    result = MinTrace(method=method)(
+        S=data.S, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+        method_kwargs={"agg_order": data.agg_order},
+    )["mean"]
+    n_bottom = data.S.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S @ bottom, rtol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["acov", "strar1", "sar1", "har1"])
+def test_mintrace_temporal_full_methods(temporal_data, method):
+    """MinTrace with temporal full covariance methods (acov, AR(1) variants)."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    y_insample = data.S @ data.y_bottom
+    y_hat_insample = data.S @ data.y_hat_bottom_insample
+    result = MinTrace(method=method)(
+        S=data.S, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+        method_kwargs={"agg_order": data.agg_order},
+    )["mean"]
+    n_bottom = data.S.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S @ bottom, rtol=1e-10)
+
+
+# -- ERM with temporal S --
+
+def test_erm_temporal(temporal_data):
+    """ERM works with temporal S matrix — coherence check."""
+    data = temporal_data
+    y_hat = data.S @ data.y_hat_bottom
+    y_insample = data.S @ data.y_bottom
+    y_hat_insample = data.S @ data.y_hat_bottom_insample
+    result = ERM(method="closed")(
+        S=data.S, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+        tags=data.tags,
+    )["mean"]
+    n_bottom = data.S.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S @ bottom, rtol=1e-10)
+
+
+# ===========================================================================
+# Cross-temporal reconciliation tests (unit-level, numpy arrays)
+# ===========================================================================
+
+@dataclass
+class CrossTemporalTestData:
+    """Test data for cross-temporal reconciliation methods."""
+    S_cs: np.ndarray        # Cross-sectional summing matrix
+    S_te: np.ndarray        # Temporal summing matrix
+    S_ct: np.ndarray        # Cross-temporal S = S_cs ⊗ S_te
+    h: int                  # Forecast horizon
+    y_bottom: np.ndarray    # Bottom-level historical values
+    y_hat_bottom: np.ndarray
+    y_hat_bottom_insample: np.ndarray
+    tags: dict[str, np.ndarray]
+    n_cs: int
+    n_te: int
+    agg_order: np.ndarray
+
+
+@pytest.fixture
+def cross_temporal_data():
+    """Fixture providing cross-temporal hierarchy test data.
+
+    Cross-sectional: 1 total + 2 bottom = 3 rows, 2 bottom cols
+    Temporal: 1 year (sum of 2 semesters) + 2 semesters = 3 rows, 2 bottom cols
+    Cross-temporal: 3x3 = 9 rows, 2x2 = 4 bottom cols
+    """
+    S_cs = np.array([
+        [1, 1],
+        [1, 0],
+        [0, 1],
+    ], dtype=np.float64)
+
+    S_te = np.array([
+        [1, 1],
+        [1, 0],
+        [0, 1],
+    ], dtype=np.float64)
+
+    S_ct, row_order = build_cross_temporal_S(S_cs, S_te)
+
+    h = 2  # horizon
+    rng = np.random.default_rng(123)
+    n_bottom_ct = S_ct.shape[1]  # 4
+
+    y_bottom = rng.normal(50, 5, (n_bottom_ct, 30))
+    y_hat_bottom = rng.normal(50, 5, (n_bottom_ct, h))
+    y_hat_bottom_insample = y_bottom + rng.normal(0, 3, y_bottom.shape)
+
+    n_cs = S_cs.shape[0]
+    n_te = S_te.shape[0]
+    agg_order = np.sum(S_te, axis=1).astype(int)
+
+    # Build tags from the reordered row indices
+    cs_names = ["total", "b1", "b2"]
+    te_names = ["year", "sem1", "sem2"]
+    # Kronecker order names
+    kron_names = [f"{cs}//{te}" for cs in cs_names for te in te_names]
+    # Reordered names
+    reordered_names = [kron_names[i] for i in row_order]
+    tags = {name: np.array([idx]) for idx, name in enumerate(reordered_names)}
+
+    return CrossTemporalTestData(
+        S_cs=S_cs, S_te=S_te, S_ct=S_ct, h=h,
+        y_bottom=y_bottom, y_hat_bottom=y_hat_bottom,
+        y_hat_bottom_insample=y_hat_bottom_insample,
+        tags=tags, n_cs=n_cs, n_te=n_te, agg_order=agg_order,
+    )
+
+
+def test_build_cross_temporal_s_shapes(cross_temporal_data):
+    """Test Kronecker product S matrix has correct shape."""
+    data = cross_temporal_data
+    assert data.S_ct.shape == (9, 4)
+
+
+def test_build_cross_temporal_s_aggregation(cross_temporal_data):
+    """Test S_ct correctly aggregates bottom-level values."""
+    data = cross_temporal_data
+    bottom = np.array([10.0, 20.0, 30.0, 40.0])
+    aggregated = data.S_ct @ bottom
+
+    # After reordering, bottom rows (b1//sem1, b1//sem2, b2//sem1, b2//sem2) are last.
+    # The last 4 values should be the identity mapping of bottom:
+    np.testing.assert_allclose(aggregated[-4:], bottom)
+
+    # The total over all should be in the first row (total//year = sum all = 100)
+    assert np.isclose(aggregated[0], 100.0)
+
+
+# -- BottomUp / TopDown with cross-temporal S --
+
+def test_bottomup_cross_temporal(cross_temporal_data):
+    """BottomUp works with cross-temporal S matrix."""
+    data = cross_temporal_data
+    y_hat = data.S_ct @ data.y_hat_bottom
+    result = BottomUp()(S=data.S_ct, y_hat=y_hat)["mean"]
+    np.testing.assert_allclose(result, y_hat)
+
+
+# Note: TopDown and MiddleOut are not tested with cross-temporal S because
+# they require strictly hierarchical structures, which cross-temporal
+# Kronecker products generally do not form.
+
+# -- MinTrace with CS covariance methods on cross-temporal S --
+
+@pytest.mark.parametrize("method", ["ols", "wls_struct"])
+def test_mintrace_cs_methods_on_ct_s(cross_temporal_data, method):
+    """MinTrace with CS covariance methods works on cross-temporal S."""
+    data = cross_temporal_data
+    y_hat = data.S_ct @ data.y_hat_bottom
+    result = MinTrace(method=method)(S=data.S_ct, y_hat=y_hat)["mean"]
+    n_bottom = data.S_ct.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S_ct @ bottom, rtol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["wls_var", "mint_shrink"])
+def test_mintrace_cs_residual_methods_on_ct_s(cross_temporal_data, method):
+    """MinTrace with residual-based CS methods works on cross-temporal S."""
+    data = cross_temporal_data
+    y_hat = data.S_ct @ data.y_hat_bottom
+    y_insample = data.S_ct @ data.y_bottom
+    y_hat_insample = data.S_ct @ data.y_hat_bottom_insample
+    result = MinTrace(method=method)(
+        S=data.S_ct, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+    )["mean"]
+    n_bottom = data.S_ct.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S_ct @ bottom, rtol=1e-10)
+
+
+# -- MinTrace with cross-temporal covariance methods --
+
+@pytest.mark.parametrize("method", ["csstr", "testr"])
+def test_mintrace_ct_structural_methods(cross_temporal_data, method):
+    """MinTrace with cross-temporal structural methods (no residuals needed)."""
+    data = cross_temporal_data
+    y_hat = data.S_ct @ data.y_hat_bottom
+    ct_kwargs = {
+        "n_cs": data.n_cs, "n_te": data.n_te,
+        "S_cs": data.S_cs, "S_te": data.S_te,
+        "agg_order": data.agg_order,
+    }
+    result = MinTrace(method=method)(
+        S=data.S_ct, y_hat=y_hat,
+        method_kwargs=ct_kwargs,
+    )["mean"]
+    n_bottom = data.S_ct.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S_ct @ bottom, rtol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["bdshr", "bdsam", "sshr", "ssam"])
+def test_mintrace_ct_block_diagonal_methods(cross_temporal_data, method):
+    """MinTrace with cross-temporal block-diagonal methods (require residuals)."""
+    data = cross_temporal_data
+    y_hat = data.S_ct @ data.y_hat_bottom
+    y_insample = data.S_ct @ data.y_bottom
+    y_hat_insample = data.S_ct @ data.y_hat_bottom_insample
+    ct_kwargs = {
+        "n_cs": data.n_cs, "n_te": data.n_te,
+        "S_cs": data.S_cs, "S_te": data.S_te,
+        "agg_order": data.agg_order,
+    }
+    result = MinTrace(method=method)(
+        S=data.S_ct, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+        method_kwargs=ct_kwargs,
+    )["mean"]
+    n_bottom = data.S_ct.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S_ct @ bottom, rtol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["hshr", "hsam", "hbshr", "hbsam", "bshr", "bsam"])
+def test_mintrace_ct_full_methods(cross_temporal_data, method):
+    """MinTrace with cross-temporal full covariance methods."""
+    data = cross_temporal_data
+    y_hat = data.S_ct @ data.y_hat_bottom
+    y_insample = data.S_ct @ data.y_bottom
+    y_hat_insample = data.S_ct @ data.y_hat_bottom_insample
+    ct_kwargs = {
+        "n_cs": data.n_cs, "n_te": data.n_te,
+        "S_cs": data.S_cs, "S_te": data.S_te,
+        "agg_order": data.agg_order,
+    }
+    result = MinTrace(method=method)(
+        S=data.S_ct, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+        method_kwargs=ct_kwargs,
+    )["mean"]
+    n_bottom = data.S_ct.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S_ct @ bottom, rtol=1e-10)
+
+
+# -- ERM with cross-temporal S --
+
+def test_erm_cross_temporal(cross_temporal_data):
+    """ERM works with cross-temporal S matrix — coherence check."""
+    data = cross_temporal_data
+    y_hat = data.S_ct @ data.y_hat_bottom
+    y_insample = data.S_ct @ data.y_bottom
+    y_hat_insample = data.S_ct @ data.y_hat_bottom_insample
+    result = ERM(method="closed")(
+        S=data.S_ct, y_hat=y_hat,
+        y_insample=y_insample, y_hat_insample=y_hat_insample,
+        tags=data.tags,
+    )["mean"]
+    n_bottom = data.S_ct.shape[1]
+    bottom = result[-n_bottom:]
+    np.testing.assert_allclose(result, data.S_ct @ bottom, rtol=1e-10)

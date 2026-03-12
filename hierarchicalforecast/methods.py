@@ -11,13 +11,16 @@ import numpy as np
 from qpsolvers import solve_qp
 from scipy import sparse
 
+from hierarchicalforecast.covariance import (
+    REQUIRES_RESIDUALS,
+    estimate_covariance,
+    is_diagonal_method,
+    list_covariance_methods,
+)
 from hierarchicalforecast.utils import (
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
     _lasso,
-    _ma_cov,
-    _shrunk_covariance_schaferstrimmer_no_nans,
-    _shrunk_covariance_schaferstrimmer_with_nans,
     get_num_threads,
     is_strictly_hierarchical,
     set_num_threads,
@@ -1254,7 +1257,14 @@ class MinTrace(HReconciler):
     ```
 
     Args:
-        method (str): One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`, `emint`.
+        method (str): Covariance estimation method. Cross-sectional methods:
+            `ols`, `wls_struct`, `wls_var`, `sam`/`mint_cov`, `shr`/`mint_shrink`,
+            `bu`, `oasd`, `emint`. Temporal methods: `wlsv`, `wlsh`, `acov`,
+            `strar1`, `sar1`, `har1`. Cross-temporal methods: `csstr`, `testr`,
+            `bdshr`, `bdsam`, `sshr`, `ssam`, `hshr`, `hsam`, `hbshr`, `hbsam`,
+            `bshr`, `bsam`. Use ``list_covariance_methods()`` for all registered
+            methods. Temporal and cross-temporal methods require extra kwargs
+            passed via ``method_kwargs`` in ``reconcile()``.
         nonnegative (bool): Reconciled forecasts should be nonnegative?
         mint_shr_ridge (float): Ridge numeric protection to MinTrace-shr covariance estimator.
         num_threads (int): Number of threads for the C++ covariance backend (OpenMP) and for solving the optimization problems (when nonnegative=True).
@@ -1268,6 +1278,17 @@ class MinTrace(HReconciler):
 
     is_strictly_hierarchical = False
 
+    # Methods that are handled outside the covariance module
+    _SPECIAL_METHODS = {"emint"}
+
+    # Temporal and cross-temporal methods require extra kwargs (agg_order,
+    # n_cs, n_te, S_cs, S_te) that MinTrace does not yet support.
+    _TEMPORAL_METHODS = {"wlsv", "wlsh", "acov", "strar1", "sar1", "har1"}
+    _CT_METHODS = {
+        "csstr", "testr", "bdshr", "bdsam", "sshr", "ssam",
+        "hshr", "hsam", "hbshr", "hbsam", "bshr", "bsam",
+    }
+
     def __init__(
         self,
         method: str,
@@ -1275,19 +1296,20 @@ class MinTrace(HReconciler):
         mint_shr_ridge: float = 2e-8,
         num_threads: int = 1,
     ):
-        if method not in ["ols", "wls_struct", "wls_var", "mint_cov", "mint_shrink", "emint"]:
+        _available = list_covariance_methods() + list(self._SPECIAL_METHODS)
+        if method not in _available:
             raise ValueError(
-                f"Unknown method `{method}`. Choose from `ols`, `wls_struct`, `wls_var`, `mint_cov`, `mint_shrink`, `emint`."
+                f"Unknown method `{method}`. Available: {sorted(_available)}."
             )
         self.method = method
         self.nonnegative = nonnegative
-        self.insample = method in ["wls_var", "mint_cov", "mint_shrink", "emint"]
-        if method == "mint_shrink":
+        self.insample = method in REQUIRES_RESIDUALS or method in self._SPECIAL_METHODS
+        if method in ("mint_shrink", "shr"):
             self.mint_shr_ridge = mint_shr_ridge
         self.num_threads = num_threads
         # Store init params for naming (excluding internal flags like insample, num_threads)
         self._init_params = {"method": method, "nonnegative": nonnegative}
-        if method == "mint_shrink":
+        if method in ("mint_shrink", "shr"):
             self._init_params["mint_shr_ridge"] = mint_shr_ridge
 
     def _get_PW_matrices(
@@ -1296,6 +1318,7 @@ class MinTrace(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
         # Temporarily set OpenMP threads to match num_threads
         prev_threads = get_num_threads()
@@ -1307,6 +1330,7 @@ class MinTrace(HReconciler):
                 y_hat=y_hat,
                 y_insample=y_insample,
                 y_hat_insample=y_hat_insample,
+                method_kwargs=method_kwargs,
             )
         finally:
             if self.num_threads != prev_threads:
@@ -1318,8 +1342,9 @@ class MinTrace(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
-        # Handle emint method separately
+        # Handle emint method separately (not a covariance method)
         if self.method == "emint":
             return self._get_PW_matrices_emint(
                 S=S,
@@ -1328,82 +1353,71 @@ class MinTrace(HReconciler):
                 y_hat_insample=y_hat_insample,
             )
 
-        # shape residuals_insample (n_hiers, obs)
-        res_methods = ["wls_var", "mint_cov", "mint_shrink"]
-        if self.method in res_methods and (
-            y_insample is None or y_hat_insample is None
-        ):
-            raise ValueError(
-                f"Check `Y_df`. For method `{self.method}` you need to pass insample predictions and insample values."
-            )
+        # Compute residuals if needed
+        residuals = None
+        if self.method in REQUIRES_RESIDUALS:
+            if y_insample is None or y_hat_insample is None:
+                raise ValueError(
+                    f"Check `Y_df`. For method `{self.method}` you need to pass insample predictions and insample values."
+                )
+            # residuals in (n_hiers, n_obs) layout for the covariance module
+            residuals = y_insample - y_hat_insample
+
+        # Build covariance kwargs
+        cov_kwargs = {}
+        if self.method in ("mint_shrink", "shr"):
+            cov_kwargs["mint_shr_ridge"] = self.mint_shr_ridge
+        if method_kwargs:
+            cov_kwargs.update(method_kwargs)
+
+        # Estimate W via the covariance module
+        W = estimate_covariance(
+            method=self.method,
+            S=S,
+            residuals=residuals,
+            **cov_kwargs,
+        )
+
+        # Compute P from W using the MinTrace formula
+        P = self._compute_P_from_W(S, W, is_diagonal_method(self.method))
+
+        return P, W
+
+    @staticmethod
+    def _compute_P_from_W(S: np.ndarray, W: np.ndarray, diagonal_W: bool = False) -> np.ndarray:
+        """Compute the MinTrace projection matrix P from S and W.
+
+        Uses the structural approach with J and Ut matrices for
+        numerical stability.
+
+        Args:
+            S: Summing matrix (n_hiers, n_bottom).
+            W: Covariance matrix (n_hiers, n_hiers).
+            diagonal_W: If True, W is known to be diagonal and a
+                faster element-wise multiply is used instead of matmul.
+
+        Returns:
+            P: Projection matrix (n_bottom, n_hiers).
+        """
         n_hiers, n_bottom = S.shape
         n_aggs = n_hiers - n_bottom
+
         # Construct J and U.T
         J = np.concatenate(
             (np.zeros((n_bottom, n_aggs), dtype=np.float64), S[n_aggs:]), axis=1
         )
-        Ut = np.concatenate((np.eye(n_aggs, dtype=np.float64), -S[:n_aggs]), axis=1)
-        if self.method == "ols":
-            W = np.eye(n_hiers)
-            UtW = Ut
-        elif self.method == "wls_struct":
-            Wdiag = np.sum(S, axis=1, dtype=np.float64)
+        Ut = np.concatenate(
+            (np.eye(n_aggs, dtype=np.float64), -S[:n_aggs]), axis=1
+        )
+
+        # Compute UtW efficiently: for diagonal W, avoid full matmul
+        if diagonal_W:
+            Wdiag = np.diag(W)
             UtW = Ut * Wdiag
-            W = np.diag(Wdiag)
-        elif (
-            self.method in res_methods
-            and y_insample is not None
-            and y_hat_insample is not None
-        ):
-            # Residuals with shape (obs, n_hiers)
-            residuals = (y_insample - y_hat_insample).T
-            n, _ = residuals.shape
-
-            # Protection: against overfitted model
-            residuals_sum = np.sum(residuals, axis=0)
-            zero_residual_prc = np.abs(residuals_sum) < 1e-4
-            zero_residual_prc = np.mean(zero_residual_prc)
-            if zero_residual_prc > 0.98:
-                raise Exception(
-                    f"Insample residuals close to 0, zero_residual_prc={zero_residual_prc}. Check `Y_df`"
-                )
-
-            if self.method == "wls_var":
-                Wdiag = (
-                    np.nansum(residuals**2, axis=0, dtype=np.float64)
-                    / residuals.shape[0]
-                )
-                Wdiag += np.full(n_hiers, 2e-8, dtype=np.float64)
-                W = np.diag(Wdiag)
-                UtW = Ut * Wdiag
-            elif self.method == "mint_cov":
-                # Compute nans
-                nan_mask = np.isnan(residuals.T)
-                if np.any(nan_mask):
-                    W = _ma_cov(residuals.T, ~nan_mask)
-                else:
-                    W = np.cov(residuals.T)
-
-                UtW = Ut @ W
-            elif self.method == "mint_shrink":
-                # Compute nans
-                nan_mask = np.isnan(residuals.T)
-                # Compute shrunk empirical covariance
-                if np.any(nan_mask):
-                    W = _shrunk_covariance_schaferstrimmer_with_nans(
-                        residuals.T, ~nan_mask, self.mint_shr_ridge
-                    )
-                else:
-                    W = _shrunk_covariance_schaferstrimmer_no_nans(
-                        residuals.T, self.mint_shr_ridge
-                    )
-
-                UtW = Ut @ W
         else:
-            raise ValueError(f"Unknown reconciliation method {self.method}")
+            UtW = Ut @ W
 
         try:
-            # improve stability of linalg.solve
             coef = UtW[:, n_aggs:] @ Ut.T[n_aggs:] + UtW[:, :n_aggs]
             coef[np.abs(coef) < 1e-10] = 0.0
             dep = UtW[:, n_aggs:] @ J.T[n_aggs:]
@@ -1411,16 +1425,11 @@ class MinTrace(HReconciler):
 
             P = J - np.linalg.solve(coef, dep).T @ Ut
         except np.linalg.LinAlgError:
-            if self.method == "mint_shrink":
-                raise Exception(
-                    f"min_trace ({self.method}) is ill-conditioned. Increase the value of parameter 'mint_shr_ridge' or use another reconciliation method."
-                )
-            else:
-                raise Exception(
-                    f"min_trace ({self.method}) is ill-conditioned. Please use another reconciliation method."
-                )
+            raise Exception(
+                "min_trace is ill-conditioned. Please use another reconciliation method or covariance estimator."
+            )
 
-        return P, W
+        return P
 
     def _get_PW_matrices_emint(
         self,
@@ -1489,6 +1498,7 @@ class MinTrace(HReconciler):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ):
         """MinTrace Fit Method.
 
@@ -1502,6 +1512,7 @@ class MinTrace(HReconciler):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods).
 
         Returns:
             self: object, fitted reconciler.
@@ -1511,6 +1522,7 @@ class MinTrace(HReconciler):
             y_hat=y_hat,
             y_insample=y_insample,
             y_hat_insample=y_hat_insample,
+            method_kwargs=method_kwargs,
         )
         self.y_hat = y_hat
 
@@ -1586,6 +1598,7 @@ class MinTrace(HReconciler):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ):
         """MinTrace Reconciliation Method.
 
@@ -1600,6 +1613,7 @@ class MinTrace(HReconciler):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods).
 
         Returns:
             y_tilde: Reconciliated y_hat using the MinTrace approach.
@@ -1621,6 +1635,7 @@ class MinTrace(HReconciler):
             num_samples=num_samples,
             seed=seed,
             tags=tags,
+            method_kwargs=method_kwargs,
         )
 
         return self._reconcile(
@@ -1674,6 +1689,7 @@ class MinTraceSparse(MinTrace):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
         # shape residuals_insample (n_hiers, obs)
         res_methods = ["wls_var", "mint_cov", "mint_shrink"]
@@ -1764,6 +1780,7 @@ class MinTraceSparse(MinTrace):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ) -> "MinTraceSparse":
         """MinTraceSparse Fit Method.
 
@@ -1777,6 +1794,7 @@ class MinTraceSparse(MinTrace):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments (unused in sparse variant, accepted for API compatibility).
 
         Returns:
             self: object, fitted reconciler.
