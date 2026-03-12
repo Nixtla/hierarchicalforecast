@@ -36,17 +36,17 @@ jobs:
 
       - name: Set up QEMU
         if: matrix.os-platform[1] == 'manylinux_aarch64'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
 
       - name: Build wheels and run tests
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_BUILD: cp${{ matrix.python-version }}-${{ matrix.os-platform[1] }}
           CIBW_BUILD_FRONTEND: build[uv]
