@@ -28,7 +28,6 @@ generate hierarchically coherent prediction distributions. This class is
 meant to be used as the `sampler` input as other `HierarchicalForecast` [reconciliation classes](./methods).
 
 Given base forecasts under a normal distribution:
-
 ```math
 \hat{y}_{h} \sim \mathrm{N}(\hat{\boldsymbol{\mu}}, \hat{\mathbf{W}}_{h})
 ```
@@ -44,36 +43,36 @@ The reconciled forecasts are also normally distributed:
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | Summing matrix of size (`base`, `bottom`). | *required*
-`P` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | Reconciliation matrix of size (`bottom`, `base`). | *required*
+`S` | <code>[Union](#Union)[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)]</code> | Summing matrix of size (`base`, `bottom`). | *required*
+`P` | <code>[Union](#Union)[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)]</code> | Reconciliation matrix of size (`bottom`, `base`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Point forecasts values of size (`base`, `horizon`). | *required*
 `sigmah` | <code>[ndarray](#numpy.ndarray)</code> | Forecast standard dev. of size (`base`, `horizon`). | *required*
-`W` | <code>[Union](#Union)\[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)\]</code> | Hierarchical covariance matrix of size (`base`, `base`). Required when `covariance_type='diagonal'` (default). **Ignored** when `covariance_type` is `'full'` or `'shrink'` (covariance is computed from residuals instead). Default is None. | <code>None</code>
+`W` | <code>[Union](#Union)[[ndarray](#numpy.ndarray), [spmatrix](#scipy.sparse.spmatrix)]</code> | Hierarchical covariance matrix of size (`base`, `base`). Required when `covariance_type='diagonal'` (default). **Ignored** when `covariance_type` is `'full'` or `'shrink'` (covariance is computed from residuals instead). Default is None. | <code>None</code>
 `seed` | <code>[int](#int)</code> | Random seed for numpy generator's replicability. Default is 0. | <code>0</code>
-`covariance_type` | <code>[Union](#Union)\[[str](#str), [CovarianceType](#hierarchicalforecast.probabilistic_methods.CovarianceType)\]</code> | Type of covariance estimator. Can be a string or CovarianceType enum. Options are:<br/>- `'diagonal'` / `CovarianceType.DIAGONAL`: Uses the W matrix diagonal with correlation scaling (default, backward compatible). W is required. - `'full'` / `CovarianceType.FULL`: Uses full empirical covariance from residuals. W is ignored. Warning: may be non-positive-definite if n_series > n_observations. - `'shrink'` / `CovarianceType.SHRINK`: Uses Schäfer-Strimmer shrinkage estimator. W is ignored. Recommended for numerical stability with many series.<br/>Default is `'diagonal'`. | <code>'diagonal'</code>
+`covariance_type` | <code>[Union](#Union)[[str](#str), [CovarianceType](#hierarchicalforecast.probabilistic_methods.CovarianceType)]</code> | Type of covariance estimator. Can be a string or CovarianceType enum. Options are:<br/>- `'diagonal'` / `CovarianceType.DIAGONAL`: Uses the W matrix diagonal with   correlation scaling (default, backward compatible). W is required. - `'full'` / `CovarianceType.FULL`: Uses full empirical covariance from residuals.   W is ignored. Warning: may be non-positive-definite if n_series > n_observations. - `'shrink'` / `CovarianceType.SHRINK`: Uses Schäfer-Strimmer shrinkage estimator.   W is ignored. Recommended for numerical stability with many series.<br/>Default is `'diagonal'`. | <code>'diagonal'</code>
 `residuals` | <code>[ndarray](#numpy.ndarray)</code> | Insample residuals of size (`base`, `obs`). Required when `covariance_type` is `'full'` or `'shrink'`. Default is None. | <code>None</code>
-`shrinkage_ridge` | <code>[float](#float)</code> | Ridge parameter for shrinkage covariance estimator. Only used when `covariance_type='shrink'`. A warning is issued if provided with other covariance types. Default is 2e-8. | <code>[\_DEFAULT_SHRINKAGE_RIDGE](#hierarchicalforecast.probabilistic_methods.Normality._DEFAULT_SHRINKAGE_RIDGE)</code>
+`shrinkage_ridge` | <code>[float](#float)</code> | Ridge parameter for shrinkage covariance estimator. Only used when `covariance_type='shrink'`. A warning is issued if provided with other covariance types. Default is 2e-8. | <code>[_DEFAULT_SHRINKAGE_RIDGE](#hierarchicalforecast.probabilistic_methods.Normality._DEFAULT_SHRINKAGE_RIDGE)</code>
 
 **Raises:**
 
 Type | Description
 ---- | -----------
-<code>[ValueError](#ValueError)</code>| If `covariance_type` is invalid.
-<code>[ValueError](#ValueError)</code>| If `covariance_type='diagonal'` and `W` is None.
-<code>[ValueError](#ValueError)</code>| If `covariance_type` is `'full'` or `'shrink'` and `residuals` is None.
-<code>[ValueError](#ValueError)</code>| If `residuals` shape doesn't match expected (`base`, `obs`).
-<code>[ValueError](#ValueError)</code>| If `residuals` has fewer than 2 observations.
-<code>[ValueError](#ValueError)</code>| If `residuals` is empty.
-<code>[ValueError](#ValueError)</code>| If any series in `residuals` has all NaN values.
+<code>[ValueError](#ValueError)</code> | If `covariance_type` is invalid.
+<code>[ValueError](#ValueError)</code> | If `covariance_type='diagonal'` and `W` is None.
+<code>[ValueError](#ValueError)</code> | If `covariance_type` is `'full'` or `'shrink'` and `residuals` is None.
+<code>[ValueError](#ValueError)</code> | If `residuals` shape doesn't match expected (`base`, `obs`).
+<code>[ValueError](#ValueError)</code> | If `residuals` has fewer than 2 observations.
+<code>[ValueError](#ValueError)</code> | If `residuals` is empty.
+<code>[ValueError](#ValueError)</code> | If any series in `residuals` has all NaN values.
 
 **Warns:**
 
 Type | Description
 ---- | -----------
-<code>UserWarning</code>| If `shrinkage_ridge` is provided but `covariance_type` is not `'shrink'`.
-<code>UserWarning</code>| If `W` is provided but `covariance_type` is not `'diagonal'` (W is ignored).
-<code>UserWarning</code>| If any series has zero or near-zero variance (may affect correlation estimates).
-<code>UserWarning</code>| If `covariance_type='full'` and n_series > n_observations (non-PSD risk).
+<code>UserWarning</code> | If `shrinkage_ridge` is provided but `covariance_type` is not `'shrink'`.
+<code>UserWarning</code> | If `W` is provided but `covariance_type` is not `'diagonal'` (W is ignored).
+<code>UserWarning</code> | If any series has zero or near-zero variance (may affect correlation estimates).
+<code>UserWarning</code> | If `covariance_type='full'` and n_series > n_observations (non-PSD risk).
 
 <details class="references" open markdown="1">
 <summary>References</summary>
@@ -133,6 +132,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`base`, `horizon`, `num_samples`).
 
+
 ## 2. Bootstrap
 
 ### `Bootstrap`
@@ -151,13 +151,11 @@ for any reconciliation strategy. This class is meant to be used as the `sampler`
 input as other `HierarchicalForecast` [reconciliation classes](./methods).
 
 Given a boostraped set of simulated sample paths:
-
 ```math
 \hat{\mathbf{y}}^{[1]}_{\\tau}, \dots ,\hat{\mathbf{y}}^{[B]}_{\\tau})
 ```
 
 The reconciled sample paths allow for reconciled distributional forecasts:
-
 ```math
 (\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[1]}_{\\tau}, \dots ,\mathbf{S}\mathbf{P}\hat{\mathbf{y}}^{[B]}_{\\tau})
 ```
@@ -166,8 +164,8 @@ The reconciled sample paths allow for reconciled distributional forecasts:
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | <code>[ndarray](#numpy.ndarray) | [spmatrix](#scipy.sparse.spmatrix)</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
-`P` | <code>[ndarray](#numpy.ndarray) | [spmatrix](#scipy.sparse.spmatrix)</code> | np.array, reconciliation matrix of size (`bottom`, `base`). | *required*
+`S` | <code>[ndarray](#numpy.ndarray) \| [spmatrix](#scipy.sparse.spmatrix)</code> | np.array, summing matrix of size (`base`, `bottom`). | *required*
+`P` | <code>[ndarray](#numpy.ndarray) \| [spmatrix](#scipy.sparse.spmatrix)</code> | np.array, reconciliation matrix of size (`bottom`, `base`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Point forecasts values of size (`base`, `horizon`). | *required*
 `y_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample values of size (`base`, `insample_size`). | *required*
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample point forecasts of size (`base`, `insample_size`). | *required*
@@ -203,7 +201,8 @@ Name | Type | Description | Default
 
 Name | Type | Description
 ---- | ---- | -----------
-`samples` | | Coherent samples of size (`base`, `horizon`, `num_samples`).
+`samples` |  | Coherent samples of size (`base`, `horizon`, `num_samples`).
+
 
 ## 3. PERMBU
 
@@ -219,24 +218,27 @@ The PERMBU method leverages empirical bottom-level marginal distributions
 with empirical copula functions (describing bottom-level dependencies) to
 generate the distribution of aggregate-level distributions using BottomUp
 reconciliation. The sample reordering technique in the PERMBU method reinjects
-multivariate dependencies into independent bottom-level samples. $\\hat{\\epsilon}\_{i,t}$
+multivariate dependencies into independent bottom-level samples.
+
+```math
+residuals = \hat{\epsilon}_{i,t}
+```
 
 Algorithm:
-
 1. For all series compute conditional marginals distributions.
-1. Compute residuals $\\hat{\\epsilon}\_{i,t}$ and obtain rank permutations.
-1. Obtain K-sample from the bottom-level series predictions.
-1. Apply recursively through the hierarchical structure:
-   4.1. For a given aggregate series $i$ and its children series:
-   4.2. Obtain children's empirical joint using sample reordering copula.
-   4.2. From the children's joint obtain the aggregate series's samples.
+2. Compute `residuals` and obtain rank permutations.
+3. Obtain K-sample from the bottom-level series predictions.
+4. Apply recursively through the hierarchical structure:
+    1. For a given aggregate series $i$ and its children series:
+    2. Obtain children's empirical joint using sample reordering copula.
+    3. From the children's joint obtain the aggregate series's samples.
 
 **Parameters:**
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[array](#numpy.array)</code> | summing matrix of size (`base`, `bottom`). | *required*
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | *required*
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and each value its `S` indices. | *required*
 `y_insample` | <code>[array](#numpy.array)</code> | Insample values of size (`base`, `insample_size`). | *required*
 `y_hat_insample` | <code>[array](#numpy.array)</code> | Insample point forecasts of size (`base`, `insample_size`). | *required*
 `sigmah` | <code>[array](#numpy.array)</code> | forecast standard dev. of size (`base`, `horizon`). | *required*
@@ -274,6 +276,7 @@ Name | Type | Description | Default
 Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`base`, `horizon`, `num_samples`).
+
 
 ## References
 

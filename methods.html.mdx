@@ -84,16 +84,14 @@ Bottom Up Reconciliation Class.
 
 The most basic hierarchical reconciliation is performed using an Bottom-Up strategy. It was proposed for
 the first time by Orcutt in 1968.
-The corresponding hierarchical "projection" matrix is defined as:
-
+The corresponding hierarchical \"projection\" matrix is defined as:
 ```math
 \mathbf{P}_{\\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]
 ```
 
 References:
-
 - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). "Data aggregation and
-  information loss". The American Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
+information loss". The American Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
 
 #### `BottomUp.fit`
 
@@ -109,13 +107,13 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `horizon`). Default is None. | <code>None</code>
-`y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `horizon`). Default is None. | <code>None</code>
-`sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
-`intervals_method` | <code>[Optional](#Optional)\[[str](#str)\]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
-`num_samples` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
-`seed` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Seed for reproducibility. Default is None. | <code>None</code>
-`tags` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]\]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
+`y_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample values of size (`base`, `horizon`). Default is None. | <code>None</code>
+`y_hat_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample forecast values of size (`base`, `horizon`). Default is None. | <code>None</code>
+`sigmah` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
+`intervals_method` | <code>[Optional](#Optional)[[str](#str)]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
+`num_samples` | <code>[Optional](#Optional)[[int](#int)]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
+`seed` | <code>[Optional](#Optional)[[int](#int)]</code> | Seed for reproducibility. Default is None. | <code>None</code>
+`tags` | <code>[Optional](#Optional)[[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -139,7 +137,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -161,14 +159,14 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `insample_size`). Default is None. | <code>None</code>
-`y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `insample_size`). Default is None. | <code>None</code>
-`sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
-`intervals_method` | <code>[Optional](#Optional)\[[str](#str)\]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
-`num_samples` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
-`seed` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Seed for reproducibility. Default is None. | <code>None</code>
-`tags` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]\]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
+`y_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample values of size (`base`, `insample_size`). Default is None. | <code>None</code>
+`y_hat_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample forecast values of size (`base`, `insample_size`). Default is None. | <code>None</code>
+`sigmah` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`intervals_method` | <code>[Optional](#Optional)[[str](#str)]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
+`num_samples` | <code>[Optional](#Optional)[[int](#int)]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
+`seed` | <code>[Optional](#Optional)[[int](#int)]</code> | Seed for reproducibility. Default is None. | <code>None</code>
+`tags` | <code>[Optional](#Optional)[[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -201,6 +199,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
 
+
 ### `BottomUpSparse`
 
 ```python
@@ -213,9 +212,9 @@ BottomUpSparse Reconciliation Class.
 
 This is the implementation of a Bottom Up reconciliation using the sparse
 matrix approach. It works much more efficient on datasets with many time series.
-\[makoren: At least I hope so, I only checked up until ~20k time series, and
+[makoren: At least I hope so, I only checked up until ~20k time series, and
 there's no real improvement, it would be great to check for smth like 1M time
-series, where the dense S matrix really stops fitting in memory\]
+series, where the dense S matrix really stops fitting in memory]
 
 See the parent class for more details.
 
@@ -233,13 +232,13 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `horizon`). Default is None. | <code>None</code>
-`y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `horizon`). Default is None. | <code>None</code>
-`sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
-`intervals_method` | <code>[Optional](#Optional)\[[str](#str)\]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
-`num_samples` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
-`seed` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Seed for reproducibility. Default is None. | <code>None</code>
-`tags` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]\]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
+`y_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample values of size (`base`, `horizon`). Default is None. | <code>None</code>
+`y_hat_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample forecast values of size (`base`, `horizon`). Default is None. | <code>None</code>
+`sigmah` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
+`intervals_method` | <code>[Optional](#Optional)[[str](#str)]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
+`num_samples` | <code>[Optional](#Optional)[[int](#int)]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
+`seed` | <code>[Optional](#Optional)[[int](#int)]</code> | Seed for reproducibility. Default is None. | <code>None</code>
+`tags` | <code>[Optional](#Optional)[[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -263,7 +262,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -285,14 +284,14 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample values of size (`base`, `insample_size`). Default is None. | <code>None</code>
-`y_hat_insample` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | In-sample forecast values of size (`base`, `insample_size`). Default is None. | <code>None</code>
-`sigmah` | <code>[Optional](#Optional)\[[ndarray](#numpy.ndarray)\]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
-`intervals_method` | <code>[Optional](#Optional)\[[str](#str)\]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
-`num_samples` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
-`seed` | <code>[Optional](#Optional)\[[int](#int)\]</code> | Seed for reproducibility. Default is None. | <code>None</code>
-`tags` | <code>[Optional](#Optional)\[[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]\]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
+`y_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample values of size (`base`, `insample_size`). Default is None. | <code>None</code>
+`y_hat_insample` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | In-sample forecast values of size (`base`, `insample_size`). Default is None. | <code>None</code>
+`sigmah` | <code>[Optional](#Optional)[[ndarray](#numpy.ndarray)]</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`intervals_method` | <code>[Optional](#Optional)[[str](#str)]</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
+`num_samples` | <code>[Optional](#Optional)[[int](#int)]</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
+`seed` | <code>[Optional](#Optional)[[int](#int)]</code> | Seed for reproducibility. Default is None. | <code>None</code>
+`tags` | <code>[Optional](#Optional)[[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]]</code> | Tags for hierarchical structure. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -325,6 +324,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
 
+
 ## 2. Top-Down
 
 ### `TopDown`
@@ -338,7 +338,7 @@ Bases: <code>[HReconciler](#hierarchicalforecast.methods.HReconciler)</code>
 Top Down Reconciliation Class.
 
 The Top Down hierarchical reconciliation method, distributes the total aggregate predictions and decomposes
-it down the hierarchy using proportions $\\mathbf{p}\_{\\mathrm{[b]}}$ that can be actual historical values
+it down the hierarchy using proportions $\mathbf{p}_{\mathrm{[b]}}$ that can be actual historical values
 or estimated.
 
 ```math
@@ -352,9 +352,8 @@ Name | Type | Description | Default
 `method` | <code>[str](#str)</code> | One of `forecast_proportions`, `average_proportions` and `proportion_averages`. | *required*
 
 References:
-
 - [CW. Gross (1990). "Disaggregation methods to expedite product line forecasting". Journal of Forecasting, 9 , 233-254. doi:10.1002/for.3980090304](https://onlinelibrary.wiley.com/doi/abs/10.1002/for.3980090304).
-- [G. Fliedner (1999). "An investigation of aggregate variable time series forecast strategies with specific subaggregate time series statistical correlation". Computers and Operations Research, 26 , 1133-1149. doi:10.1016/S0305-0548(99)00017-9](<https://doi.org/10.1016/S0305-0548(99)00017-9>).
+- [G. Fliedner (1999). "An investigation of aggregate variable time series forecast strategies with specific subaggregate time series statistical correlation". Computers and Operations Research, 26 , 1133-1149. doi:10.1016/S0305-0548(99)00017-9](https://doi.org/10.1016/S0305-0548(99)00017-9).
 
 #### `TopDown.fit`
 
@@ -376,7 +375,7 @@ Name | Type | Description | Default
 `intervals_method` | <code>[str](#str)</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
 `num_samples` | <code>[int](#int)</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int)</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
@@ -400,7 +399,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -422,11 +421,11 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | *required*
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and each value its `S` indices. | *required*
 `y_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample values of size (`base`, `insample_size`). Optional for `forecast_proportions` method. Default is None. | <code>None</code>
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample forecast values of size (`base`, `insample_size`). Optional for `forecast_proportions` method. Default is None. | <code>None</code>
 `sigmah` | <code>[ndarray](#numpy.ndarray)</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
-`level` | <code>[list](#list)\[[int](#int)\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[list](#list)[[int](#int)]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
 `num_samples` | <code>[int](#int)</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
 `seed` | <code>[int](#int)</code> | Seed for reproducibility. | <code>None</code>
@@ -462,6 +461,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
 
+
 ### `TopDownSparse`
 
 Bases: <code>[TopDown](#hierarchicalforecast.methods.TopDown)</code>
@@ -493,7 +493,7 @@ Name | Type | Description | Default
 `intervals_method` | <code>[str](#str)</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
 `num_samples` | <code>[int](#int)</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int)</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
@@ -517,7 +517,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -555,6 +555,7 @@ Name | Type | Description | Default
 Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
+
 
 ```python
 cls_top_down(
@@ -595,10 +596,9 @@ Name | Type | Description | Default
 `top_down_method` | <code>[str](#str)</code> | One of `forecast_proportions`, `average_proportions` and `proportion_averages`. | *required*
 
 References:
-
 - [Hyndman, R.J., & Athanasopoulos, G. (2021). "Forecasting: principles and
-  practice, 3rd edition: Chapter 11: Forecasting hierarchical and grouped series".
-  OTexts: Melbourne, Australia. OTexts.com/fpp3. Accessed on July 2022.](https://otexts.com/fpp3/hierarchical.html)
+practice, 3rd edition: Chapter 11: Forecasting hierarchical and grouped series".
+OTexts: Melbourne, Australia. OTexts.com/fpp3. Accessed on July 2022.](https://otexts.com/fpp3/hierarchical.html)
 
 #### `MiddleOut.fit`
 
@@ -626,11 +626,11 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\]</code> | Each key is a level and each value its `S` indices. | *required*
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and each value its `S` indices. | *required*
 `y_insample` | <code>[ndarray](#numpy.ndarray)</code> | Insample values of size (`base`, `insample_size`). Only used for `forecast_proportions`. Default is None. | <code>None</code>
 `y_hat_insample` | <code>[ndarray](#numpy.ndarray)</code> | In-sample forecast values of size (`base`, `insample_size`). Only used for `forecast_proportions`. Default is None. | <code>None</code>
 `sigmah` | <code>[ndarray](#numpy.ndarray)</code> | Estimated standard deviation of the conditional marginal distribution. Default is None. | <code>None</code>
-`level` | <code>[list](#list)\[[int](#int)\]</code> | Confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[list](#list)[[int](#int)]</code> | Confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. Default is None. | <code>None</code>
 `num_samples` | <code>[int](#int)</code> | Number of samples for probabilistic coherent distribution. Default is None. | <code>None</code>
 `seed` | <code>[int](#int)</code> | Seed for reproducibility. Default is None. | <code>None</code>
@@ -639,7 +639,7 @@ Name | Type | Description | Default
 
 Name | Type | Description
 ---- | ---- | -----------
-`y_tilde` | | Reconciliated y_hat using the Middle Out approach.
+`y_tilde` |  | Reconciliated y_hat using the Middle Out approach.
 
 #### `MiddleOut.sample`
 
@@ -665,6 +665,7 @@ Name | Type | Description | Default
 Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
+
 
 ### `MiddleOutSparse`
 
@@ -720,6 +721,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
 
+
 ## 4. Min-Trace
 
 ### `MinTrace`
@@ -733,7 +735,7 @@ Bases: <code>[HReconciler](#hierarchicalforecast.methods.HReconciler)</code>
 MinTrace Reconciliation Class.
 
 This reconciliation algorithm proposed by Wickramasuriya et al. depends on a generalized least squares estimator
-and an estimator of the covariance matrix of the coherency errors $\\mathbf{W}\_{h}$. The Min Trace algorithm
+and an estimator of the covariance matrix of the coherency errors $\mathbf{W}_{h}$. The Min Trace algorithm
 minimizes the squared errors for the coherent forecasts under an unbiasedness assumption; the solution has a
 closed form.
 
@@ -751,7 +753,6 @@ Name | Type | Description | Default
 `num_threads` | <code>[int](#int)</code> | Number of threads for the C++ covariance backend (OpenMP) and for solving the optimization problems (when nonnegative=True). | <code>1</code>
 
 References:
-
 - [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019). "Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization". Journal of the American Statistical Association, 114 , 804-819. doi:10.1080/01621459.2018.1448825.](https://robjhyndman.com/publications/mint/).
 - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182. https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
 - [Wickramasuriya, S.L. (2021). Properties of point forecast reconciliation approaches. arXiv:2103.11129](https://arxiv.org/abs/2103.11129).
@@ -769,21 +770,21 @@ MinTrace Fit Method.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | | Summing matrix of size (`base`, `bottom`). | *required*
-`y_hat` | | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink". | <code>None</code>
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink" | <code>None</code>
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`S` |  | Summing matrix of size (`base`, `bottom`). | *required*
+`y_hat` |  | Forecast values of size (`base`, `horizon`). | *required*
+`y_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink". | <code>None</code>
+`y_hat_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink" | <code>None</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`self` | | object, fitted reconciler.
+`self` |  | object, fitted reconciler.
 
 #### `MinTrace.predict`
 
@@ -801,7 +802,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -823,20 +824,20 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`level` | <code>[list](#list)\[[int](#int)\] | None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`y_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
+`y_hat_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`level` | <code>[list](#list)[[int](#int)] \| None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`y_tilde` | | Reconciliated y_hat using the MinTrace approach.
+`y_tilde` |  | Reconciliated y_hat using the MinTrace approach.
 
 #### `MinTrace.sample`
 
@@ -862,6 +863,7 @@ Name | Type | Description | Default
 Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
+
 
 ### `MinTraceSparse`
 
@@ -902,13 +904,13 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[csr_matrix](#scipy.sparse.csr_matrix)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used with "wls_var". | <code>None</code>
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var" | <code>None</code>
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`y_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample values of size (`base`, `insample_size`). Only used with "wls_var". | <code>None</code>
+`y_hat_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var" | <code>None</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
@@ -932,7 +934,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -954,20 +956,20 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`level` | <code>[list](#list)\[[int](#int)\] | None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`y_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
+`y_hat_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`level` | <code>[list](#list)[[int](#int)] \| None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`y_tilde` | | Reconciliated y_hat using the MinTrace approach.
+`y_tilde` |  | Reconciliated y_hat using the MinTrace approach.
 
 #### `MinTraceSparse.sample`
 
@@ -994,6 +996,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
 
+
 ## 5. Optimal Combination
 
 ### `OptimalCombination`
@@ -1008,9 +1011,9 @@ Optimal Combination Reconciliation Class.
 
 This reconciliation algorithm was proposed by Hyndman et al. 2011, the method uses generalized least squares
 estimator using the coherency errors covariance matrix. Consider the covariance of the base forecast
-$\\textrm{Var}(\\epsilon\_{h}) = \\Sigma\_{h}$, the $\\mathbf{P}$ matrix of this method is defined by:
-$$ \\mathbf{P} = \\left(\\mathbf{S}^{\\intercal}\\Sigma\_{h}^{\\dagger}\\mathbf{S}\\right)^{-1}\\mathbf{S}^{\\intercal}\\Sigma^{\\dagger}_{h}$$
-where $\\Sigma_{h}^{\\dagger}$ denotes the variance pseudo-inverse. The method was later proven equivalent to
+$\\textrm{Var}(\epsilon_{h}) = \Sigma_{h}$, the $\mathbf{P}$ matrix of this method is defined by:
+$$ \mathbf{P} = \\left(\mathbf{S}^{\intercal}\Sigma_{h}^{\dagger}\mathbf{S}\\right)^{-1}\mathbf{S}^{\intercal}\Sigma^{\dagger}_{h}$$
+where $\Sigma_{h}^{\dagger}$ denotes the variance pseudo-inverse. The method was later proven equivalent to
 `MinTrace` variants.
 
 **Parameters:**
@@ -1041,21 +1044,21 @@ MinTrace Fit Method.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | | Summing matrix of size (`base`, `bottom`). | *required*
-`y_hat` | | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink". | <code>None</code>
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink" | <code>None</code>
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`S` |  | Summing matrix of size (`base`, `bottom`). | *required*
+`y_hat` |  | Forecast values of size (`base`, `horizon`). | *required*
+`y_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink". | <code>None</code>
+`y_hat_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample forecast values of size (`base`, `insample_size`). Only used with "wls_var", "mint_cov", "mint_shrink" | <code>None</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`self` | | object, fitted reconciler.
+`self` |  | object, fitted reconciler.
 
 #### `OptimalCombination.predict`
 
@@ -1073,7 +1076,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -1095,20 +1098,20 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`level` | <code>[list](#list)\[[int](#int)\] | None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`y_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
+`y_hat_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample fitted values of size (`base`, `insample_size`). Only used by `wls_var`, `mint_cov`, `mint_shrink` | <code>None</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`level` | <code>[list](#list)[[int](#int)] \| None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`y_tilde` | | Reconciliated y_hat using the MinTrace approach.
+`y_tilde` |  | Reconciliated y_hat using the MinTrace approach.
 
 #### `OptimalCombination.sample`
 
@@ -1135,6 +1138,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
 
+
 ## 6. Emp. Risk Minimization
 
 ### `ERM`
@@ -1151,12 +1155,12 @@ The Empirical Risk Minimization reconciliation strategy relaxes the unbiasedness
 previous reconciliation methods like MinT and optimizes square errors between the reconciled predictions
 and the validation data to obtain an optimal reconciliation matrix P.
 
-The exact solution for $\\mathbf{P}$ (`method='closed'`) follows the expression:
-$$\\mathbf{P}^{\*} = \\left(\\mathbf{S}^{\\intercal}\\mathbf{S}\\right)^{-1}\\mathbf{Y}^{\\intercal}\\hat{\\mathbf{Y}}\\left(\\hat{\\mathbf{Y}}\\hat{\\mathbf{Y}}\\right)^{-1}$$
+The exact solution for $\mathbf{P}$ (`method='closed'`) follows the expression:
+$$\mathbf{P}^{*} = \\left(\mathbf{S}^{\intercal}\mathbf{S}\\right)^{-1}\mathbf{Y}^{\intercal}\hat{\mathbf{Y}}\\left(\hat{\mathbf{Y}}\hat{\mathbf{Y}}\\right)^{-1}$$
 
-The alternative Lasso regularized $\\mathbf{P}$ solution (`method='reg_bu'`) is useful when the observations
+The alternative Lasso regularized $\mathbf{P}$ solution (`method='reg_bu'`) is useful when the observations
 of validation data is limited or the exact solution has low numerical stability.
-$$\\mathbf{P}^{\*} = \\text{argmin}_{\\mathbf{P}} ||\\mathbf{Y}-\\mathbf{S} \\mathbf{P} \\hat{Y} ||^{2}_{2} + \\lambda ||\\mathbf{P}-\\mathbf{P}_{\\text{BU}}||_{1}$$
+$$\mathbf{P}^{*} = \\text{argmin}_{\mathbf{P}} ||\mathbf{Y}-\mathbf{S} \mathbf{P} \hat{Y} ||^{2}_{2} + \lambda ||\mathbf{P}-\mathbf{P}_{\\text{BU}}||_{1}$$
 
 **Parameters:**
 
@@ -1184,21 +1188,21 @@ ERM Fit Method.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | | Summing matrix of size (`base`, `bottom`). | *required*
-`y_hat` | | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | | Train values of size (`base`, `insample_size`). | *required*
-`y_hat_insample` | | Insample train predictions of size (`base`, `insample_size`). | *required*
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`S` |  | Summing matrix of size (`base`, `bottom`). | *required*
+`y_hat` |  | Forecast values of size (`base`, `horizon`). | *required*
+`y_insample` |  | Train values of size (`base`, `insample_size`). | *required*
+`y_hat_insample` |  | Insample train predictions of size (`base`, `insample_size`). | *required*
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`self` | | object, fitted reconciler.
+`self` |  | object, fitted reconciler.
 
 #### `ERM.predict`
 
@@ -1216,7 +1220,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`level` | <code>[Optional](#Optional)\[[list](#list)\[[int](#int)\]\]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
+`level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | float list 0-100, confidence levels for prediction intervals. Default is None. | <code>None</code>
 
 **Returns:**
 
@@ -1238,20 +1242,20 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
 `y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Forecast values of size (`base`, `horizon`). | *required*
-`y_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Train values of size (`base`, `insample_size`). | <code>None</code>
-`y_hat_insample` | <code>[ndarray](#numpy.ndarray) | None</code> | Insample train predictions of size (`base`, `insample_size`). | <code>None</code>
-`sigmah` | <code>[ndarray](#numpy.ndarray) | None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
-`level` | <code>[list](#list)\[[int](#int)\] | None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
-`intervals_method` | <code>[str](#str) | None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
-`num_samples` | <code>[int](#int) | None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
-`seed` | <code>[int](#int) | None</code> | Seed for reproducibility. | <code>None</code>
-`tags` | <code>[dict](#dict)\[[str](#str), [ndarray](#numpy.ndarray)\] | None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
+`y_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Train values of size (`base`, `insample_size`). | <code>None</code>
+`y_hat_insample` | <code>[ndarray](#numpy.ndarray) \| None</code> | Insample train predictions of size (`base`, `insample_size`). | <code>None</code>
+`sigmah` | <code>[ndarray](#numpy.ndarray) \| None</code> | Estimated standard deviation of the conditional marginal distribution. | <code>None</code>
+`level` | <code>[list](#list)[[int](#int)] \| None</code> | float list 0-100, confidence levels for prediction intervals. | <code>None</code>
+`intervals_method` | <code>[str](#str) \| None</code> | Sampler for prediction intervals, one of `normality`, `bootstrap`, `permbu`, `conformal`. | <code>None</code>
+`num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
+`seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
+`tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
 
 **Returns:**
 
 Name | Type | Description
 ---- | ---- | -----------
-`y_tilde` | | Reconciliated y_hat using the ERM approach.
+`y_tilde` |  | Reconciliated y_hat using the ERM approach.
 
 #### `ERM.sample`
 
@@ -1277,6 +1281,7 @@ Name | Type | Description | Default
 Name | Type | Description
 ---- | ---- | -----------
 `samples` | <code>[ndarray](#numpy.ndarray)</code> | Coherent samples of size (`num_series`, `horizon`, `num_samples`).
+
 
 ## References
 
