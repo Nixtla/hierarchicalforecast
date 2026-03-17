@@ -6,7 +6,7 @@ title: Aggregation/Visualization Utils
 
 The `HierarchicalForecast` package contains utility functions to wrangle
 and visualize hierarchical series datasets. The
-[`aggregate`](https://nixtlaverse.nixtla.io/hierarchicalforecast/utils.html#aggregate)
+[`aggregate`](https://Nixtla.github.io/hierarchicalforecast/src/utils.html#aggregate)
 function of the module allows you to create a hierarchy from categorical
 variables representing the structure levels, returning also the
 aggregation contraints matrix $\mathbf{S}$.
@@ -150,7 +150,7 @@ to medium sized hierarchical series.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`S` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](./utils.html#aggregate). | *required*
+`S` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate function](./utils#function-aggregate). | *required*
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | hierarchical aggregation indexes, where each key is a level and its value contains tags associated to that level. | *required*
 `S_id_col` | <code>[str](#str)</code> | column that identifies each aggregation. Default is 'unique_id'. | <code>'unique_id'</code>
 
