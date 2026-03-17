@@ -16,7 +16,7 @@ the hierarchical time series pd.DataFrame `Y_df`, the base predictions
 pd.DataFrame `Y_hat_df`, the aggregation constraints matrix `S_df`. For
 more information on the creation of aggregation constraints matrix see
 the utils [aggregation
-method](https://nixtlaverse.nixtla.io/hierarchicalforecast/src/utils.html#aggregate)
+method](https://nixtlaverse.nixtla.io/hierarchicalforecast/utils.html#aggregate)
 
 ### `HierarchicalReconciliation`
 
@@ -30,13 +30,14 @@ The `core.HierarchicalReconciliation` class allows you to efficiently fit multip
 HierarchicaForecast methods for a collection of time series and base predictions stored in
 pandas DataFrames. The `Y_df` dataframe identifies series and datestamps with the unique_id and ds columns while the
 y column denotes the target time series variable. The `Y_h` dataframe stores the base predictions,
-example ([AutoARIMA](../../../statsforecast/docs/models/AutoARIMA#autoarima-model), [ETS](../../../statsforecast/docs/models/AutoETS#autoets-model), etc.).
+example ([AutoARIMA](../../../statsforecast/src/core/models.html#autoarima),
+[ETS](../../../statsforecast/src/core/models.html#autoets), etc.).
 
 **Parameters:**
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`- reconcilers` | <code>[list](#list)[[HReconciler](#hierarchicalforecast.methods.HReconciler)]</code> | A list of instantiated classes of the [reconciliation methods](./methods) module. | *required*
+`- reconcilers` | <code>[list](#list)[[HReconciler](#hierarchicalforecast.methods.HReconciler)]</code> | A list of instantiated classes of the [reconciliation methods](./methods.html) module. | *required*
 
 <details class="references" open markdown="1">
 <summary>References</summary>
@@ -83,7 +84,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and its value contains tags associated to that level. | *required*
-`S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). Default is None. | <code>None</code>
+`S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils.html#aggregate). Default is None. | <code>None</code>
 `Y_df` | <code>[Optional](#Optional)[[Frame](#narwhals.typing.Frame)]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
 `level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | positive float list [0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". | <code>'normality'</code>
