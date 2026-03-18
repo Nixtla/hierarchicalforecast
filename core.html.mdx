@@ -48,7 +48,7 @@ Name | Type | Description | Default
 #### `HierarchicalReconciliation.reconcile`
 
 ```python
-reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, diagnostics=False, diagnostics_atol=1e-06)
+reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, diagnostics=False, diagnostics_atol=1e-06, method_kwargs=None, cross_temporal=False, S_cs_df=None, S_te_df=None)
 ```
 
 Hierarchical Reconciliation Method.
@@ -97,6 +97,10 @@ Name | Type | Description | Default
 `temporal` | <code>[bool](#bool)</code> | if True, perform temporal reconciliation. Default is False. | <code>False</code>
 `diagnostics` | <code>[bool](#bool)</code> | if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False. | <code>False</code>
 `diagnostics_atol` | <code>[float](#float)</code> | absolute tolerance for numerical coherence check. Default is 1e-6. | <code>1e-06</code>
+`method_kwargs` | <code>[dict](#dict)</code> | Extra keyword arguments passed through to `estimate_covariance()` via the reconciler. For temporal methods, `agg_order` is auto-derived from S when `temporal=True`. For cross-temporal methods, `n_cs`, `n_te`, `S_cs`, `S_te` are auto-populated when `cross_temporal=True`. Default is None. | <code>None</code>
+`cross_temporal` | <code>[bool](#bool)</code> | if True, perform cross-temporal reconciliation by building ``S_ct = S_cs ⊗ S_te``. Requires ``S_cs_df`` and ``S_te_df``. Default is False. | <code>False</code>
+`S_cs_df` | <code>[Frame](#narwhals.typing.Frame)</code> | Cross-sectional summing matrix DataFrame (required when ``cross_temporal=True``). Default is None. | <code>None</code>
+`S_te_df` | <code>[Frame](#narwhals.typing.Frame)</code> | Temporal summing matrix DataFrame (required when ``cross_temporal=True``). Default is None. | <code>None</code>
 
 **Returns:**
 

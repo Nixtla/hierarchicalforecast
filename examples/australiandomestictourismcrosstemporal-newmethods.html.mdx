@@ -1,0 +1,779 @@
+---
+title: Cross-Temporal Reconciliation with New Covariance Methods (Tourism)
+---
+
+> Joint optimal cross-temporal reconciliation on Australian Tourism data
+> using extended covariance estimators
+
+This notebook showcases the **joint cross-temporal reconciliation**
+capabilities introduced in `HierarchicalForecast`. Rather than
+reconciling the cross-sectional and temporal dimensions sequentially (as
+in the [basic cross-temporal
+example](australiandomestictourismcrosstemporal.ipynb)), here we
+reconcile both dimensions **simultaneously** using the Kronecker-product
+formulation:
+
+$$\mathbf{S}_{ct} = \mathbf{S}_{cs} \otimes \mathbf{S}_{te}$$
+
+We demonstrate covariance estimation methods across several categories:
+
+| Method        | Category                       | Requires residuals? |
+|---------------|--------------------------------|---------------------|
+| `ols`         | Structure-only (identity)      | No                  |
+| `wls_struct`  | Structural scaling             | No                  |
+| `csstr`       | Cross-sectional structural     | No                  |
+| `testr`       | Temporal structural            | No                  |
+| `wls_var`     | Diagonal (per-series variance) | Yes                 |
+| `mint_shrink` | Full (Ledoit-Wolf shrinkage)   | Yes                 |
+| `bdshr`       | Block-diagonal shrinkage       | Yes                 |
+
+The full list of 27 methods is available via
+`list_covariance_methods()`. Methods omitted here are either
+ill-conditioned at this scale (e.g., `bu`, `sam`/`mint_cov`, `bdsam` —
+rank-deficient with only 9 residual windows), too slow for a demo (e.g.,
+`shr`, `hshr`, `bshr` — each ~10-15s for the O(n_b³) solve), or
+temporal-only (`acov`, `har1`, `sar1`, `strar1`, `wlsv`).
+
+We use the Australian Domestic Tourism dataset.
+
+You can run these experiments using CPU or GPU with Google Colab.
+
+<a href="https://colab.research.google.com/github/Nixtla/hierarchicalforecast/blob/main/nbs/examples/AustralianDomesticTourismCrossTemporal-NewMethods.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+```python
+!pip install hierarchicalforecast statsforecast
+```
+
+``` text
+Defaulting to user installation because normal site-packages is not writeable
+WARNING: Ignoring invalid distribution -known (/home/osprangers/.local/lib/python3.10/site-packages)
+WARNING: Ignoring invalid distribution -nknown (/home/osprangers/.local/lib/python3.10/site-packages)
+WARNING: Ignoring invalid distribution - (/home/osprangers/.local/lib/python3.10/site-packages)
+WARNING: Ignoring invalid distribution -known (/home/osprangers/.local/lib/python3.10/site-packages)
+WARNING: Ignoring invalid distribution -nknown (/home/osprangers/.local/lib/python3.10/site-packages)
+WARNING: Ignoring invalid distribution - (/home/osprangers/.local/lib/python3.10/site-packages)
+Requirement already satisfied: hierarchicalforecast in /home/osprangers/.local/lib/python3.10/site-packages (1.3.1)
+Requirement already satisfied: statsforecast in /home/osprangers/.local/lib/python3.10/site-packages (2.0.3)
+Requirement already satisfied: intel-cmplr-lib-rt in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (2025.3.1)
+Requirement already satisfied: numba in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (0.63.1)
+Requirement already satisfied: utilsforecast>=0.2.12 in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (0.2.15)
+Requirement already satisfied: scikit-learn>=1.2 in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (1.7.2)
+Requirement already satisfied: pandas>=2.1.0 in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (2.3.3)
+Requirement already satisfied: matplotlib in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (3.10.8)
+Requirement already satisfied: narwhals>=2.0 in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (2.15.0)
+Requirement already satisfied: qpsolvers[clarabel] in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (4.8.2)
+Requirement already satisfied: numpy in /home/osprangers/.local/lib/python3.10/site-packages (from hierarchicalforecast) (2.2.6)
+Requirement already satisfied: fugue>=0.8.1 in /home/osprangers/.local/lib/python3.10/site-packages (from statsforecast) (0.9.4)
+Requirement already satisfied: cloudpickle in /home/osprangers/.local/lib/python3.10/site-packages (from statsforecast) (3.1.2)
+Requirement already satisfied: scipy<1.16.0,>=1.7.3 in /home/osprangers/.local/lib/python3.10/site-packages (from statsforecast) (1.15.3)
+Requirement already satisfied: threadpoolctl>=3 in /home/osprangers/.local/lib/python3.10/site-packages (from statsforecast) (3.6.0)
+Requirement already satisfied: coreforecast>=0.0.12 in /home/osprangers/.local/lib/python3.10/site-packages (from statsforecast) (0.0.17)
+Requirement already satisfied: statsmodels>=0.13.2 in /home/osprangers/.local/lib/python3.10/site-packages (from statsforecast) (0.14.6)
+Requirement already satisfied: tqdm in /home/osprangers/.local/lib/python3.10/site-packages (from statsforecast) (4.67.1)
+Requirement already satisfied: triad>=1.0.0 in /home/osprangers/.local/lib/python3.10/site-packages (from fugue>=0.8.1->statsforecast) (1.0.0)
+Requirement already satisfied: adagio>=0.2.6 in /home/osprangers/.local/lib/python3.10/site-packages (from fugue>=0.8.1->statsforecast) (0.2.6)
+Requirement already satisfied: llvmlite<0.47,>=0.46.0dev0 in /home/osprangers/.local/lib/python3.10/site-packages (from numba->hierarchicalforecast) (0.46.0)
+Requirement already satisfied: tzdata>=2022.7 in /home/osprangers/.local/lib/python3.10/site-packages (from pandas>=2.1.0->hierarchicalforecast) (2025.3)
+Requirement already satisfied: python-dateutil>=2.8.2 in /home/osprangers/.local/lib/python3.10/site-packages (from pandas>=2.1.0->hierarchicalforecast) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in /usr/lib/python3/dist-packages (from pandas>=2.1.0->hierarchicalforecast) (2022.1)
+Requirement already satisfied: joblib>=1.2.0 in /home/osprangers/.local/lib/python3.10/site-packages (from scikit-learn>=1.2->hierarchicalforecast) (1.5.3)
+Requirement already satisfied: packaging>=21.3 in /home/osprangers/.local/lib/python3.10/site-packages (from statsmodels>=0.13.2->statsforecast) (25.0)
+Requirement already satisfied: patsy>=0.5.6 in /home/osprangers/.local/lib/python3.10/site-packages (from statsmodels>=0.13.2->statsforecast) (1.0.2)
+Requirement already satisfied: contourpy>=1.0.1 in /home/osprangers/.local/lib/python3.10/site-packages (from matplotlib->hierarchicalforecast) (1.3.2)
+Requirement already satisfied: kiwisolver>=1.3.1 in /home/osprangers/.local/lib/python3.10/site-packages (from matplotlib->hierarchicalforecast) (1.4.9)
+Requirement already satisfied: cycler>=0.10 in /home/osprangers/.local/lib/python3.10/site-packages (from matplotlib->hierarchicalforecast) (0.12.1)
+Requirement already satisfied: pyparsing>=3 in /home/osprangers/.local/lib/python3.10/site-packages (from matplotlib->hierarchicalforecast) (3.3.1)
+Requirement already satisfied: fonttools>=4.22.0 in /home/osprangers/.local/lib/python3.10/site-packages (from matplotlib->hierarchicalforecast) (4.61.1)
+Requirement already satisfied: pillow>=8 in /usr/lib/python3/dist-packages (from matplotlib->hierarchicalforecast) (9.0.1)
+Requirement already satisfied: clarabel>=0.4.1 in /home/osprangers/.local/lib/python3.10/site-packages (from qpsolvers[clarabel]->hierarchicalforecast) (0.11.1)
+Requirement already satisfied: cffi in /home/osprangers/.local/lib/python3.10/site-packages (from clarabel>=0.4.1->qpsolvers[clarabel]->hierarchicalforecast) (2.0.0)
+Requirement already satisfied: six>=1.5 in /usr/lib/python3/dist-packages (from python-dateutil>=2.8.2->pandas>=2.1.0->hierarchicalforecast) (1.16.0)
+Requirement already satisfied: pyarrow>=6.0.1 in /home/osprangers/.local/lib/python3.10/site-packages (from triad>=1.0.0->fugue>=0.8.1->statsforecast) (22.0.0)
+Requirement already satisfied: fsspec>=2022.5.0 in /home/osprangers/.local/lib/python3.10/site-packages (from triad>=1.0.0->fugue>=0.8.1->statsforecast) (2025.12.0)
+Requirement already satisfied: pycparser in /home/osprangers/.local/lib/python3.10/site-packages (from cffi->clarabel>=0.4.1->qpsolvers[clarabel]->hierarchicalforecast) (2.23)
+WARNING: Ignoring invalid distribution -known (/home/osprangers/.local/lib/python3.10/site-packages)
+WARNING: Ignoring invalid distribution -nknown (/home/osprangers/.local/lib/python3.10/site-packages)
+WARNING: Ignoring invalid distribution - (/home/osprangers/.local/lib/python3.10/site-packages)
+```
+
+## 1. Load and Process Data
+
+```python
+import itertools
+import warnings
+
+import numpy as np
+import pandas as pd
+
+warnings.filterwarnings('ignore')
+```
+
+
+```python
+Y_df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')
+Y_df = Y_df.rename({'Trips': 'y', 'Quarter': 'ds'}, axis=1)
+Y_df.insert(0, 'Country', 'Australia')
+Y_df = Y_df[['Country', 'Region', 'State', 'Purpose', 'ds', 'y']]
+Y_df['ds'] = Y_df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True)
+Y_df['ds'] = pd.PeriodIndex(Y_df['ds'], freq='Q').to_timestamp()
+Y_df.head()
+```
+
+|     | Country   | Region   | State           | Purpose  | ds         | y          |
+|-----|-----------|----------|-----------------|----------|------------|------------|
+| 0   | Australia | Adelaide | South Australia | Business | 1998-01-01 | 135.077690 |
+| 1   | Australia | Adelaide | South Australia | Business | 1998-04-01 | 109.987316 |
+| 2   | Australia | Adelaide | South Australia | Business | 1998-07-01 | 166.034687 |
+| 3   | Australia | Adelaide | South Australia | Business | 1998-10-01 | 127.160464 |
+| 4   | Australia | Adelaide | South Australia | Business | 1999-01-01 | 137.448533 |
+
+## 2. Define Hierarchies
+
+### 2a. Cross-sectional hierarchy
+
+We define the same grouped hierarchy as in the basic example.
+
+```python
+from hierarchicalforecast.utils import aggregate
+
+spec = [
+    ['Country'],
+    ['Country', 'State'], 
+    # ['Country', 'Purpose'], 
+    ['Country', 'State', 'Region'], 
+    # ['Country', 'State', 'Purpose'], 
+    ['Country', 'State', 'Region', 'Purpose']
+]
+
+Y_df_cs, S_df_cs, tags_cs = aggregate(Y_df, spec)
+print(f'Cross-sectional hierarchy: {S_df_cs.shape[0]} series, {S_df_cs.shape[1] - 1} bottom series')
+```
+
+``` text
+Cross-sectional hierarchy: 389 series, 304 bottom series
+```
+
+### 2b. Temporal hierarchy
+
+We use quarterly data aggregated to semiannual and annual frequencies.
+
+```python
+spec_temporal = {"year": 4, "semiannual": 2, "quarter": 1}
+```
+
+### 2c. Train/test split
+
+```python
+horizon = 8
+
+Y_test_df_cs = Y_df_cs.groupby('unique_id', as_index=False).tail(horizon)
+Y_train_df_cs = Y_df_cs.drop(Y_test_df_cs.index)
+```
+
+### 2d. Temporal aggregation
+
+We aggregate both train and test sets along the temporal dimension.
+
+```python
+from hierarchicalforecast.utils import aggregate_temporal
+
+Y_train_df_te, S_train_df_te, tags_te_train = aggregate_temporal(df=Y_train_df_cs, spec=spec_temporal)
+Y_test_df_te, S_test_df_te, tags_te_test = aggregate_temporal(df=Y_test_df_cs, spec=spec_temporal)
+
+print(f'Temporal hierarchy: {S_test_df_te.shape[0]} levels, {S_test_df_te.shape[1] - 1} bottom periods')
+S_test_df_te
+```
+
+``` text
+Temporal hierarchy: 14 levels, 8 bottom periods
+```
+
+|     | temporal_id  | quarter-1 | quarter-2 | quarter-3 | quarter-4 | quarter-5 | quarter-6 | quarter-7 | quarter-8 |
+|-----|--------------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
+| 0   | year-1       | 1.0       | 1.0       | 1.0       | 1.0       | 0.0       | 0.0       | 0.0       | 0.0       |
+| 1   | year-2       | 0.0       | 0.0       | 0.0       | 0.0       | 1.0       | 1.0       | 1.0       | 1.0       |
+| 2   | semiannual-1 | 1.0       | 1.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       |
+| 3   | semiannual-2 | 0.0       | 0.0       | 1.0       | 1.0       | 0.0       | 0.0       | 0.0       | 0.0       |
+| 4   | semiannual-3 | 0.0       | 0.0       | 0.0       | 0.0       | 1.0       | 1.0       | 0.0       | 0.0       |
+| 5   | semiannual-4 | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 1.0       | 1.0       |
+| 6   | quarter-1    | 1.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       |
+| 7   | quarter-2    | 0.0       | 1.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       |
+| 8   | quarter-3    | 0.0       | 0.0       | 1.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       |
+| 9   | quarter-4    | 0.0       | 0.0       | 0.0       | 1.0       | 0.0       | 0.0       | 0.0       | 0.0       |
+| 10  | quarter-5    | 0.0       | 0.0       | 0.0       | 0.0       | 1.0       | 0.0       | 0.0       | 0.0       |
+| 11  | quarter-6    | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 1.0       | 0.0       | 0.0       |
+| 12  | quarter-7    | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 1.0       | 0.0       |
+| 13  | quarter-8    | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 0.0       | 1.0       |
+
+## 3. Compute Base Forecasts
+
+We train an `AutoETS` model per temporal aggregation level and collect
+base forecasts. We also collect in-sample fitted values (needed for
+covariance estimation methods that require residuals).
+
+```python
+from statsforecast.models import AutoETS
+from statsforecast.core import StatsForecast
+```
+
+
+```python
+Y_hat_dfs_te = []
+Y_fitted_dfs_te = []
+
+id_cols = ['unique_id', 'temporal_id', 'ds', 'y']
+
+for level, temporal_ids_train in tags_te_train.items():
+    # Filter the data for the level
+    Y_level_train = Y_train_df_te.query('temporal_id in @temporal_ids_train')
+    temporal_ids_test = tags_te_test[level]
+    Y_level_test = Y_test_df_te.query('temporal_id in @temporal_ids_test')
+
+    # For each temporal level we have a different frequency and forecast horizon
+    freq_level = pd.infer_freq(Y_level_train['ds'].unique())
+    horizon_level = Y_level_test['ds'].nunique()
+
+    # Train a model and create forecasts
+    fcst = StatsForecast(models=[AutoETS(model='ZZZ')], freq=freq_level, n_jobs=-1)
+    Y_hat_df_te_level = fcst.forecast(df=Y_level_train[['ds', 'unique_id', 'y']], h=horizon_level, fitted=True)
+    Y_fitted_df_te_level = fcst.forecast_fitted_values()
+
+    # Add temporal_id and test set y values
+    Y_hat_df_te_level = Y_hat_df_te_level.merge(Y_level_test, on=['ds', 'unique_id'], how='left')
+    Y_hat_cols = id_cols + [col for col in Y_hat_df_te_level.columns if col not in id_cols]
+    Y_hat_df_te_level = Y_hat_df_te_level[Y_hat_cols]
+
+    # Add temporal_id to fitted values
+    Y_fitted_df_te_level = Y_fitted_df_te_level.merge(
+        Y_level_train[['ds', 'unique_id', 'temporal_id']].drop_duplicates(),
+        on=['ds', 'unique_id'], how='left'
+    )
+
+    Y_hat_dfs_te.append(Y_hat_df_te_level)
+    Y_fitted_dfs_te.append(Y_fitted_df_te_level)
+
+Y_hat_df_te = pd.concat(Y_hat_dfs_te, ignore_index=True)
+Y_fitted_df_te = pd.concat(Y_fitted_dfs_te, ignore_index=True)
+
+print(f'Base forecasts: {len(Y_hat_df_te)} rows')
+print(f'In-sample fitted: {len(Y_fitted_df_te)} rows')
+```
+
+``` text
+Base forecasts: 5446 rows
+In-sample fitted: 49014 rows
+```
+
+## 4. Build Cross-Temporal Forecasts
+
+For joint cross-temporal reconciliation, we need to create a single
+DataFrame where each row is identified by a cross-temporal ID
+(`unique_id // temporal_id`). The `reconcile` method with
+`cross_temporal=True` will internally build the Kronecker-product
+summing matrix
+$\mathbf{S}_{ct} = \mathbf{S}_{cs} \otimes \mathbf{S}_{te}$.
+
+**Multi-window residuals for covariance estimation.** Residual-based
+covariance methods (e.g., `mint_shrink`, `bdshr`, `hshr`) need multiple
+independent residual observations per cross-temporal series. Because
+each cross-temporal ID (e.g., `Australia//year-1`) maps to a single time
+point, we cannot simply filter the fitted values by ID. Instead, we
+split the training fitted values into non-overlapping windows that each
+mirror the test horizon’s temporal structure. For example, with a test
+horizon of 2 years (= 4 semiannuals = 8 quarters), we partition the 18
+training years into 9 windows of 2, giving 9 residual observations per
+cross-temporal series.
+
+```python
+from hierarchicalforecast.utils import get_cross_temporal_tags
+
+# --- Cross-temporal IDs for the forecast DataFrame ---
+Y_hat_df_ct = Y_hat_df_te.copy()
+Y_hat_df_ct['unique_id'] = Y_hat_df_ct['unique_id'] + '//' + Y_hat_df_ct['temporal_id']
+Y_hat_df_ct = Y_hat_df_ct.drop(columns=['temporal_id'])
+
+# --- Multi-window cross-temporal fitted values ---
+# For each temporal level, we split training fitted values into non-overlapping
+# windows matching the test horizon structure. Each window provides one residual
+# observation per cross-temporal series, giving enough data for covariance estimation.
+
+# Number of test periods per temporal level (defines window size)
+periods_per_level = {level: len(te_ids) for level, te_ids in tags_te_test.items()}
+
+Y_fitted_ct_parts = []
+for level, temporal_ids_train in tags_te_train.items():
+    n_per_window = periods_per_level[level]
+    te_ids_test = list(tags_te_test[level])
+
+    # Get fitted values for this temporal level
+    mask = Y_fitted_df_te['temporal_id'].isin(temporal_ids_train)
+    fitted_level = Y_fitted_df_te[mask].sort_values(['unique_id', 'ds']).copy()
+
+    # Assign within-series position index
+    fitted_level['pos'] = fitted_level.groupby('unique_id').cumcount()
+
+    # Number of complete windows (drop oldest incomplete window)
+    n_obs_per_series = fitted_level.groupby('unique_id')['pos'].transform('count')
+    n_windows = n_obs_per_series // n_per_window
+    remainder = n_obs_per_series - n_windows * n_per_window
+    fitted_level = fitted_level[fitted_level['pos'] >= remainder].copy()
+
+    # Recompute position after trimming, then assign window and within-window index
+    fitted_level['pos'] = fitted_level.groupby('unique_id').cumcount()
+    fitted_level['window'] = fitted_level['pos'] // n_per_window
+    fitted_level['within'] = fitted_level['pos'] % n_per_window
+
+    # Map within-window position to test temporal_id and build cross-temporal ID
+    fitted_level['te_id'] = fitted_level['within'].map(dict(enumerate(te_ids_test)))
+    fitted_level['unique_id'] = fitted_level['unique_id'] + '//' + fitted_level['te_id']
+    fitted_level['ds'] = fitted_level['window']
+
+    Y_fitted_ct_parts.append(fitted_level[['unique_id', 'ds', 'y', 'AutoETS']])
+
+Y_fitted_df_ct = pd.concat(Y_fitted_ct_parts, ignore_index=True)
+
+# --- Build cross-temporal tags ---
+tags_ct = {}
+sep = '//'
+for key_cs, value_cs in tags_cs.items():
+    for key_te, value_te in tags_te_test.items():
+        key_ct = key_cs + sep + key_te
+        value_ct = [sep.join(s) for s in itertools.product(value_cs, value_te)]
+        tags_ct[key_ct] = value_ct
+
+n_windows_actual = Y_fitted_df_ct.groupby('unique_id')['ds'].nunique().iloc[0]
+print(f'Cross-temporal forecast DataFrame: {len(Y_hat_df_ct)} rows')
+print(f'Cross-temporal fitted DataFrame: {len(Y_fitted_df_ct)} rows ({n_windows_actual} windows per series)')
+print(f'Number of cross-temporal tag groups: {len(tags_ct)}')
+Y_hat_df_ct.head()
+```
+
+``` text
+Cross-temporal forecast DataFrame: 5446 rows
+Cross-temporal fitted DataFrame: 49014 rows (9 windows per series)
+Number of cross-temporal tag groups: 12
+```
+
+|     | unique_id                      | ds         | y             | AutoETS      |
+|-----|--------------------------------|------------|---------------|--------------|
+| 0   | Australia//year-1              | 2016-10-01 | 101484.586551 | 97448.236033 |
+| 1   | Australia//year-2              | 2017-10-01 | 107709.864650 | 97448.236033 |
+| 2   | Australia/ACT//year-1          | 2016-10-01 | 2457.401367   | 2295.142976  |
+| 3   | Australia/ACT//year-2          | 2017-10-01 | 2734.748452   | 2295.142976  |
+| 4   | Australia/ACT/Canberra//year-1 | 2016-10-01 | 2457.401367   | 2295.142976  |
+
+## 5. Joint Cross-Temporal Reconciliation
+
+We reconcile using covariance methods across several categories. The key
+parameter is `cross_temporal=True`.
+
+```python
+from hierarchicalforecast.methods import BottomUp, MinTrace, TopDown, TopDownSparse, MinTraceSparse
+from hierarchicalforecast.core import HierarchicalReconciliation
+```
+
+
+```python
+# Structure-only methods (no residuals) + BottomUp baseline
+reconcilers_no_insample = [
+    BottomUp(),
+    MinTrace(method='ols'),
+    MinTrace(method='wls_struct'),
+    MinTrace(method='csstr'),
+    MinTrace(method='testr'),
+]
+
+hrec = HierarchicalReconciliation(reconcilers=reconcilers_no_insample)
+Y_rec_ct_no_insample = hrec.reconcile(
+    Y_hat_df=Y_hat_df_ct,
+    S_df=S_df_cs,
+    tags=tags_ct,
+    cross_temporal=True,
+    S_cs_df=S_df_cs,
+    S_te_df=S_test_df_te,
+)
+print(f'Structure-only: {Y_rec_ct_no_insample.shape}')
+```
+
+``` text
+Structure-only: (5446, 9)
+```
+
+```python
+# Residual-based methods
+reconcilers_insample = [
+    # Diagonal: per-series variance scaling
+    MinTrace(method='wls_var'),
+    # Full covariance with Ledoit-Wolf shrinkage
+    MinTrace(method='mint_shrink'),
+    # Block-diagonal shrinkage by temporal aggregation order
+    MinTrace(method='bdshr'),
+]
+
+hrec_insample = HierarchicalReconciliation(reconcilers=reconcilers_insample)
+Y_rec_ct_insample = hrec_insample.reconcile(
+    Y_hat_df=Y_hat_df_ct,
+    Y_df=Y_fitted_df_ct,
+    S_df=S_df_cs,
+    tags=tags_ct,
+    cross_temporal=True,
+    S_cs_df=S_df_cs,
+    S_te_df=S_test_df_te,
+)
+print(f'Residual-based: {Y_rec_ct_insample.shape}')
+```
+
+``` text
+Residual-based: (5446, 7)
+```
+
+```python
+# Merge results
+merge_cols = ['unique_id', 'ds']
+base_cols = [c for c in Y_rec_ct_no_insample.columns if c not in merge_cols]
+insample_only_cols = [c for c in Y_rec_ct_insample.columns if c not in merge_cols and c not in base_cols]
+Y_rec_ct = Y_rec_ct_no_insample.merge(
+    Y_rec_ct_insample[merge_cols + insample_only_cols], on=merge_cols, how='left'
+)
+print(f'Combined: {Y_rec_ct.shape}')
+```
+
+``` text
+Combined: (5446, 12)
+```
+
+### 5b. Iterative Cross-Temporal Reconciliation
+
+An alternative to the **joint** (Kronecker-product) approach is the
+**iterative** method of Di Fonzo & Girolimetto (2023). Instead of
+building the full cross-temporal system, it alternates between
+cross-sectional and temporal reconciliation until convergence:
+
+1.  Reconcile cross-sectionally (holding temporal structure fixed)
+2.  Reconcile temporally (holding cross-sectional structure fixed)
+3.  Repeat until incoherence drops below a tolerance
+
+This is computationally cheaper than the joint approach (no large
+Kronecker products) and still guarantees full cross-temporal coherence
+at convergence.
+
+```python
+from hierarchicalforecast.methods import IterativeRec, EnsembleReconciler
+
+reconcilers_iterative = [
+    IterativeRec(
+        cs_reconciler=MinTrace(method='ols'),
+        te_reconciler=MinTrace(method='ols'),
+    ),
+    IterativeRec(
+        cs_reconciler=EnsembleReconciler([
+            TopDownSparse(method='forecast_proportions'),
+            MinTraceSparse(method='ols'),
+        ]),
+        te_reconciler=EnsembleReconciler([
+            TopDownSparse(method='forecast_proportions'),
+            MinTraceSparse(method='ols'),
+        ]),
+    ),
+]
+
+hrec_iter = HierarchicalReconciliation(reconcilers=reconcilers_iterative)
+Y_rec_ct_iter = hrec_iter.reconcile(
+    Y_hat_df=Y_hat_df_ct,
+    Y_df=Y_fitted_df_ct,
+    S_df=S_df_cs,
+    tags=tags_ct,
+    cross_temporal=True,
+    S_cs_df=S_df_cs,
+    S_te_df=S_test_df_te,
+)
+
+# Print convergence info
+for rec in reconcilers_iterative:
+    info = rec.convergence_info
+    name = type(rec.cs_reconciler).__name__
+    print(f'Iterative ({name}): converged={info["converged"]}, iterations={info["n_iter"]}')
+
+Y_rec_ct_iter.head()
+```
+
+``` text
+Iterative (MinTrace): converged=True, iterations=1
+Iterative (EnsembleReconciler): converged=False, iterations=100
+```
+
+|     | unique_id               | ds         | y             | AutoETS      | AutoETS/IterativeRec_cs-MinTrace_te-MinTrace_start-cs | AutoETS/IterativeRec_cs-EnsembleReconciler_te-EnsembleReconciler_start-cs |
+|-----|-------------------------|------------|---------------|--------------|-------------------------------------------------------|---------------------------------------------------------------------------|
+| 0   | Australia//year-1       | 2016-10-01 | 101484.586551 | 97448.236033 | 96744.365902                                          | 97061.047966                                                              |
+| 1   | Australia//year-2       | 2017-10-01 | 107709.864650 | 97448.236033 | 96834.387037                                          | 97083.857839                                                              |
+| 2   | Australia//semiannual-1 | 2016-04-01 | 50945.665447  | 47943.142679 | 48346.105623                                          | 48519.152297                                                              |
+| 3   | Australia//semiannual-2 | 2016-10-01 | 50538.921104  | 47943.142679 | 48398.260279                                          | 48541.895669                                                              |
+| 4   | Australia//semiannual-3 | 2017-04-01 | 53609.995728  | 47943.142679 | 48391.164191                                          | 48530.519106                                                              |
+
+```python
+# Merge iterative results into the combined DataFrame
+merge_cols = ['unique_id', 'ds']
+iter_only_cols = [c for c in Y_rec_ct_iter.columns if c not in merge_cols and c not in Y_rec_ct.columns]
+Y_rec_ct = Y_rec_ct.merge(
+    Y_rec_ct_iter[merge_cols + iter_only_cols], on=merge_cols, how='left'
+)
+
+print(f'Combined reconciled forecasts (with iterative): {Y_rec_ct.shape}')
+Y_rec_ct.head()
+```
+
+``` text
+Combined reconciled forecasts (with iterative): (5446, 14)
+```
+
+|     | unique_id               | ds         | y             | AutoETS      | AutoETS/BottomUp | AutoETS/MinTrace_method-ols | AutoETS/MinTrace_method-wls_struct | AutoETS/MinTrace_method-csstr | AutoETS/MinTrace_method-testr | AutoETS/MinTrace_method-wls_var | AutoETS/MinTrace_method-mint_shrink | AutoETS/MinTrace_method-bdshr | AutoETS/IterativeRec_cs-MinTrace_te-MinTrace_start-cs | AutoETS/IterativeRec_cs-EnsembleReconciler_te-EnsembleReconciler_start-cs |
+|-----|-------------------------|------------|---------------|--------------|------------------|-----------------------------|------------------------------------|-------------------------------|-------------------------------|---------------------------------|-------------------------------------|-------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------|
+| 0   | Australia//year-1       | 2016-10-01 | 101484.586551 | 97448.236033 | 93134.207307     | 96744.365902                | 94813.978882                       | 94669.899044                  | 96543.725032                  | 93813.565996                    | 101452.884097                       | 97209.098910                  | 96744.365902                                          | 95853.495219                                                              |
+| 1   | Australia//year-2       | 2017-10-01 | 107709.864650 | 97448.236033 | 94667.082916     | 96834.387037                | 95551.072991                       | 95140.056905                  | 96691.383948                  | 94602.213774                    | 99145.650216                        | 97271.155554                  | 96834.387037                                          | 96052.111892                                                              |
+| 2   | Australia//semiannual-1 | 2016-04-01 | 50945.665447  | 47943.142679 | 46372.218141     | 48346.105623                | 47271.548053                       | 47206.560191                  | 48244.366212                  | 46698.430660                    | 51605.243261                        | 48693.223647                  | 48346.105623                                          | 47860.759347                                                              |
+| 3   | Australia//semiannual-2 | 2016-10-01 | 50538.921104  | 47943.142679 | 46761.989166     | 48398.260279                | 47542.430829                       | 47463.338853                  | 48299.358819                  | 47115.135336                    | 49847.640836                        | 48515.875263                  | 48398.260279                                          | 47992.735872                                                              |
+| 4   | Australia//semiannual-3 | 2017-04-01 | 53609.995728  | 47943.142679 | 47144.644376     | 48391.164191                | 47641.657427                       | 47443.222173                  | 48317.943675                  | 47211.452169                    | 49560.407905                        | 48623.716184                  | 48391.164191                                          | 47962.702965                                                              |
+
+## 6. Evaluation
+
+We evaluate the reconciled forecasts across different cross-temporal
+aggregation levels.
+
+```python
+from hierarchicalforecast.evaluation import evaluate
+from utilsforecast.losses import rmse
+```
+
+### 6a. Cross-temporal evaluation
+
+We evaluate across combinations of cross-sectional and temporal
+aggregation levels.
+
+```python
+eval_tags = {}
+
+# Cross-sectional levels × temporal levels
+eval_tags['Total × Year'] = tags_ct['Country//year']
+eval_tags['State × Year'] = tags_ct['Country/State//year']
+eval_tags['Bottom × Year'] = tags_ct['Country/State/Region/Purpose//year']
+eval_tags['Total × Quarter'] = tags_ct['Country//quarter']
+eval_tags['State × Quarter'] = tags_ct['Country/State//quarter']
+eval_tags['Bottom × Quarter'] = tags_ct['Country/State/Region/Purpose//quarter']
+
+evaluation = evaluate(
+    df=Y_rec_ct,
+    tags=eval_tags,
+    metrics=[rmse],
+    id_col='unique_id',
+)
+
+# Rename columns for readability
+rename_map = {}
+for col in evaluation.columns:
+    if col.startswith('AutoETS/'):
+        short = col.replace('AutoETS/', '')
+        short = short.replace('MinTrace_method-', '')
+        short = short.replace('IterativeRec_cs-MinTrace_te-MinTrace_start-cs', 'Iter. OLS')
+        rename_map[col] = short
+    elif col == 'AutoETS':
+        rename_map[col] = 'Base'
+evaluation = evaluation.rename(columns=rename_map)
+
+numeric_cols = evaluation.select_dtypes(include='number').columns
+evaluation[numeric_cols] = evaluation[numeric_cols].map('{:.2f}'.format).astype(np.float64)
+evaluation
+```
+
+|     | level            | metric | Base    | BottomUp | ols     | wls_struct | csstr   | testr   | wls_var  | mint_shrink | bdshr   | Iter. OLS | IterativeRec_cs-EnsembleReconciler_te-EnsembleReconciler_start-cs |
+|-----|------------------|--------|---------|----------|---------|------------|---------|---------|----------|-------------|---------|-----------|-------------------------------------------------------------------|
+| 0   | Total × Year     | rmse   | 7148.99 | 10696.58 | 7807.85 | 9414.70    | 9692.25 | 7979.67 | 10389.34 | 4297.96     | 7357.10 | 7807.85   | 8644.42                                                           |
+| 1   | State × Year     | rmse   | 1107.10 | 1634.76  | 1034.19 | 1302.61    | 1283.43 | 1055.30 | 1424.99  | 940.27      | 1169.83 | 1034.19   | 1130.63                                                           |
+| 2   | Bottom × Year    | rmse   | 46.98   | 50.77    | 40.04   | 42.56      | 41.64   | 42.03   | 43.35    | 41.06       | 38.40   | 40.04     | 38.09                                                             |
+| 3   | Total × Quarter  | rmse   | 2060.77 | 2674.15  | 1951.96 | 2353.67    | 2423.06 | 1994.92 | 2597.33  | 1714.41     | 1951.47 | 1951.96   | 2161.11                                                           |
+| 4   | State × Quarter  | rmse   | 305.17  | 432.39   | 314.26  | 361.06     | 356.76  | 320.33  | 385.10   | 350.58      | 340.84  | 314.26    | 329.50                                                            |
+| 5   | Bottom × Quarter | rmse   | 19.42   | 19.42    | 18.09   | 18.24      | 18.14   | 18.33   | 18.50    | 21.85       | 18.39   | 18.09     | 17.83                                                             |
+| 6   | Overall          | rmse   | 45.95   | 55.82    | 43.53   | 48.51      | 48.42   | 44.55   | 51.23    | 44.05       | 44.39   | 43.53     | 44.82                                                             |
+
+### 6b. Comparing sequential vs joint cross-temporal reconciliation
+
+To highlight the benefit of joint cross-temporal reconciliation, let’s
+also run the **sequential** approach (cross-sectional first, then
+temporal) and compare.
+
+```python
+# --- Sequential approach: cross-sectional first, then temporal ---
+
+# Step 1a: Cross-sectional base forecasts
+fcst_cs = StatsForecast(models=[AutoETS(season_length=4, model='ZZA')], freq='QS', n_jobs=-1)
+Y_hat_df_cs = fcst_cs.forecast(df=Y_train_df_cs, h=horizon)
+
+# Step 1b: Cross-sectional reconciliation (BottomUp and OLS)
+reconcilers_seq = [BottomUp(), MinTrace(method='ols')]
+hrec_seq = HierarchicalReconciliation(reconcilers=reconcilers_seq)
+Y_rec_df_cs_seq = hrec_seq.reconcile(
+    Y_hat_df=Y_hat_df_cs, S_df=S_df_cs, tags=tags_cs
+)
+
+# Step 2: Temporal reconciliation on each CS-reconciled result
+seq_results = {}
+for cs_method, cs_col in [('BU', 'AutoETS/BottomUp'), ('OLS', 'AutoETS/MinTrace_method-ols')]:
+    Y_rec_seq_for_te = Y_rec_df_cs_seq[['unique_id', 'ds', cs_col]].rename(columns={cs_col: 'y'})
+
+    # Temporal aggregation of the CS-reconciled forecasts
+    Y_rec_seq_te, S_seq_te, tags_seq_te = aggregate_temporal(df=Y_rec_seq_for_te, spec=spec_temporal)
+
+    # The "base forecasts" for temporal reconciliation are the CS-reconciled values
+    Y_hat_dfs_seq = []
+    for level, temporal_ids in tags_seq_te.items():
+        Y_level = Y_rec_seq_te.query('temporal_id in @temporal_ids').copy()
+        Y_level = Y_level.rename(columns={'y': 'AutoETS'})
+        Y_hat_dfs_seq.append(Y_level)
+
+    Y_hat_df_seq_te = pd.concat(Y_hat_dfs_seq, ignore_index=True)
+
+    # Add ground truth from test set
+    Y_hat_df_seq_te = Y_hat_df_seq_te.merge(
+        Y_test_df_te[['unique_id', 'temporal_id', 'ds', 'y']],
+        on=['unique_id', 'temporal_id', 'ds'], how='left'
+    )
+
+    hrec_te = HierarchicalReconciliation(reconcilers=[BottomUp()])
+    Y_rec_seq_te_final = hrec_te.reconcile(
+        Y_hat_df=Y_hat_df_seq_te, S_df=S_seq_te, tags=tags_seq_te, temporal=True
+    )
+    seq_results[cs_method] = Y_rec_seq_te_final
+```
+
+
+```python
+# Evaluate both sequential approaches
+eval_seq_parts = []
+for cs_method, Y_rec in seq_results.items():
+    Y_rec_tagged, tags_ct_seq = get_cross_temporal_tags(
+        Y_rec, tags_cs=tags_cs, tags_te=tags_seq_te
+    )
+
+    eval_tags_seq = {
+        'Total × Year': tags_ct_seq['Country//year'],
+        'State × Year': tags_ct_seq['Country/State//year'],
+        'Bottom × Year': tags_ct_seq['Country/State/Region/Purpose//year'],
+        'Total × Quarter': tags_ct_seq['Country//quarter'],
+        'State × Quarter': tags_ct_seq['Country/State//quarter'],
+        'Bottom × Quarter': tags_ct_seq['Country/State/Region/Purpose//quarter'],
+    }
+
+    ev = evaluate(
+        df=Y_rec_tagged.drop(columns=['unique_id', 'temporal_id']),
+        tags=eval_tags_seq,
+        id_col='cross_temporal_id',
+        metrics=[rmse],
+    )
+    # Keep only the BottomUp reconciled column (temporal BU is a no-op here)
+    ev = ev.iloc[:, [0, 1, 3]].copy()
+    ev.columns = ['level', 'metric', f'{cs_method} (sequential)']
+    eval_seq_parts.append(ev)
+
+eval_seq = eval_seq_parts[0]
+for part in eval_seq_parts[1:]:
+    eval_seq = eval_seq.merge(part.drop(columns='metric'), on='level')
+
+numeric_cols = eval_seq.select_dtypes(include='number').columns
+eval_seq[numeric_cols] = eval_seq[numeric_cols].map('{:.2f}'.format).astype(np.float64)
+eval_seq
+```
+
+|     | level            | metric | BU (sequential) | OLS (sequential) |
+|-----|------------------|--------|-----------------|------------------|
+| 0   | Total × Year     | rmse   | 11502.16        | 5851.17          |
+| 1   | State × Year     | rmse   | 1468.36         | 869.46           |
+| 2   | Bottom × Year    | rmse   | 44.16           | 37.18            |
+| 3   | Total × Quarter  | rmse   | 2875.54         | 1490.95          |
+| 4   | State × Quarter  | rmse   | 376.43          | 238.85           |
+| 5   | Bottom × Quarter | rmse   | 15.88           | 15.20            |
+| 6   | Overall          | rmse   | 50.82           | 35.91            |
+
+```python
+# Side-by-side comparison: sequential vs joint vs iterative cross-temporal methods
+# Pick representative methods for the comparison
+joint_cols = ['level']
+for col in evaluation.columns:
+    if col not in ('level', 'metric') and col != 'BottomUp':
+        joint_cols.append(col)
+
+comparison = evaluation[joint_cols].merge(
+    eval_seq[['level', 'BU (sequential)', 'OLS (sequential)']], on='level', how='left'
+)
+
+# Move sequential columns to the front
+seq_cols = ['BU (sequential)', 'OLS (sequential)']
+other_cols = [c for c in comparison.columns if c not in ['level'] + seq_cols]
+comparison = comparison[['level'] + seq_cols + other_cols]
+comparison
+```
+
+|     | level            | BU (sequential) | OLS (sequential) | Base    | ols     | wls_struct | csstr   | testr   | wls_var  | mint_shrink | bdshr   | Iter. OLS | IterativeRec_cs-EnsembleReconciler_te-EnsembleReconciler_start-cs |
+|-----|------------------|-----------------|------------------|---------|---------|------------|---------|---------|----------|-------------|---------|-----------|-------------------------------------------------------------------|
+| 0   | Total × Year     | 11502.16        | 5851.17          | 7148.99 | 7807.85 | 9414.70    | 9692.25 | 7979.67 | 10389.34 | 4297.96     | 7357.10 | 7807.85   | 8644.42                                                           |
+| 1   | State × Year     | 1468.36         | 869.46           | 1107.10 | 1034.19 | 1302.61    | 1283.43 | 1055.30 | 1424.99  | 940.27      | 1169.83 | 1034.19   | 1130.63                                                           |
+| 2   | Bottom × Year    | 44.16           | 37.18            | 46.98   | 40.04   | 42.56      | 41.64   | 42.03   | 43.35    | 41.06       | 38.40   | 40.04     | 38.09                                                             |
+| 3   | Total × Quarter  | 2875.54         | 1490.95          | 2060.77 | 1951.96 | 2353.67    | 2423.06 | 1994.92 | 2597.33  | 1714.41     | 1951.47 | 1951.96   | 2161.11                                                           |
+| 4   | State × Quarter  | 376.43          | 238.85           | 305.17  | 314.26  | 361.06     | 356.76  | 320.33  | 385.10   | 350.58      | 340.84  | 314.26    | 329.50                                                            |
+| 5   | Bottom × Quarter | 15.88           | 15.20            | 19.42   | 18.09   | 18.24      | 18.14   | 18.33   | 18.50    | 21.85       | 18.39   | 18.09     | 17.83                                                             |
+| 6   | Overall          | 50.82           | 35.91            | 45.95   | 43.53   | 48.51      | 48.42   | 44.55   | 51.23    | 44.05       | 44.39   | 43.53     | 44.82                                                             |
+
+Key observations:
+
+-   **Structure-only methods** (`ols`, `wls_struct`, `csstr`, `testr`)
+    are fast and don’t need residuals.
+-   **Diagonal variance** (`wls_var`) adds per-series variance scaling
+    with minimal overhead.
+-   **Block-diagonal shrinkage** (`bdshr`) pools residuals within
+    temporal aggregation blocks — best overall joint method here.
+-   **Full shrinkage** (`mint_shrink`) estimates the full 5,950×5,950
+    covariance with Ledoit-Wolf regularization.
+-   The **iterative OLS** converges to the same solution as joint OLS
+    (expected for separable covariance).
+-   The sequential approach outperforms at aggregate levels but does
+    **not** guarantee full cross-temporal coherence.
+
+Additional methods (`shr`, `sshr`/`ssam`, `hshr`/`hsam`,
+`hbshr`/`hbsam`, `bshr`/`bsam`, `oasd`, `wlsh`) are available via
+`list_covariance_methods()`.
+
+## 7. Available Covariance Methods
+
+The covariance module provides a registry of all available methods. You
+can list them programmatically:
+
+```python
+from hierarchicalforecast.covariance import list_covariance_methods
+
+methods = list_covariance_methods()
+print(f'Available covariance methods ({len(methods)}):')
+print(methods)
+```
+
+``` text
+Available covariance methods (27):
+['acov', 'bdsam', 'bdshr', 'bsam', 'bshr', 'bu', 'csstr', 'har1', 'hbsam', 'hbshr', 'hsam', 'hshr', 'mint_cov', 'mint_shrink', 'oasd', 'ols', 'sam', 'sar1', 'shr', 'ssam', 'sshr', 'strar1', 'testr', 'wls_struct', 'wls_var', 'wlsh', 'wlsv']
+```
+
+### References
+
+-   [Di Fonzo, T. & Girolimetto, D. (2023). “Cross-temporal forecast
+    reconciliation: Optimal combination method and heuristic
+    alternatives.” *International Journal of
+    Forecasting*.](https://doi.org/10.1016/j.ijforecast.2021.08.004)
+-   [Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J. (2019).
+    “Optimal forecast reconciliation for hierarchical and grouped time
+    series through trace minimization.” *Journal of the American
+    Statistical
+    Association*.](https://doi.org/10.1080/01621459.2018.1448825)
+-   [Kourentzes, N. & Athanasopoulos, G. (2019). “Cross-temporal
+    coherent forecasts for Australian tourism.” *Annals of Tourism
+    Research*.](https://doi.org/10.1016/j.annals.2019.02.001)
+-   [Athanasopoulos, G., Hyndman, R. J., Kourentzes, N. &
+    Petropoulos, F. (2017). “Forecasting with temporal hierarchies.”
+    *European Journal of Operational
+    Research*.](https://doi.org/10.1016/j.ejor.2017.02.046)
+
