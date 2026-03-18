@@ -747,7 +747,7 @@ closed form.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`method` | <code>[str](#str)</code> | Covariance estimation method. Cross-sectional methods: `ols`, `wls_struct`, `wls_var`, `sam`/`mint_cov`, `shr`/`mint_shrink`, `bu`, `oasd`, `emint`. Temporal methods: `wlsv`, `wlsh`, `acov`, `strar1`, `sar1`, `har1`. Cross-temporal methods: `csstr`, `testr`, `bdshr`, `bdsam`, `sshr`, `ssam`, `hshr`, `hsam`, `hbshr`, `hbsam`, `bshr`, `bsam`. Use ``list_covariance_methods()`` for all registered methods. Temporal and cross-temporal methods require extra kwargs passed via ``method_kwargs`` in ``reconcile()``. | *required*
+`method` | <code>[str](#str)</code> | One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`, `emint`. | *required*
 `nonnegative` | <code>[bool](#bool)</code> | Reconciled forecasts should be nonnegative? | <code>False</code>
 `mint_shr_ridge` | <code>[float](#float)</code> | Ridge numeric protection to MinTrace-shr covariance estimator. | <code>2e-08</code>
 `num_threads` | <code>[int](#int)</code> | Number of threads for the C++ covariance backend (OpenMP) and for solving the optimization problems (when nonnegative=True). | <code>1</code>
@@ -761,7 +761,7 @@ References:
 #### `MinTrace.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, method_kwargs=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Fit Method.
@@ -779,7 +779,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`method_kwargs` | <code>[dict](#dict) \| None</code> | Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods). | <code>None</code>
 
 **Returns:**
 
@@ -814,7 +813,7 @@ Name | Type | Description
 #### `MinTrace.fit_predict`
 
 ```python
-fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None, method_kwargs=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Reconciliation Method.
@@ -833,7 +832,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`method_kwargs` | <code>[dict](#dict) \| None</code> | Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods). | <code>None</code>
 
 **Returns:**
 
@@ -895,7 +893,7 @@ Name | Type | Description | Default
 #### `MinTraceSparse.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, method_kwargs=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTraceSparse Fit Method.
@@ -913,7 +911,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`method_kwargs` | <code>[dict](#dict) \| None</code> | Extra keyword arguments (unused in sparse variant, accepted for API compatibility). | <code>None</code>
 
 **Returns:**
 
@@ -948,7 +945,7 @@ Name | Type | Description
 #### `MinTraceSparse.fit_predict`
 
 ```python
-fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None, method_kwargs=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Reconciliation Method.
@@ -967,7 +964,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`method_kwargs` | <code>[dict](#dict) \| None</code> | Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods). | <code>None</code>
 
 **Returns:**
 
@@ -1039,7 +1035,7 @@ Name | Type | Description | Default
 #### `OptimalCombination.fit`
 
 ```python
-fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None, method_kwargs=None)
+fit(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Fit Method.
@@ -1057,7 +1053,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`method_kwargs` | <code>[dict](#dict) \| None</code> | Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods). | <code>None</code>
 
 **Returns:**
 
@@ -1092,7 +1087,7 @@ Name | Type | Description
 #### `OptimalCombination.fit_predict`
 
 ```python
-fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None, method_kwargs=None)
+fit_predict(S, y_hat, y_insample=None, y_hat_insample=None, sigmah=None, level=None, intervals_method=None, num_samples=None, seed=None, tags=None)
 ```
 
 MinTrace Reconciliation Method.
@@ -1111,7 +1106,6 @@ Name | Type | Description | Default
 `num_samples` | <code>[int](#int) \| None</code> | Number of samples for probabilistic coherent distribution. | <code>None</code>
 `seed` | <code>[int](#int) \| None</code> | Seed for reproducibility. | <code>None</code>
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)] \| None</code> | Each key is a level and each value its `S` indices. | <code>None</code>
-`method_kwargs` | <code>[dict](#dict) \| None</code> | Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods). | <code>None</code>
 
 **Returns:**
 
