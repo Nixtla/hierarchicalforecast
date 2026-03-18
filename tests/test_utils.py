@@ -181,20 +181,21 @@ def test_tourism_df_null_grouped(tourism_df, hiers_strictly):
     )
 
 def test_equality_sparse_non_sparse(tourism_df, hiers_strictly, hiers_grouped):
+    from hierarchicalforecast.smatrix import SMatrix
+
     df = tourism_df
 
-    # Test equality of sparse and non-sparse aggregation
+    # Test equality of sparse (SMatrix) and non-sparse (DataFrame) aggregation
     with CodeTimer('strict non-sparse aggregate'):
         Y_df, S_df, tags = aggregate(df=df, sparse_s=False, spec=hiers_strictly)
 
     with CodeTimer('strict sparse aggregate'):
         Y_df_sparse, S_df_sparse, tags_sparse = aggregate(df=df, sparse_s=True, spec=hiers_strictly)
 
+    assert isinstance(S_df_sparse, SMatrix)
     np.testing.assert_almost_equal(Y_df.y.values, Y_df_sparse.y.values)
-    np.testing.assert_array_equal(S_df.values, S_df_sparse.values)
-
-    np.testing.assert_array_equal(S_df.columns, S_df_sparse.columns)
-    np.testing.assert_array_equal(S_df.index, S_df_sparse.index)
+    np.testing.assert_array_equal(S_df.values, S_df_sparse.to_frame().values)
+    np.testing.assert_array_equal(S_df.columns, S_df_sparse.to_frame().columns)
 
     np.testing.assert_array_equal(Y_df.columns, Y_df_sparse.columns)
     np.testing.assert_array_equal(Y_df.index, Y_df_sparse.index)
@@ -205,14 +206,29 @@ def test_equality_sparse_non_sparse(tourism_df, hiers_strictly, hiers_grouped):
     with CodeTimer('grouped sparse aggregate'):
         Y_df_sparse, S_df_sparse, tags_sparse = aggregate(df=df, sparse_s=True, spec=hiers_grouped)
 
+    assert isinstance(S_df_sparse, SMatrix)
     np.testing.assert_almost_equal(Y_df.y.values, Y_df_sparse.y.values)
-    np.testing.assert_array_equal(S_df.values, S_df_sparse.values)
-
-    np.testing.assert_array_equal(S_df.columns, S_df_sparse.columns)
-    np.testing.assert_array_equal(S_df.index, S_df_sparse.index)
+    np.testing.assert_array_equal(S_df.values, S_df_sparse.to_frame().values)
+    np.testing.assert_array_equal(S_df.columns, S_df_sparse.to_frame().columns)
 
     np.testing.assert_array_equal(Y_df.columns, Y_df_sparse.columns)
     np.testing.assert_array_equal(Y_df.index, Y_df_sparse.index)
+
+
+def test_sparse_s_with_polars(tourism_df, hiers_strictly):
+    """sparse_s=True should work with Polars input (previously raised an error)."""
+    from hierarchicalforecast.smatrix import SMatrix
+
+    df_pl = pl.from_pandas(tourism_df)
+    Y_df, S_df, tags = aggregate(df=df_pl, sparse_s=True, spec=hiers_strictly)
+    assert isinstance(S_df, SMatrix)
+    assert S_df.shape == (85, 77)
+    assert len(S_df.row_labels) == 85
+    assert len(S_df.col_labels) == 77
+
+    # Verify values match the dense Pandas path
+    Y_df_pd, S_df_pd, _ = aggregate(df=tourism_df, sparse_s=False, spec=hiers_strictly)
+    np.testing.assert_array_equal(S_df_pd.values, S_df.to_frame().values)
 
 
 @pytest.fixture

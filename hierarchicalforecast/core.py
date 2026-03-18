@@ -13,6 +13,7 @@ from scipy import sparse
 from scipy.stats import norm
 
 from .methods import HReconciler
+from .smatrix import SMatrix
 from .utils import (
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
@@ -563,7 +564,13 @@ class HierarchicalReconciliation:
         """
         # To Narwhals
         Y_hat_nw = nw.from_native(Y_hat_df)
-        S_nw = nw.from_native(S_df)
+        # Accept SMatrix or DataFrame for S_df
+        self._s_matrix = None
+        if isinstance(S_df, SMatrix):
+            self._s_matrix = S_df
+            S_nw = nw.from_native(S_df.to_frame())
+        else:
+            S_nw = nw.from_native(S_df)
         if Y_df is not None:
             Y_nw = nw.from_native(Y_df)
         else:
@@ -600,17 +607,23 @@ class HierarchicalReconciliation:
         any_sparse = any([method.is_sparse_method for method in self.reconcilers])
         S_nw_cols_ex_id_col = S_nw.columns
         S_nw_cols_ex_id_col.remove(id_col)
+
+        # Fast path: when S_df was an SMatrix, extract sparse/dense directly
+        _s_matrix = self._s_matrix
         if any_sparse:
-            try:
-                S_for_sparse = sparse.csr_matrix(
-                    S_nw.select(nw.col(S_nw_cols_ex_id_col)).to_native().sparse.to_coo()
-                )
-            except AttributeError:
-                S_for_sparse = sparse.csr_matrix(
-                    S_nw.select(nw.col(S_nw_cols_ex_id_col))
-                    .to_numpy()
-                    .astype(np.float64, copy=False)
-                )
+            if _s_matrix is not None:
+                S_for_sparse = _s_matrix.to_csr()
+            else:
+                try:
+                    S_for_sparse = sparse.csr_matrix(
+                        S_nw.select(nw.col(S_nw_cols_ex_id_col)).to_native().sparse.to_coo()
+                    )
+                except AttributeError:
+                    S_for_sparse = sparse.csr_matrix(
+                        S_nw.select(nw.col(S_nw_cols_ex_id_col))
+                        .to_numpy()
+                        .astype(np.float64, copy=False)
+                    )
         if Y_nw is not None:
             y_insample = self._prepare_Y(
                 Y_nw=Y_nw,
@@ -669,11 +682,14 @@ class HierarchicalReconciliation:
             if reconciler.is_sparse_method:
                 reconciler_args["S"] = S_for_sparse
             else:
-                reconciler_args["S"] = (
-                    S_nw.select(nw.col(S_nw_cols_ex_id_col))
-                    .to_numpy()
-                    .astype(np.float64, copy=False)
-                )
+                if _s_matrix is not None:
+                    reconciler_args["S"] = _s_matrix.to_dense()
+                else:
+                    reconciler_args["S"] = (
+                        S_nw.select(nw.col(S_nw_cols_ex_id_col))
+                        .to_numpy()
+                        .astype(np.float64, copy=False)
+                    )
 
             for model_name in self.model_names:
                 start = time.time()
