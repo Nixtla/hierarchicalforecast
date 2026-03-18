@@ -625,6 +625,10 @@ class HierarchicalReconciliation:
             # Override temporal flag since cross-temporal uses the same id_col pattern
             temporal = False
 
+            # Store component S matrices for CTRec/IterativeRec
+            _S_cs_np = S_cs_np
+            _S_te_np = S_te_np
+
         # Check input's validity and sort dataframes
         Y_hat_nw, S_nw, Y_nw, self.model_names, id_col = self._prepare_fit(
             Y_hat_nw=Y_hat_nw,
@@ -665,6 +669,47 @@ class HierarchicalReconciliation:
         # Pass method_kwargs to reconciler if provided
         if method_kwargs is not None:
             reconciler_args["method_kwargs"] = method_kwargs
+
+        # Make component S matrices and per-dimension tags available
+        # for CTRec/IterativeRec
+        if cross_temporal:
+            reconciler_args["S_cs"] = _S_cs_np
+            reconciler_args["S_te"] = _S_te_np
+
+            # Build tags_cs and tags_te by splitting CT tag keys on "//"
+            # and mapping CS/TE level names to row indices in S_cs / S_te.
+            _cs_id_to_idx = {
+                uid: i for i, uid in enumerate(S_cs_nw[id_col].to_list())
+            }
+            _te_id_to_idx = {
+                uid: i for i, uid in enumerate(S_te_nw[id_time_col].to_list())
+            }
+            _tags_cs_dict: dict[str, set[int]] = {}
+            _tags_te_dict: dict[str, set[int]] = {}
+            for ct_key, ct_vals in tags.items():
+                parts = ct_key.split("//", 1)
+                cs_key, te_key = parts[0], parts[1]
+                if cs_key not in _tags_cs_dict:
+                    _tags_cs_dict[cs_key] = set()
+                if te_key not in _tags_te_dict:
+                    _tags_te_dict[te_key] = set()
+                for ct_id in ct_vals:
+                    cs_id, te_id = ct_id.split("//", 1)
+                    if cs_id in _cs_id_to_idx:
+                        _tags_cs_dict[cs_key].add(_cs_id_to_idx[cs_id])
+                    if te_id in _te_id_to_idx:
+                        _tags_te_dict[te_key].add(_te_id_to_idx[te_id])
+            reconciler_args["tags_cs"] = {
+                k: np.array(sorted(v)) for k, v in _tags_cs_dict.items()
+            }
+            reconciler_args["tags_te"] = {
+                k: np.array(sorted(v)) for k, v in _tags_te_dict.items()
+            }
+            # row_order maps Kronecker position -> reordered position.
+            # CTRec/IterativeRec expect Kronecker-order inputs, so we
+            # must convert reordered -> Kronecker before calling and
+            # Kronecker -> reordered after.
+            _ct_inv_order = np.argsort(row_order)  # reordered -> Kronecker
 
         any_sparse = any([method.is_sparse_method for method in self.reconcilers])
         S_nw_cols_ex_id_col = S_nw.columns
@@ -794,7 +839,23 @@ class HierarchicalReconciliation:
                 ]
                 kwargs = {key: reconciler_args[key] for key in kwargs_ls}
 
-                fcsts_model = reconciler(**kwargs, level=level)
+                # Cross-temporal reconcilers (CTRec, IterativeRec) expect
+                # Kronecker-ordered rows.  S_nw (and hence y_hat) uses a
+                # reordered layout, so we convert before the call and
+                # convert back afterwards.
+                _needs_ct_reorder = cross_temporal and "S_cs" in kwargs
+                if _needs_ct_reorder:
+                    for _arr_key in ("y_hat", "y_insample", "y_hat_insample"):
+                        if _arr_key in kwargs and kwargs[_arr_key] is not None:
+                            kwargs[_arr_key] = kwargs[_arr_key][_ct_inv_order]
+
+                if "level" in signature(reconciler.fit_predict).parameters:
+                    fcsts_model = reconciler(**kwargs, level=level)
+                else:
+                    fcsts_model = reconciler(**kwargs)
+
+                if _needs_ct_reorder:
+                    fcsts_model["mean"] = fcsts_model["mean"][row_order]
 
                 # Validate reconciler state for sampling (fail fast before processing results)
                 if num_samples > 0 and level is not None:
@@ -817,6 +878,7 @@ class HierarchicalReconciliation:
                 if (
                     intervals_method in ["bootstrap", "normality", "permbu", "conformal"]
                     and level is not None
+                    and "quantiles" in fcsts_model
                 ):
                     level.sort()
                     lo_names = [f"{recmodel_name}-lo-{lv}" for lv in reversed(level)]
