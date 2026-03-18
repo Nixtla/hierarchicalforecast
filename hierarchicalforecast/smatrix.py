@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 """Sparse summing matrix wrapper for hierarchical forecasting."""
 
 __all__ = ["SMatrix"]
 
+
+from typing import Any
 
 import narwhals.stable.v2 as nw
 import numpy as np
@@ -26,7 +30,7 @@ class SMatrix:
         Unique-id labels for every column (bottom-level series).
     id_col : str
         Name of the identifier column (default ``"unique_id"``).
-    backend : str
+    backend : str or nw.Implementation
         Narwhals backend hint (``"pandas"`` or ``"polars"``).
     """
 
@@ -36,7 +40,7 @@ class SMatrix:
         row_labels: np.ndarray,
         col_labels: np.ndarray,
         id_col: str = "unique_id",
-        backend: str = "pandas",
+        backend: Any = "pandas",
     ):
         self._sparse = sparse.csc_matrix(sparse_matrix)
         self.row_labels = np.asarray(row_labels)

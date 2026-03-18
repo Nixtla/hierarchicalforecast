@@ -16,7 +16,6 @@ from collections.abc import Sequence
 import matplotlib.pyplot as plt
 import narwhals.stable.v2 as nw
 import numpy as np
-import pandas as pd
 import utilsforecast.processing as ufp
 import utilsforecast.validation as ufv
 from narwhals.typing import Frame, FrameT
@@ -209,8 +208,7 @@ def aggregate(
             f"Check the last (bottom) level of spec, it has missing columns: {reprlib.repr(missing_cols_in_bottom_spec)}"
         )
 
-    if sparse_s and not nw.dependencies.is_pandas_dataframe(df):
-        raise ValueError("Sparse output is only supported for Pandas DataFrames.")
+    # sparse_s is supported for both Pandas and Polars via SMatrix
 
     for col in df_nw.columns:
         if df_nw[col].is_null().any():
@@ -349,10 +347,15 @@ def aggregate(
         S_nw = nw.maybe_reset_index(S_nw)
         S_df = S_nw.to_native()
     else:
-        S_df = pd.DataFrame.sparse.from_spmatrix(
-            S_dum.T, columns=list(bottom_levels), index=category_list
+        from .smatrix import SMatrix
+
+        S_df = SMatrix(
+            sparse_matrix=S_dum.T,
+            row_labels=np.asarray(category_list),
+            col_labels=np.asarray(list(bottom_levels)),
+            id_col=_id_col,
+            backend=backend,
         )
-        S_df = S_df.reset_index(names=_id_col)
 
     return Y_df, S_df, tags
 

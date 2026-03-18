@@ -1083,6 +1083,11 @@ dependencies = [
     { name = "utilsforecast" },
 ]
 
+[package.optional-dependencies]
+polars = [
+    { name = "polars", extra = ["numpy"] },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "datasetsforecast" },
@@ -1102,9 +1107,6 @@ dev = [
     { name = "scipy", version = "1.16.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "statsforecast" },
 ]
-polars = [
-    { name = "polars", extra = ["numpy"] },
-]
 
 [package.metadata]
 requires-dist = [
@@ -1112,10 +1114,12 @@ requires-dist = [
     { name = "narwhals", specifier = ">=2.0" },
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.1.0" },
+    { name = "polars", extras = ["numpy"], marker = "extra == 'polars'", specifier = "<=1.32.0" },
     { name = "qpsolvers", extras = ["clarabel"] },
     { name = "scikit-learn", specifier = ">=1.2" },
     { name = "utilsforecast", specifier = ">=0.2.12" },
 ]
+provides-extras = ["polars"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1135,7 +1139,6 @@ dev = [
     { name = "scipy" },
     { name = "statsforecast", specifier = ">=1.0.0" },
 ]
-polars = [{ name = "polars", extras = ["numpy"], specifier = "<=1.32.0" }]
 
 [[package]]
 name = "identify"

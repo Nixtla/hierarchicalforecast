@@ -222,13 +222,15 @@ def test_sparse_s_with_polars(tourism_df, hiers_strictly):
     df_pl = pl.from_pandas(tourism_df)
     Y_df, S_df, tags = aggregate(df=df_pl, sparse_s=True, spec=hiers_strictly)
     assert isinstance(S_df, SMatrix)
-    assert S_df.shape == (85, 77)
+    assert S_df.shape == (85, 76)
     assert len(S_df.row_labels) == 85
-    assert len(S_df.col_labels) == 77
+    assert len(S_df.col_labels) == 76
 
     # Verify values match the dense Pandas path
     Y_df_pd, S_df_pd, _ = aggregate(df=tourism_df, sparse_s=False, spec=hiers_strictly)
-    np.testing.assert_array_equal(S_df_pd.values, S_df.to_frame().values)
+    np.testing.assert_array_equal(
+        S_df_pd.values, S_df.to_frame(backend="pandas").values
+    )
 
 
 @pytest.fixture
