@@ -13,8 +13,8 @@ from scipy import sparse
 from scipy.stats import norm
 
 from .methods import HReconciler
-from .smatrix import SMatrix
 from .utils import (
+    SMatrix,
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
     is_strictly_hierarchical,

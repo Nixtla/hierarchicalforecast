@@ -181,7 +181,7 @@ def test_tourism_df_null_grouped(tourism_df, hiers_strictly):
     )
 
 def test_equality_sparse_non_sparse(tourism_df, hiers_strictly, hiers_grouped):
-    from hierarchicalforecast.smatrix import SMatrix
+    from hierarchicalforecast.utils import SMatrix
 
     df = tourism_df
 
@@ -217,7 +217,7 @@ def test_equality_sparse_non_sparse(tourism_df, hiers_strictly, hiers_grouped):
 
 def test_sparse_s_with_polars(tourism_df, hiers_strictly):
     """sparse_s=True should work with Polars input (previously raised an error)."""
-    from hierarchicalforecast.smatrix import SMatrix
+    from hierarchicalforecast.utils import SMatrix
 
     df_pl = pl.from_pandas(tourism_df)
     Y_df, S_df, tags = aggregate(df=df_pl, sparse_s=True, spec=hiers_strictly)
