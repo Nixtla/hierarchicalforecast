@@ -126,16 +126,16 @@ def test_tourism_df_non_null_grouped(tourism_df, hiers_grouped, hiers_strictly):
     # test strict
     hier_df, S_df, tags = aggregate(df=df, spec=hiers_strictly)
     assert len(hier_df) == 6800
-    assert hier_df["unique_id"].nunique(), 85
-    assert S_df.shape, (85, 77)
+    assert hier_df["unique_id"].nunique() == 85
+    assert S_df.shape == (85, 77)
     np.testing.assert_array_equal(hier_df["unique_id"].unique(), S_df["unique_id"])
-    assert len(tags), len(hiers_strictly)
+    assert len(tags) == len(hiers_strictly)
 
 
     # test grouped
     hier_df, S_df, tags = aggregate(df=df, spec=hiers_grouped)
     assert len(hier_df) == 34_000
-    assert hier_df["unique_id"].nunique(), 425
+    assert hier_df["unique_id"].nunique() == 425
     assert S_df.shape == (425, 305)
     np.testing.assert_array_equal(hier_df["unique_id"].unique(), S_df["unique_id"])
     assert len(tags) == len(hiers_grouped)
@@ -222,7 +222,8 @@ def test_sparse_s_with_polars(tourism_df, hiers_strictly):
     df_pl = pl.from_pandas(tourism_df)
     Y_df, S_df, tags = aggregate(df=df_pl, sparse_s=True, spec=hiers_strictly)
     assert isinstance(S_df, SMatrix)
-    assert S_df.shape == (85, 76)
+    assert S_df.shape == (85, 77)
+    assert S_df.sparse_shape == (85, 76)
     assert len(S_df.row_labels) == 85
     assert len(S_df.col_labels) == 76
 

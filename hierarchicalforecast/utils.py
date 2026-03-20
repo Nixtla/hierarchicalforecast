@@ -1069,21 +1069,39 @@ class SMatrix:
         self.id_col = id_col
         self.backend = backend
         self._col_index = {name: i for i, name in enumerate(col_labels)}
-        # Lazily cached dense / frame representations
+        # Lazily cached representations
         self._dense: np.ndarray | None = None
-        self._frame = None
+        self._csr: sparse.csr_matrix | None = None
+        self._frames: dict = {}
 
     # ------------------------------------------------------------------
     # Core accessors
     # ------------------------------------------------------------------
+
+    def check_bottom_identity(self) -> bool:
+        """Check that the bottom n_bottom x n_bottom block of S is an identity matrix.
+
+        Uses sparse operations to avoid dense allocations.
+        """
+        n_bottom = self._sparse.shape[1]
+        bottom_block = self._sparse[-n_bottom:, :]
+        bottom_coo = bottom_block.tocoo()
+        return (
+            bottom_coo.shape[0] == bottom_coo.shape[1]
+            and bottom_coo.nnz == n_bottom
+            and np.allclose(bottom_coo.data, 1.0)
+            and np.array_equal(bottom_coo.row, bottom_coo.col)
+        )
 
     def to_sparse(self) -> sparse.csc_matrix:
         """Return the underlying sparse matrix (zero-copy)."""
         return self._sparse
 
     def to_csr(self) -> sparse.csr_matrix:
-        """Return the matrix as CSR (efficient for row slicing)."""
-        return sparse.csr_matrix(self._sparse)
+        """Return the matrix as CSR (efficient for row slicing), cached."""
+        if self._csr is None:
+            self._csr = sparse.csr_matrix(self._sparse)
+        return self._csr
 
     def to_dense(self) -> np.ndarray:
         """Return a dense ``float64`` NumPy array, cached after first call."""
@@ -1109,8 +1127,8 @@ class SMatrix:
             followed by one column per bottom-level series.
         """
         backend = backend or self.backend
-        if self._frame is not None:
-            return self._frame
+        if backend in self._frames:
+            return self._frames[backend]
 
         dense = self.to_dense()
         data = {self.id_col: self.row_labels}
@@ -1119,23 +1137,33 @@ class SMatrix:
 
         frame_nw = nw.from_dict(data, backend=backend)
         frame_nw = nw.maybe_reset_index(frame_nw)
-        self._frame = frame_nw.to_native()
-        return self._frame
+        self._frames[backend] = frame_nw.to_native()
+        return self._frames[backend]
 
     # ------------------------------------------------------------------
     # Backward-compatible properties
     # ------------------------------------------------------------------
 
     @property
-    def shape(self) -> tuple[int, int]:
+    def sparse_shape(self) -> tuple[int, int]:
         """``(n_series, n_bottom)`` — shape of the underlying sparse matrix."""
         return self._sparse.shape
 
     @property
+    def shape(self) -> tuple[int, int]:
+        """``(n_series, n_bottom + 1)`` — shape matching the DataFrame representation (includes id column)."""
+        rows, cols = self._sparse.shape
+        return (rows, cols + 1)
+
+    @property
     def columns(self):
-        """Column names matching the DataFrame representation."""
-        cols = [self.id_col] + list(self.col_labels)
-        return cols
+        """Column names matching the DataFrame representation.
+
+        Returns a pandas Index for compatibility with DataFrame.columns API.
+        """
+        import pandas as pd
+
+        return pd.Index([self.id_col] + list(self.col_labels))
 
     def __len__(self) -> int:
         return self._sparse.shape[0]
