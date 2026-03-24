@@ -172,7 +172,7 @@ def aggregate(
         spec (list[list[str]]): list of levels. Each element of the list should contain a list of columns of `df` to aggregate.
         exog_vars (Optional[dict[str, Union[str, list[str]]]], optional): dictionary of string keys & values that can either be a list of strings or a single string
             keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None.
-        sparse_s (bool, optional): Return `S_df` as a sparse Pandas dataframe. Default is False.
+        sparse_s (bool, optional): Return `S_df` as an `SMatrix` (sparse summing matrix wrapper) instead of a dense DataFrame. Works with both Pandas and Polars inputs. Default is False.
         id_col (str, optional): Column that will identify each serie after aggregation. Default is "unique_id".
         time_col (str, optional): Column that identifies each timestep, its values can be timestamps or integers. Default is "ds".
         id_time_col (Optional[str], optional): Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally. Default is None.
@@ -380,7 +380,7 @@ def aggregate_temporal(
         spec (dict[str, int]): Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation.
         exog_vars (Optional[dict[str, Union[str, list[str]]]], optional): dictionary of string keys & values that can either be a list of strings or a single string
             keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None.
-        sparse_s (bool, optional): Return `S_df` as a sparse Pandas dataframe. Default is False.
+        sparse_s (bool, optional): Return `S_df` as an `SMatrix` (sparse summing matrix wrapper) instead of a dense DataFrame. Works with both Pandas and Polars inputs. Default is False.
         id_col (str, optional): Column that will identify each serie after aggregation. Default is 'unique_id'.
         time_col (str, optional): Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'.
         id_time_col (str, optional): Column that will identify each timestep after aggregation. Default is 'temporal_id'.
