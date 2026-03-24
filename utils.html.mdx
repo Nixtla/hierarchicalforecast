@@ -36,7 +36,7 @@ Name | Type | Description | Default
 `df` | <code>[Frame](#narwhals.typing.Frame)</code> | Dataframe with columns `[time_col, *target_cols]`, columns to aggregate and optionally exog_vars. | *required*
 `spec` | <code>[list](#list)[[list](#list)[[str](#str)]]</code> | list of levels. Each element of the list should contain a list of columns of `df` to aggregate. | *required*
 `exog_vars` | <code>[Optional](#Optional)[[dict](#dict)[[str](#str), [Union](#Union)[[str](#str), [list](#list)[[str](#str)]]]]</code> | dictionary of string keys & values that can either be a list of strings or a single string keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. | <code>None</code>
-`sparse_s` | <code>[bool](#bool)</code> | Return `S_df` as an `SMatrix` (sparse summing matrix wrapper) instead of a dense DataFrame. Works with both Pandas and Polars inputs. Default is False. | <code>False</code>
+`sparse_s` | <code>[bool](#bool)</code> | Return `S_df` as a sparse Pandas dataframe. Default is False. | <code>False</code>
 `id_col` | <code>[str](#str)</code> | Column that will identify each serie after aggregation. Default is "unique_id". | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Default is "ds". | <code>'ds'</code>
 `id_time_col` | <code>[Optional](#Optional)[[str](#str)]</code> | Column that will identify each timestep after temporal aggregation. If provided, aggregate will operate temporally. Default is None. | <code>None</code>
@@ -46,7 +46,7 @@ Name | Type | Description | Default
 
 Type | Description
 ---- | -----------
-<code>[tuple](#tuple)[[FrameT](#narwhals.typing.FrameT), [FrameT](#narwhals.typing.FrameT) \| [SMatrix](#hierarchicalforecast.utils.SMatrix), [dict](#dict)]</code> | tuple[FrameT, FrameT | SMatrix, dict]: Y_df, S_df, tags Y_df: Hierarchically structured series. S_df: Summing dataframe. When ``sparse_s=True``, returns an     :class:`SMatrix` instead of a DataFrame. tags: Aggregation indices.
+<code>[tuple](#tuple)[[FrameT](#narwhals.typing.FrameT), [FrameT](#narwhals.typing.FrameT), [dict](#dict)]</code> | tuple[FrameT, FrameT, dict]: Y_df, S_df, tags Y_df: Hierarchically structured series. S_df: Summing dataframe. tags: Aggregation indices.
 
 
 ### `aggregate_temporal`
@@ -67,7 +67,7 @@ Name | Type | Description | Default
 `df` | <code>[Frame](#narwhals.typing.Frame)</code> | Dataframe with columns `[time_col, target_cols]` and columns to aggregate. | *required*
 `spec` | <code>[dict](#dict)[[str](#str), [int](#int)]</code> | Dictionary of temporal levels. Each key should be a string with the value representing the number of bottom-level timesteps contained in the aggregation. | *required*
 `exog_vars` | <code>[Optional](#Optional)[[dict](#dict)[[str](#str), [Union](#Union)[[str](#str), [list](#list)[[str](#str)]]]]</code> | dictionary of string keys & values that can either be a list of strings or a single string keys correspond to column names and the values represent the aggregation(s) that will be applied to each column. Accepted values are those from Pandas or Polars aggregation Functions, check the respective docs for guidance. Default is None. | <code>None</code>
-`sparse_s` | <code>[bool](#bool)</code> | Return `S_df` as an `SMatrix` (sparse summing matrix wrapper) instead of a dense DataFrame. Works with both Pandas and Polars inputs. Default is False. | <code>False</code>
+`sparse_s` | <code>[bool](#bool)</code> | Return `S_df` as a sparse Pandas dataframe. Default is False. | <code>False</code>
 `id_col` | <code>[str](#str)</code> | Column that will identify each serie after aggregation. Default is 'unique_id'. | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Default is 'ds'. | <code>'ds'</code>
 `id_time_col` | <code>[str](#str)</code> | Column that will identify each timestep after aggregation. Default is 'temporal_id'. | <code>'temporal_id'</code>

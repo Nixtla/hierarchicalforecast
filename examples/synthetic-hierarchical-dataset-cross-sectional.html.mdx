@@ -1,0 +1,356 @@
+---
+title: Synthetic Hierarchical Dataset Generation
+---
+
+Generate a large-scale hierarchical time series dataset using
+[signalfoundry](https://github.com/Nixtla/signalfoundry).
+
+**Hierarchy** (4 levels): - `growth_status` (5 series) -
+`growth_status/country` (1,212 series) -
+`growth_status/country/platform` (7,635 series) -
+`growth_status/country/platform/age` (47,115 series)
+
+**Total**: 55,967 series \| 788 daily observations each (2024-01-01 to
+2026-02-26) \| ~44M rows
+
+```python
+import numpy as np
+import polars as pl
+from signalfoundry.generators import DailyActiveUsersGenerator
+```
+
+## 1. Build Hierarchy Structure
+
+We construct the 47,115 bottom-level combinations deterministically so
+that `aggregate` produces exactly the specified series counts at each
+level.
+
+```python
+rng = np.random.default_rng(42)
+
+# Level 0: growth statuses
+growth_statuses = ['retained', 'churned', 'new', 'reactivated', 'dormant']
+
+# Level 1: countries (use ISO-style codes)
+# 1212 (gs, country) pairs across 5 statuses -> [243, 243, 243, 242, 241] per status
+all_countries = [f'C{i:03d}' for i in range(250)]
+countries_per_gs = [243, 243, 243, 242, 241]
+
+# Level 2: platforms
+all_platforms = ['ios', 'android', 'web', 'windows', 'macos', 'linux', 'tablet', 'smart_tv']
+
+# Level 3: age groups
+all_ages = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65-74', '75+']
+
+print(f'Pool sizes: {len(all_countries)} countries, {len(all_platforms)} platforms, {len(all_ages)} age groups')
+```
+
+
+```python
+# Build bottom-level combinations
+# Strategy:
+#   - For each growth_status, sample `countries_per_gs[i]` countries
+#   - For each (gs, country), assign 6 or 7 platforms (363 get 7, 849 get 6 → total 7635)
+#   - For each (gs, country, platform), assign 6 or 7 ages (1305 get 7, 6330 get 6 → total 47115)
+
+records = []
+pair_idx = 0      # tracks (gs, country) pairs for platform assignment
+triple_idx = 0    # tracks (gs, country, platform) triples for age assignment
+
+# Pre-determine which pairs get 7 platforms (first 363) and which get 6
+n_pairs_with_7 = 363   # 363*7 + 849*6 = 7635
+# Pre-determine which triples get 7 ages (first 1305) and which get 6
+n_triples_with_7 = 1305  # 1305*7 + 6330*6 = 47115
+
+for gs_i, gs in enumerate(growth_statuses):
+    n_countries = countries_per_gs[gs_i]
+    countries = rng.choice(all_countries, size=n_countries, replace=False)
+    
+    for country in countries:
+        # Assign platforms
+        n_platforms = 7 if pair_idx < n_pairs_with_7 else 6
+        platforms = rng.choice(all_platforms, size=n_platforms, replace=False)
+        pair_idx += 1
+        
+        for platform in platforms:
+            # Assign age groups
+            n_ages = 7 if triple_idx < n_triples_with_7 else 6
+            ages = rng.choice(all_ages, size=n_ages, replace=False)
+            triple_idx += 1
+            
+            for age in ages:
+                records.append({
+                    'growth_status': gs,
+                    'country': country,
+                    'platform': platform,
+                    'age': age,
+                })
+
+hierarchy_df = pl.DataFrame(records)
+print(f'Bottom-level series: {len(hierarchy_df)}')
+print(f'Unique (gs): {hierarchy_df["growth_status"].n_unique()}')
+print(f'Unique (gs, country): {hierarchy_df.group_by(["growth_status", "country"]).n_unique().shape[0]}')
+print(f'Unique (gs, country, platform): {hierarchy_df.group_by(["growth_status", "country", "platform"]).n_unique().shape[0]}')
+```
+
+## 2. Generate Time Series with SignalFoundry
+
+We use `DailyActiveUsersGenerator` with different parameters per growth
+status to produce realistic patterns. The `event` column indicates viral
+moments — the exogenous feature mentioned in the spec.
+
+```python
+# Generator config per growth status
+# Different base_users and growth_rates to reflect each segment's behavior
+generator_configs = {
+    'retained':    {'base_users': 5000,  'growth_rate':  0.0003, 'app_type': 'consumer'},
+    'churned':     {'base_users': 3000,  'growth_rate': -0.0010, 'app_type': 'consumer'},
+    'new':         {'base_users': 1000,  'growth_rate':  0.0020, 'app_type': 'consumer'},
+    'reactivated': {'base_users': 2000,  'growth_rate':  0.0005, 'app_type': 'consumer'},
+    'dormant':     {'base_users': 500,   'growth_rate': -0.0005, 'app_type': 'consumer'},
+}
+```
+
+
+```python
+%%time
+
+dfs = []
+series_offset = 0
+
+for gs in growth_statuses:
+    mask = hierarchy_df['growth_status'] == gs
+    n_series = mask.sum()
+    cfg = generator_configs[gs]
+    
+    gen = DailyActiveUsersGenerator(
+        min_length=788,
+        max_length=788,
+        freq='1d',
+        start_datetime='2024-01-01 00:00:00',
+        seed=hash(gs) % (2**31),
+        base_users=cfg['base_users'],
+        growth_rate=cfg['growth_rate'],
+        app_type=cfg['app_type'],
+        event_probability=0.03,
+        event_impact_min=1.3,
+        event_impact_max=2.5,
+        event_decay_rate=0.15,
+        noise_std=0.08,
+        backend='polars',
+    )
+    
+    df = gen.generate(n_series=n_series, start_id=series_offset)
+    dfs.append(df)
+    series_offset += n_series
+    print(f'{gs}: {n_series:,} series, {len(df):,} rows')
+
+ts_df = pl.concat(dfs)
+print(f'\nTotal generated: {len(ts_df):,} rows')
+```
+
+## 3. Attach Hierarchy Columns
+
+```python
+# Map series_id -> hierarchy columns
+hierarchy_df = hierarchy_df.with_columns(pl.arange(0, pl.len()).alias('unique_id'))
+hierarchy_df = hierarchy_df.with_columns(pl.format("series_{}", pl.col("unique_id")).alias("unique_id"))
+
+# Merge hierarchy info onto the time series
+Y_df = ts_df.join(hierarchy_df, on='unique_id', how='left')
+Y_df = Y_df.drop('unique_id')
+
+print(f'Shape: {Y_df.shape}')
+print(f'Memory: {Y_df.estimated_size() / 1e9:.2f} GB')
+Y_df.head()
+```
+
+## 4. Verify Hierarchy with `aggregate`
+
+```python
+from hierarchicalforecast.utils import aggregate
+
+spec = [
+    ['growth_status'],
+    ['growth_status', 'country'],
+    ['growth_status', 'country', 'platform'],
+    ['growth_status', 'country', 'platform', 'age'],
+]
+
+Y_df_cs, S_df, tags = aggregate(Y_df, spec)
+```
+
+
+```python
+# Verify counts
+for level_name, level_ids in tags.items():
+    print(f'{level_name}: {len(level_ids):,} series')
+
+print(f'\nTotal series: {S_df.shape[0]:,}')
+print(f'Bottom series: {S_df.shape[1]:,}')
+print(f'Total rows: {len(Y_df_cs):,}')
+print(f'Obs per series: {len(Y_df_cs) / S_df.shape[0]:.0f}')
+```
+
+### 4a. Train/test split
+
+```python
+horizon = 364
+
+Y_test_df_cs = Y_df_cs.group_by('unique_id').tail(horizon)
+Y_train_df_cs = Y_df_cs.filter(pl.col('ds') < Y_test_df_cs['ds'].min())
+
+print(f'Train: {len(Y_train_df_cs):,} rows ({Y_train_df_cs["ds"].min()} to {Y_train_df_cs["ds"].max()})')
+print(f'Test:  {len(Y_test_df_cs):,} rows ({Y_test_df_cs["ds"].min()} to {Y_test_df_cs["ds"].max()})')
+```
+
+## 5. Feature Engineering from Viral Events
+
+The `event` column flags viral moments. We can engineer features such
+as: - `is_viral`: binary indicator (same as `event`) -
+`days_since_viral`: days since the last viral event -
+`viral_rolling_7d`: count of viral events in the past 7 days
+
+```python
+# Example feature engineering on a small subset
+# sample_ids = Y_df.groupby('growth_status').apply(
+#     lambda x: x[['growth_status', 'country', 'platform', 'age']].drop_duplicates().head(1)
+# ).reset_index(drop=True)
+
+# sample = Y_df.merge(sample_ids, on=['growth_status', 'country', 'platform', 'age'])
+# sample['unique_id'] = (
+#     sample['growth_status'] + '/' + sample['country'] + '/' +
+#     sample['platform'] + '/' + sample['age']
+# )
+
+# # Days since last viral event
+# sample = sample.sort_values(['unique_id', 'ds'])
+# sample['is_viral'] = sample['event']
+# sample['viral_rolling_7d'] = (
+#     sample.groupby('unique_id')['event']
+#     .transform(lambda x: x.rolling(7, min_periods=1).sum())
+# )
+
+# sample[sample['unique_id'] == sample['unique_id'].iloc[0]].head(15)
+```
+
+
+```python
+# Save to parquet for downstream use
+# Y_df.to_parquet('synthetic_hierarchical_dataset.parquet', index=False)
+```
+
+## 6. Visualize the Hierarchy
+
+Plot sample series at each hierarchical level using
+`utilsforecast.plot_series`.
+
+```python
+from utilsforecast.plotting import plot_series
+```
+
+### Top level: growth_status (5 series)
+
+```python
+top_level_ids = tags['growth_status']
+plot_series(Y_df_cs.filter(pl.col('unique_id').is_in(top_level_ids)), max_ids=5, plot_random=False)
+```
+
+### Second level: growth_status/country (sample of 1,212 series)
+
+```python
+country_level_ids = tags['growth_status/country']
+plot_series(Y_df_cs.filter(pl.col('unique_id').is_in(country_level_ids)), max_ids=8, seed=42)
+```
+
+### Third level: growth_status/country/platform (sample of 7,635 series)
+
+```python
+platform_level_ids = tags['growth_status/country/platform']
+plot_series(Y_df_cs.filter(pl.col('unique_id').is_in(platform_level_ids)), max_ids=8, seed=42)
+```
+
+### Bottom level: growth_status/country/platform/age (sample of 47,115 series)
+
+```python
+bottom_level_ids = tags['growth_status/country/platform/age']
+plot_series(Y_df_cs.filter(pl.col('unique_id').is_in(bottom_level_ids)), max_ids=8, seed=42)
+```
+
+## 7. Hierarchical forecasting + reconciliation
+
+We create cross-sectional forecasts for all 55,967 series and reconcile
+them to ensure hierarchical coherence.
+
+```python
+from nixtla import NixtlaClient
+
+client = NixtlaClient(base_url="http://localhost:8000")
+```
+
+
+```python
+# Forecast all series at daily frequency
+Y_hat_df = client.forecast(
+    df=Y_train_df_cs[["ds", "unique_id", "y"]],
+    h=horizon,
+    freq="1d",
+)
+
+# Join actuals for evaluation
+Y_hat_df = Y_hat_df.join(
+    Y_test_df_cs[["unique_id", "ds", "y"]],
+    on=["unique_id", "ds"],
+    how="left",
+)
+print(f'Forecasts shape: {Y_hat_df.shape}')
+Y_hat_df.head()
+```
+
+
+```python
+from hierarchicalforecast.methods import BottomUp, MinTrace, TopDown, TopDownSparse
+from hierarchicalforecast.core import HierarchicalReconciliation
+```
+
+
+```python
+# Methods that don't require residuals (no Y_df needed)
+reconcilers_no_insample = [
+    BottomUp(),
+    # MinTrace(method='ols'),
+    # MinTrace(method='wls_struct'),
+    TopDownSparse(method='forecast_proportions'),
+    # MinTrace(method='wls_var'),
+]
+
+hrec = HierarchicalReconciliation(reconcilers=reconcilers_no_insample)
+Y_rec_cs = hrec.reconcile(
+    Y_hat_df=Y_hat_df,
+    S_df=S_df,
+    tags=tags,
+)
+print(f'Reconciled: {Y_rec_cs.shape}')
+Y_rec_cs.head()
+```
+
+## 8. Evaluation
+
+The `HierarchicalForecast` package includes the `evaluate` function to
+evaluate the different hierarchies.
+
+```python
+from hierarchicalforecast.evaluation import evaluate
+from utilsforecast.losses import rmse
+```
+
+
+```python
+evaluation = evaluate(
+    df=Y_rec_cs,
+    tags=tags,
+    metrics=[rmse],
+)
+evaluation
+```
+

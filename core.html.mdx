@@ -49,7 +49,7 @@ Name | Type | Description | Default
 #### `HierarchicalReconciliation.reconcile`
 
 ```python
-reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, diagnostics=False, diagnostics_atol=1e-06)
+reconcile(Y_hat_df, tags, S_df=None, Y_df=None, level=None, intervals_method='normality', num_samples=-1, seed=0, is_balanced=False, id_col='unique_id', time_col='ds', target_col='y', id_time_col='temporal_id', temporal=False, diagnostics=False, diagnostics_atol=1e-06, method_kwargs=None, cross_temporal=False, S_cs_df=None, S_te_df=None)
 ```
 
 Hierarchical Reconciliation Method.
@@ -84,7 +84,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and its value contains tags associated to that level. | *required*
-`S_df` | <code>[Frame](#narwhals.typing.Frame) \| [SMatrix](#hierarchicalforecast.utils.SMatrix)</code> | DataFrame or :class:`~hierarchicalforecast.utils.SMatrix` with summing matrix of size `(base, bottom)`, see [aggregate method](./utils.html#aggregate). Passing an ``SMatrix`` (from ``aggregate(..., sparse_s=True)``) avoids dense materialization. Default is None. | <code>None</code>
+`S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils.html#aggregate). Default is None. | <code>None</code>
 `Y_df` | <code>[Optional](#Optional)[[Frame](#narwhals.typing.Frame)]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
 `level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | positive float list [0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". | <code>'normality'</code>
@@ -98,6 +98,10 @@ Name | Type | Description | Default
 `temporal` | <code>[bool](#bool)</code> | if True, perform temporal reconciliation. Default is False. | <code>False</code>
 `diagnostics` | <code>[bool](#bool)</code> | if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False. | <code>False</code>
 `diagnostics_atol` | <code>[float](#float)</code> | absolute tolerance for numerical coherence check. Default is 1e-6. | <code>1e-06</code>
+`method_kwargs` | <code>[dict](#dict)</code> | Extra keyword arguments passed through to `estimate_covariance()` via the reconciler. For temporal methods, `agg_order` is auto-derived from S when `temporal=True`. For cross-temporal methods, `n_cs`, `n_te`, `S_cs`, `S_te` are auto-populated when `cross_temporal=True`. Default is None. | <code>None</code>
+`cross_temporal` | <code>[bool](#bool)</code> | if True, perform cross-temporal reconciliation by building ``S_ct = S_cs ⊗ S_te``. Requires ``S_cs_df`` and ``S_te_df``. Default is False. | <code>False</code>
+`S_cs_df` | <code>[Frame](#narwhals.typing.Frame)</code> | Cross-sectional summing matrix DataFrame (required when ``cross_temporal=True``). Default is None. | <code>None</code>
+`S_te_df` | <code>[Frame](#narwhals.typing.Frame)</code> | Temporal summing matrix DataFrame (required when ``cross_temporal=True``). Default is None. | <code>None</code>
 
 **Returns:**
 
