@@ -1065,6 +1065,9 @@ def test_smatrix_reconciliation_matches_dense(grouped_data, sparse_grouped_data,
         BottomUp(),
         MinTrace(method='ols'),
         MinTrace(method='mint_shrink'),
+        BottomUpSparse(),
+        MinTraceSparse(method='ols'),
+        MinTraceSparse(method='wls_struct')
     ]
 
     # Reconcile with dense S
