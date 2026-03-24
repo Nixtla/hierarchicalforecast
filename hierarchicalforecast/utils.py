@@ -161,7 +161,7 @@ def aggregate(
     time_col: str = "ds",
     id_time_col: str | None = None,
     target_cols: Sequence[str] = ("y",),
-) -> tuple[FrameT, FrameT, dict]:
+) -> tuple[FrameT, "FrameT | SMatrix", dict]:
     """Utils Aggregation Function.
 
     Aggregates bottom level series contained in the DataFrame `df` according
@@ -179,9 +179,10 @@ def aggregate(
         target_cols (Sequence[str], optional): list of columns that contains the targets to aggregate. Default is ("y",).
 
     Returns:
-        tuple[FrameT, FrameT, dict]: Y_df, S_df, tags
+        tuple[FrameT, FrameT | SMatrix, dict]: Y_df, S_df, tags
             Y_df: Hierarchically structured series.
-            S_df: Summing dataframe.
+            S_df: Summing dataframe. When ``sparse_s=True``, returns an
+                :class:`SMatrix` instead of a DataFrame.
             tags: Aggregation indices.
     """
     # To Narwhals
@@ -1093,6 +1094,17 @@ class SMatrix:
             and np.array_equal(bottom_coo.row, bottom_coo.col)
         )
 
+    def clear_cache(self) -> None:
+        """Release cached dense, CSR, and DataFrame representations.
+
+        Call this after reconciliation to free memory when the
+        ``SMatrix`` is long-lived but cached representations are no
+        longer needed.
+        """
+        self._dense = None
+        self._csr = None
+        self._frames = {}
+
     def to_sparse(self) -> sparse.csc_matrix:
         """Return the underlying sparse matrix (zero-copy)."""
         return self._sparse
@@ -1132,8 +1144,7 @@ class SMatrix:
 
         dense = self.to_dense()
         data = {self.id_col: self.row_labels}
-        for j, col_name in enumerate(self.col_labels):
-            data[col_name] = dense[:, j]
+        data.update(zip(self.col_labels, dense.T, strict=False))
 
         frame_nw = nw.from_dict(data, backend=backend)
         frame_nw = nw.maybe_reset_index(frame_nw)
@@ -1146,11 +1157,19 @@ class SMatrix:
 
     @property
     def sparse_shape(self) -> tuple[int, int]:
-        """``(n_series, n_bottom)`` — shape of the underlying sparse matrix."""
+        """``(n_series, n_bottom)`` — shape of the underlying sparse matrix.
+
+        Alias for :attr:`shape`.
+        """
         return self._sparse.shape
 
     @property
     def shape(self) -> tuple[int, int]:
+        """``(n_series, n_bottom)`` — shape of the underlying sparse matrix."""
+        return self._sparse.shape
+
+    @property
+    def frame_shape(self) -> tuple[int, int]:
         """``(n_series, n_bottom + 1)`` — shape matching the DataFrame representation (includes id column)."""
         rows, cols = self._sparse.shape
         return (rows, cols + 1)
@@ -1184,7 +1203,7 @@ class SMatrix:
         nnz = self._sparse.nnz
         density = nnz / max(1, self._sparse.shape[0] * self._sparse.shape[1])
         return (
-            f"SMatrix(shape={self.shape}, nnz={nnz}, "
+            f"SMatrix(shape={self.sparse_shape}, nnz={nnz}, "
             f"density={density:.4f}, id_col='{self.id_col}')"
         )
 

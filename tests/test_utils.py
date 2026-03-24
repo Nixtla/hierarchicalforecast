@@ -222,8 +222,8 @@ def test_sparse_s_with_polars(tourism_df, hiers_strictly):
     df_pl = pl.from_pandas(tourism_df)
     Y_df, S_df, tags = aggregate(df=df_pl, sparse_s=True, spec=hiers_strictly)
     assert isinstance(S_df, SMatrix)
-    assert S_df.shape == (85, 77)
-    assert S_df.sparse_shape == (85, 76)
+    assert S_df.shape == (85, 76)
+    assert S_df.frame_shape == (85, 77)
     assert len(S_df.row_labels) == 85
     assert len(S_df.col_labels) == 76
 
@@ -555,6 +555,81 @@ def test_agg_func_for_exog_vars():
     np.testing.assert_array_equal(S_df, S_df_check_f)
 
     np.testing.assert_array_equal(Y_df_exog, Y_df_check_exog_f)
+
+def test_aggregate_temporal_sparse(tourism_df, hiers_strictly):
+    """aggregate_temporal with sparse_s=True should match the dense path."""
+    from hierarchicalforecast.utils import SMatrix
+
+    df = tourism_df.copy()
+    df['ds'] = pd.to_datetime(df['ds'].str.replace(r'(\d+) (Q\d)', r'\1-\2', regex=True))
+
+    spec_cs = [['Country'], ['Country', 'State'], ['Country', 'State', 'Region']]
+    Y_df_cs, S_df_cs, tags_cs = aggregate(df, spec_cs)
+
+    spec_te = {"year": 4, "quarter": 1}
+    Y_dense, S_dense, tags_dense = aggregate_temporal(Y_df_cs, spec_te, sparse_s=False)
+    Y_sparse, S_sparse, tags_sparse = aggregate_temporal(Y_df_cs, spec_te, sparse_s=True)
+
+    assert isinstance(S_sparse, SMatrix)
+    np.testing.assert_array_equal(
+        S_dense.values, S_sparse.to_frame(backend="pandas").values
+    )
+
+
+def test_smatrix_getitem():
+    """Tests SMatrix.__getitem__ for id col, value col, and invalid key."""
+    from scipy import sparse as sp
+
+    from hierarchicalforecast.utils import SMatrix
+
+    data = np.array([[1, 1, 0], [0, 1, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float64)
+    smat = SMatrix(
+        sparse_matrix=sp.csc_matrix(data),
+        row_labels=np.array(["top", "mid", "a", "b", "c"]),
+        col_labels=np.array(["a", "b", "c"]),
+    )
+
+    # Access id column
+    np.testing.assert_array_equal(smat["unique_id"], np.array(["top", "mid", "a", "b", "c"]))
+
+    # Access a value column
+    np.testing.assert_array_equal(smat["a"], np.array([1, 0, 1, 0, 0]))
+
+    # Invalid key raises KeyError
+    with pytest.raises(KeyError):
+        smat["nonexistent"]
+
+
+def test_smatrix_clear_cache():
+    """Tests that clear_cache() releases cached representations."""
+    from scipy import sparse as sp
+
+    from hierarchicalforecast.utils import SMatrix
+
+    data = np.eye(3, dtype=np.float64)
+    smat = SMatrix(
+        sparse_matrix=sp.csc_matrix(data),
+        row_labels=np.array(["a", "b", "c"]),
+        col_labels=np.array(["a", "b", "c"]),
+    )
+
+    # Populate caches
+    smat.to_dense()
+    smat.to_csr()
+    smat.to_frame(backend="pandas")
+    assert smat._dense is not None
+    assert smat._csr is not None
+    assert len(smat._frames) > 0
+
+    smat.clear_cache()
+    assert smat._dense is None
+    assert smat._csr is None
+    assert len(smat._frames) == 0
+
+    # Should still work after clearing
+    dense = smat.to_dense()
+    np.testing.assert_array_equal(dense, np.eye(3))
+
 
 def test_cov_equivalence():
     # test covariance equivalence

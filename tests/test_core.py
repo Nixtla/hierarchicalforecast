@@ -1124,3 +1124,67 @@ def test_smatrix_reconciliation_with_sparse_methods(sparse_grouped_data, lib):
     for reconciler in reconcilers:
         col_name = f"y_model/{_build_fn_name(reconciler)}"
         assert col_name in result_nw.columns
+
+
+@pytest.mark.parametrize("lib", ["pandas", "polars"])
+def test_smatrix_reconciliation_with_diagnostics(sparse_grouped_data, lib):
+    """Tests that diagnostics=True works with SMatrix (no crash on missing columns)."""
+    data = sparse_grouped_data[lib]
+
+    hrec = HierarchicalReconciliation(reconcilers=[BottomUp()])
+    result = hrec.reconcile(
+        Y_hat_df=data["Y_hat_df"],
+        S_df=data["S_df"],
+        tags=data["tags"],
+        diagnostics=True,
+    )
+
+    assert result is not None
+    assert hrec.diagnostics is not None
+
+    diag = nw.from_native(hrec.diagnostics)
+    is_coherent = diag.filter(
+        (nw.col("metric") == "is_coherent") & (nw.col("level") == "Overall")
+    )["y_model/BottomUp"].to_list()[0]
+    assert is_coherent == 1.0
+
+
+def test_smatrix_check_bottom_identity_rejects_bad_matrix():
+    """Tests that reconcile() raises ValueError when SMatrix has a corrupted bottom block."""
+    from scipy import sparse as sp
+
+    from hierarchicalforecast.utils import SMatrix
+
+    # Create a valid 5x3 summing matrix (2 aggregate + 3 bottom)
+    data = np.array([
+        [1, 1, 1],
+        [1, 1, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+    ], dtype=np.float64)
+    # Corrupt the bottom block: swap two entries so it's not identity
+    data[2, 0] = 0.0  # break the diagonal
+    data[2, 1] = 1.0  # move to off-diagonal
+
+    smat = SMatrix(
+        sparse_matrix=sp.csc_matrix(data),
+        row_labels=np.array(["top", "mid", "a", "b", "c"]),
+        col_labels=np.array(["a", "b", "c"]),
+    )
+
+    assert not smat.check_bottom_identity()
+
+    # Passing to reconcile should raise ValueError
+    Y_hat_df = pd.DataFrame({
+        "unique_id": ["top", "mid", "a", "b", "c"],
+        "ds": [1, 1, 1, 1, 1],
+        "model": [6.0, 3.0, 1.0, 2.0, 3.0],
+    })
+    hrec = HierarchicalReconciliation([BottomUp()])
+    with pytest.raises(ValueError, match="identity matrix"):
+        hrec.reconcile(
+            Y_hat_df=Y_hat_df,
+            S_df=smat,
+            tags={"top": np.array(["top"]), "mid": np.array(["mid"]), "bottom": np.array(["a", "b", "c"])},
+        )

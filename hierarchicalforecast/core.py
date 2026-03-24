@@ -492,7 +492,7 @@ class HierarchicalReconciliation:
         self,
         Y_hat_df: Frame,
         tags: dict[str, np.ndarray],
-        S_df: Frame = None,
+        S_df: "Frame | SMatrix" = None,
         Y_df: Frame | None = None,
         level: list[int] | None = None,
         intervals_method: str = "normality",
@@ -536,7 +536,7 @@ class HierarchicalReconciliation:
         Args:
             Y_hat_df (Frame): DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.
             tags (dict[str, np.ndarray]): Each key is a level and its value contains tags associated to that level.
-            S_df (Frame, optional): DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). Default is None.
+            S_df (Frame | SMatrix, optional): DataFrame or :class:`~hierarchicalforecast.utils.SMatrix` with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). Passing an ``SMatrix`` (from ``aggregate(..., sparse_s=True)``) avoids dense materialization. Default is None.
             Y_df (Optional[Frame], optional): DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.
                 If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None.
             level (Optional[list[int]], optional): positive float list [0,100), confidence levels for prediction intervals. Default is None.
@@ -820,11 +820,14 @@ class HierarchicalReconciliation:
             native_namespace = nw.get_native_namespace(Y_hat_nw)
 
             # Prepare S matrix as dense numpy array for diagnostics
-            S_numpy = (
-                S_nw.select(nw.col(S_nw_cols_ex_id_col))
-                .to_numpy()
-                .astype(np.float64, copy=False)
-            )
+            if _s_matrix is not None:
+                S_numpy = _s_matrix.to_dense()
+            else:
+                S_numpy = (
+                    S_nw.select(nw.col(S_nw_cols_ex_id_col))
+                    .to_numpy()
+                    .astype(np.float64, copy=False)
+                )
 
             # Get indices - note: S_numpy has shape (n_series, n_bottom)
             # idx_bottom should refer to the last n_bottom rows of y
