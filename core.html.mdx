@@ -84,7 +84,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and its value contains tags associated to that level. | *required*
-`S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils.html#aggregate). Default is None. | <code>None</code>
+`S_df` | <code>[Frame](#narwhals.typing.Frame) \| [SMatrix](#hierarchicalforecast.utils.SMatrix)</code> | DataFrame or :class:`~hierarchicalforecast.utils.SMatrix` with summing matrix of size `(base, bottom)`, see [aggregate method](./utils.html#aggregate). Passing an ``SMatrix`` (from ``aggregate(..., sparse_s=True)``) avoids dense materialization. Default is None. | <code>None</code>
 `Y_df` | <code>[Optional](#Optional)[[Frame](#narwhals.typing.Frame)]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
 `level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | positive float list [0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
 `intervals_method` | <code>[str](#str)</code> | method used to calculate prediction intervals, one of `normality`, `bootstrap`, `permbu`. Default is "normality". | <code>'normality'</code>
