@@ -261,19 +261,8 @@ class HierarchicalReconciliation:
 
         # Check if Y_hat_df has the necessary columns for temporal
         if temporal:
-            # We don't support insample methods, so Y_df must be None
-            if Y_nw is not None:
-                raise NotImplementedError(
-                    "Temporal reconciliation requires `Y_df` to be None."
-                )
-            # If Y_nw is None, we need to check if the reconcilers are not insample methods
-            for reconciler in self.reconcilers:
-                if reconciler.insample:
-                    reconciler_name = _build_fn_name(reconciler)
-                    raise NotImplementedError(
-                        f"Temporal reconciliation is not supported for `{reconciler_name}`."
-                    )
-            # Hence we also don't support bootstrap or permbu (rely on insample values)
+            # Bootstrap and permbu rely on insample values in ways that are
+            # not yet adapted for temporal hierarchies.
             if intervals_method in ["bootstrap", "permbu"]:
                 raise NotImplementedError(
                     f"Temporal reconciliation is not supported for intervals_method=`{intervals_method}`."
@@ -306,6 +295,14 @@ class HierarchicalReconciliation:
                 raise ValueError(
                     f"Check `S_df` columns, {reprlib.repr(id_time_col)} must be in `S_df` columns."
                 )
+            # Validate Y_df structure for temporal when insample data is provided
+            if Y_nw is not None:
+                missing_cols_temporal_Y = set([id_col, time_col, id_time_col]) - set(Y_nw.columns)
+                if missing_cols_temporal_Y:
+                    raise ValueError(
+                        f"For temporal reconciliation with insample data, `Y_df` must have columns {reprlib.repr(missing_cols_temporal_Y)}."
+                    )
+
             id_cols = [id_col, time_col, target_col, id_time_col]
             id_col = id_time_col
         else:
@@ -504,6 +501,10 @@ class HierarchicalReconciliation:
         temporal: bool = False,
         diagnostics: bool = False,
         diagnostics_atol: float = 1e-6,
+        method_kwargs: dict | None = None,
+        cross_temporal: bool = False,
+        S_cs_df: Frame | None = None,
+        S_te_df: Frame | None = None,
     ) -> FrameT:
         r"""Hierarchical Reconciliation Method.
 
@@ -549,6 +550,10 @@ class HierarchicalReconciliation:
             temporal (bool, optional): if True, perform temporal reconciliation. Default is False.
             diagnostics (bool, optional): if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False.
             diagnostics_atol (float, optional): absolute tolerance for numerical coherence check. Default is 1e-6.
+            method_kwargs (dict, optional): Extra keyword arguments passed through to `estimate_covariance()` via the reconciler. For temporal methods, `agg_order` is auto-derived from S when `temporal=True`. For cross-temporal methods, `n_cs`, `n_te`, `S_cs`, `S_te` are auto-populated when `cross_temporal=True`. Default is None.
+            cross_temporal (bool, optional): if True, perform cross-temporal reconciliation by building ``S_ct = S_cs ⊗ S_te``. Requires ``S_cs_df`` and ``S_te_df``. Default is False.
+            S_cs_df (Frame, optional): Cross-sectional summing matrix DataFrame (required when ``cross_temporal=True``). Default is None.
+            S_te_df (Frame, optional): Temporal summing matrix DataFrame (required when ``cross_temporal=True``). Default is None.
 
         Returns:
             (FrameT): DataFrame, with reconciled predictions.
@@ -569,6 +574,61 @@ class HierarchicalReconciliation:
             Y_nw = nw.from_native(Y_df)
         else:
             Y_nw = None
+
+        # Cross-temporal reconciliation: build S_ct = S_cs ⊗ S_te
+        if cross_temporal:
+            if S_cs_df is None or S_te_df is None:
+                raise ValueError(
+                    "Cross-temporal reconciliation requires both `S_cs_df` and `S_te_df`."
+                )
+            from .utils import build_cross_temporal_S
+            S_cs_nw = nw.from_native(S_cs_df)
+            S_te_nw = nw.from_native(S_te_df)
+
+            # Extract numpy arrays (excluding id columns)
+            S_cs_cols = [c for c in S_cs_nw.columns if c != id_col]
+            S_te_cols = [c for c in S_te_nw.columns if c != id_time_col]
+            S_cs_np = S_cs_nw[S_cs_cols].to_numpy().astype(np.float64, copy=False)
+            S_te_np = S_te_nw[S_te_cols].to_numpy().astype(np.float64, copy=False)
+
+            # Auto-populate method_kwargs for cross-temporal covariance methods
+            if method_kwargs is None:
+                method_kwargs = {}
+            method_kwargs.setdefault("n_cs", S_cs_np.shape[0])
+            method_kwargs.setdefault("n_te", S_te_np.shape[0])
+            method_kwargs.setdefault("S_cs", S_cs_np)
+            method_kwargs.setdefault("S_te", S_te_np)
+            agg_order_te = np.sum(S_te_np, axis=1).astype(int)
+            method_kwargs.setdefault("agg_order", agg_order_te)
+
+            # Build the Kronecker product S_ct (reordered so bottom is identity)
+            S_ct_np, row_order = build_cross_temporal_S(S_cs_np, S_te_np)
+
+            # Build cross-temporal ID column and S DataFrame
+            ct_id_col = id_col  # use the same id column
+            cs_ids = S_cs_nw[id_col].to_list()
+            te_ids = S_te_nw[id_time_col].to_list()
+            import itertools
+            # Generate IDs in Kronecker order, then reorder to match S_ct row order
+            ct_ids_kron = [f"{cs}{'//'}{te}" for cs, te in itertools.product(cs_ids, te_ids)]
+            ct_ids = [ct_ids_kron[i] for i in row_order]
+
+            # Bottom-level column names for S_ct
+            cs_bottom = S_cs_cols
+            te_bottom = S_te_cols
+            ct_bottom = [f"{cs}{'//'}{te}" for cs, te in itertools.product(cs_bottom, te_bottom)]
+
+            backend = nw.get_native_namespace(Y_hat_nw)
+            S_nw = nw.from_dict(
+                {ct_id_col: ct_ids, **dict(zip(ct_bottom, S_ct_np.T, strict=False))},
+                backend=backend,
+            )
+            # Override temporal flag since cross-temporal uses the same id_col pattern
+            temporal = False
+
+            # Store component S matrices for CTRec/IterativeRec
+            _S_cs_np = S_cs_np
+            _S_te_np = S_te_np
 
         # Check input's validity and sort dataframes
         Y_hat_nw, S_nw, Y_nw, self.model_names, id_col = self._prepare_fit(
@@ -597,6 +657,60 @@ class HierarchicalReconciliation:
                 for key, val in tags.items()
             },
         )
+
+        # Auto-derive agg_order from S for temporal reconciliation
+        if temporal and not cross_temporal:
+            S_nw_cols_temp = [c for c in S_nw.columns if c != id_col]
+            S_temp_np = S_nw[S_nw_cols_temp].to_numpy().astype(np.float64, copy=False)
+            agg_order = np.sum(S_temp_np, axis=1).astype(int)
+            if method_kwargs is None:
+                method_kwargs = {}
+            method_kwargs.setdefault("agg_order", agg_order)
+
+        # Pass method_kwargs to reconciler if provided
+        if method_kwargs is not None:
+            reconciler_args["method_kwargs"] = method_kwargs
+
+        # Make component S matrices and per-dimension tags available
+        # for CTRec/IterativeRec
+        if cross_temporal:
+            reconciler_args["S_cs"] = _S_cs_np
+            reconciler_args["S_te"] = _S_te_np
+
+            # Build tags_cs and tags_te by splitting CT tag keys on "//"
+            # and mapping CS/TE level names to row indices in S_cs / S_te.
+            _cs_id_to_idx = {
+                uid: i for i, uid in enumerate(S_cs_nw[id_col].to_list())
+            }
+            _te_id_to_idx = {
+                uid: i for i, uid in enumerate(S_te_nw[id_time_col].to_list())
+            }
+            _tags_cs_dict: dict[str, set[int]] = {}
+            _tags_te_dict: dict[str, set[int]] = {}
+            for ct_key, ct_vals in tags.items():
+                parts = ct_key.split("//", 1)
+                cs_key, te_key = parts[0], parts[1]
+                if cs_key not in _tags_cs_dict:
+                    _tags_cs_dict[cs_key] = set()
+                if te_key not in _tags_te_dict:
+                    _tags_te_dict[te_key] = set()
+                for ct_id in ct_vals:
+                    cs_id, te_id = ct_id.split("//", 1)
+                    if cs_id in _cs_id_to_idx:
+                        _tags_cs_dict[cs_key].add(_cs_id_to_idx[cs_id])
+                    if te_id in _te_id_to_idx:
+                        _tags_te_dict[te_key].add(_te_id_to_idx[te_id])
+            reconciler_args["tags_cs"] = {
+                k: np.array(sorted(v)) for k, v in _tags_cs_dict.items()
+            }
+            reconciler_args["tags_te"] = {
+                k: np.array(sorted(v)) for k, v in _tags_te_dict.items()
+            }
+            # row_order maps Kronecker position -> reordered position.
+            # CTRec/IterativeRec expect Kronecker-order inputs, so we
+            # must convert reordered -> Kronecker before calling and
+            # Kronecker -> reordered after.
+            _ct_inv_order = np.argsort(row_order)  # reordered -> Kronecker
 
         any_sparse = any([method.is_sparse_method for method in self.reconcilers])
         S_nw_cols_ex_id_col = S_nw.columns
@@ -726,7 +840,23 @@ class HierarchicalReconciliation:
                 ]
                 kwargs = {key: reconciler_args[key] for key in kwargs_ls}
 
-                fcsts_model = reconciler(**kwargs, level=level)
+                # Cross-temporal reconcilers (CTRec, IterativeRec) expect
+                # Kronecker-ordered rows.  S_nw (and hence y_hat) uses a
+                # reordered layout, so we convert before the call and
+                # convert back afterwards.
+                _needs_ct_reorder = cross_temporal and "S_cs" in kwargs
+                if _needs_ct_reorder:
+                    for _arr_key in ("y_hat", "y_insample", "y_hat_insample"):
+                        if _arr_key in kwargs and kwargs[_arr_key] is not None:
+                            kwargs[_arr_key] = kwargs[_arr_key][_ct_inv_order]
+
+                if "level" in signature(reconciler.fit_predict).parameters:
+                    fcsts_model = reconciler(**kwargs, level=level)
+                else:
+                    fcsts_model = reconciler(**kwargs)
+
+                if _needs_ct_reorder:
+                    fcsts_model["mean"] = fcsts_model["mean"][row_order]
 
                 # Validate reconciler state for sampling (fail fast before processing results)
                 if num_samples > 0 and level is not None:
@@ -749,6 +879,7 @@ class HierarchicalReconciliation:
                 if (
                     intervals_method in ["bootstrap", "normality", "permbu", "conformal"]
                     and level is not None
+                    and "quantiles" in fcsts_model
                 ):
                     level.sort()
                     lo_names = [f"{recmodel_name}-lo-{lv}" for lv in reversed(level)]

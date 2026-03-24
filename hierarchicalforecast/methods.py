@@ -1,23 +1,28 @@
 __all__ = ['BottomUp', 'BottomUpSparse', 'TopDown', 'TopDownSparse', 'MiddleOut', 'MiddleOutSparse', 'MinTrace', 'MinTraceSparse',
-           'OptimalCombination', 'ERM']
+           'OptimalCombination', 'ERM', 'CTRec', 'EnsembleReconciler', 'IterativeRec']
 
 
 import warnings
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from inspect import signature
 
 import clarabel
 import numpy as np
 from qpsolvers import solve_qp
 from scipy import sparse
+from scipy.sparse.linalg import LinearOperator, cg
 
+from hierarchicalforecast.covariance import (
+    REQUIRES_RESIDUALS,
+    estimate_covariance,
+    is_diagonal_method,
+    list_covariance_methods,
+)
 from hierarchicalforecast.utils import (
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
     _lasso,
-    _ma_cov,
-    _shrunk_covariance_schaferstrimmer_no_nans,
-    _shrunk_covariance_schaferstrimmer_with_nans,
     get_num_threads,
     is_strictly_hierarchical,
     set_num_threads,
@@ -873,15 +878,21 @@ class TopDownSparse(TopDown):
             # Compute prediction intervals using bootstrap if requested
             if level is not None:
                 if y_insample is None or y_hat_insample is None:
-                    raise ValueError(
+                    import warnings
+                    warnings.warn(
                         "Prediction intervals for `forecast_proportions` require "
-                        "`y_insample` and `y_hat_insample`."
+                        "`y_insample` and `y_hat_insample`. "
+                        "Returning point forecasts only."
                     )
+                    return res
                 if intervals_method != "bootstrap":
-                    raise ValueError(
+                    import warnings
+                    warnings.warn(
                         "Only `bootstrap` intervals_method is implemented for "
-                        "`forecast_proportions` with sparse matrices."
+                        "`forecast_proportions` with sparse matrices. "
+                        "Returning point forecasts only."
                     )
+                    return res
                 if num_samples is None:
                     num_samples = 100
                 if seed is None:
@@ -1254,7 +1265,14 @@ class MinTrace(HReconciler):
     ```
 
     Args:
-        method (str): One of `ols`, `wls_struct`, `wls_var`, `mint_shrink`, `mint_cov`, `emint`.
+        method (str): Covariance estimation method. Cross-sectional methods:
+            `ols`, `wls_struct`, `wls_var`, `sam`/`mint_cov`, `shr`/`mint_shrink`,
+            `bu`, `oasd`, `emint`. Temporal methods: `wlsv`, `wlsh`, `acov`,
+            `strar1`, `sar1`, `har1`. Cross-temporal methods: `csstr`, `testr`,
+            `bdshr`, `bdsam`, `sshr`, `ssam`, `hshr`, `hsam`, `hbshr`, `hbsam`,
+            `bshr`, `bsam`. Use ``list_covariance_methods()`` for all registered
+            methods. Temporal and cross-temporal methods require extra kwargs
+            passed via ``method_kwargs`` in ``reconcile()``.
         nonnegative (bool): Reconciled forecasts should be nonnegative?
         mint_shr_ridge (float): Ridge numeric protection to MinTrace-shr covariance estimator.
         num_threads (int): Number of threads for the C++ covariance backend (OpenMP) and for solving the optimization problems (when nonnegative=True).
@@ -1268,6 +1286,17 @@ class MinTrace(HReconciler):
 
     is_strictly_hierarchical = False
 
+    # Methods that are handled outside the covariance module
+    _SPECIAL_METHODS = {"emint"}
+
+    # Temporal and cross-temporal methods require extra kwargs (agg_order,
+    # n_cs, n_te, S_cs, S_te) that MinTrace does not yet support.
+    _TEMPORAL_METHODS = {"wlsv", "wlsh", "acov", "strar1", "sar1", "har1"}
+    _CT_METHODS = {
+        "csstr", "testr", "bdshr", "bdsam", "sshr", "ssam",
+        "hshr", "hsam", "hbshr", "hbsam", "bshr", "bsam",
+    }
+
     def __init__(
         self,
         method: str,
@@ -1275,19 +1304,20 @@ class MinTrace(HReconciler):
         mint_shr_ridge: float = 2e-8,
         num_threads: int = 1,
     ):
-        if method not in ["ols", "wls_struct", "wls_var", "mint_cov", "mint_shrink", "emint"]:
+        _available = list_covariance_methods() + list(self._SPECIAL_METHODS)
+        if method not in _available:
             raise ValueError(
-                f"Unknown method `{method}`. Choose from `ols`, `wls_struct`, `wls_var`, `mint_cov`, `mint_shrink`, `emint`."
+                f"Unknown method `{method}`. Available: {sorted(_available)}."
             )
         self.method = method
         self.nonnegative = nonnegative
-        self.insample = method in ["wls_var", "mint_cov", "mint_shrink", "emint"]
-        if method == "mint_shrink":
+        self.insample = method in REQUIRES_RESIDUALS or method in self._SPECIAL_METHODS
+        if method in ("mint_shrink", "shr"):
             self.mint_shr_ridge = mint_shr_ridge
         self.num_threads = num_threads
         # Store init params for naming (excluding internal flags like insample, num_threads)
         self._init_params = {"method": method, "nonnegative": nonnegative}
-        if method == "mint_shrink":
+        if method in ("mint_shrink", "shr"):
             self._init_params["mint_shr_ridge"] = mint_shr_ridge
 
     def _get_PW_matrices(
@@ -1296,6 +1326,7 @@ class MinTrace(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
         # Temporarily set OpenMP threads to match num_threads
         prev_threads = get_num_threads()
@@ -1307,6 +1338,7 @@ class MinTrace(HReconciler):
                 y_hat=y_hat,
                 y_insample=y_insample,
                 y_hat_insample=y_hat_insample,
+                method_kwargs=method_kwargs,
             )
         finally:
             if self.num_threads != prev_threads:
@@ -1318,8 +1350,9 @@ class MinTrace(HReconciler):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
-        # Handle emint method separately
+        # Handle emint method separately (not a covariance method)
         if self.method == "emint":
             return self._get_PW_matrices_emint(
                 S=S,
@@ -1328,82 +1361,76 @@ class MinTrace(HReconciler):
                 y_hat_insample=y_hat_insample,
             )
 
-        # shape residuals_insample (n_hiers, obs)
-        res_methods = ["wls_var", "mint_cov", "mint_shrink"]
-        if self.method in res_methods and (
-            y_insample is None or y_hat_insample is None
-        ):
-            raise ValueError(
-                f"Check `Y_df`. For method `{self.method}` you need to pass insample predictions and insample values."
-            )
+        # Compute residuals if needed
+        residuals = None
+        if self.method in REQUIRES_RESIDUALS:
+            if y_insample is None or y_hat_insample is None:
+                raise ValueError(
+                    f"Check `Y_df`. For method `{self.method}` you need to pass insample predictions and insample values."
+                )
+            # residuals in (n_hiers, n_obs) layout for the covariance module
+            residuals = y_insample - y_hat_insample
+
+        # Build covariance kwargs
+        cov_kwargs = {}
+        if self.method in ("mint_shrink", "shr"):
+            cov_kwargs["mint_shr_ridge"] = self.mint_shr_ridge
+        if method_kwargs:
+            cov_kwargs.update(method_kwargs)
+
+        # Estimate W via the covariance module
+        W = estimate_covariance(
+            method=self.method,
+            S=S,
+            residuals=residuals,
+            **cov_kwargs,
+        )
+
+        # Compute P from W using the MinTrace formula
+        try:
+            P = self._compute_P_from_W(S, W, is_diagonal_method(self.method))
+        except Exception as e:
+            raise Exception(
+                f"MinTrace(method='{self.method}') is ill-conditioned: {e}"
+            ) from e
+
+        return P, W
+
+    @staticmethod
+    def _compute_P_from_W(S: np.ndarray, W: np.ndarray, diagonal_W: bool = False) -> np.ndarray:
+        """Compute the MinTrace projection matrix P from S and W.
+
+        Uses the structural approach with J and Ut matrices for
+        numerical stability.
+
+        Args:
+            S: Summing matrix (n_hiers, n_bottom).
+            W: Covariance matrix (n_hiers, n_hiers).
+            diagonal_W: If True, W is known to be diagonal and a
+                faster element-wise multiply is used instead of matmul.
+
+        Returns:
+            P: Projection matrix (n_bottom, n_hiers).
+        """
         n_hiers, n_bottom = S.shape
         n_aggs = n_hiers - n_bottom
+
         # Construct J and U.T
         J = np.concatenate(
             (np.zeros((n_bottom, n_aggs), dtype=np.float64), S[n_aggs:]), axis=1
         )
-        Ut = np.concatenate((np.eye(n_aggs, dtype=np.float64), -S[:n_aggs]), axis=1)
-        if self.method == "ols":
-            W = np.eye(n_hiers)
-            UtW = Ut
-        elif self.method == "wls_struct":
-            Wdiag = np.sum(S, axis=1, dtype=np.float64)
+        Ut = np.concatenate(
+            (np.eye(n_aggs, dtype=np.float64), -S[:n_aggs]), axis=1
+        )
+
+        # Compute UtW efficiently: for diagonal W, avoid full matmul
+        if diagonal_W:
+            Wdiag = np.diag(W)
             UtW = Ut * Wdiag
-            W = np.diag(Wdiag)
-        elif (
-            self.method in res_methods
-            and y_insample is not None
-            and y_hat_insample is not None
-        ):
-            # Residuals with shape (obs, n_hiers)
-            residuals = (y_insample - y_hat_insample).T
-            n, _ = residuals.shape
-
-            # Protection: against overfitted model
-            residuals_sum = np.sum(residuals, axis=0)
-            zero_residual_prc = np.abs(residuals_sum) < 1e-4
-            zero_residual_prc = np.mean(zero_residual_prc)
-            if zero_residual_prc > 0.98:
-                raise Exception(
-                    f"Insample residuals close to 0, zero_residual_prc={zero_residual_prc}. Check `Y_df`"
-                )
-
-            if self.method == "wls_var":
-                Wdiag = (
-                    np.nansum(residuals**2, axis=0, dtype=np.float64)
-                    / residuals.shape[0]
-                )
-                Wdiag += np.full(n_hiers, 2e-8, dtype=np.float64)
-                W = np.diag(Wdiag)
-                UtW = Ut * Wdiag
-            elif self.method == "mint_cov":
-                # Compute nans
-                nan_mask = np.isnan(residuals.T)
-                if np.any(nan_mask):
-                    W = _ma_cov(residuals.T, ~nan_mask)
-                else:
-                    W = np.cov(residuals.T)
-
-                UtW = Ut @ W
-            elif self.method == "mint_shrink":
-                # Compute nans
-                nan_mask = np.isnan(residuals.T)
-                # Compute shrunk empirical covariance
-                if np.any(nan_mask):
-                    W = _shrunk_covariance_schaferstrimmer_with_nans(
-                        residuals.T, ~nan_mask, self.mint_shr_ridge
-                    )
-                else:
-                    W = _shrunk_covariance_schaferstrimmer_no_nans(
-                        residuals.T, self.mint_shr_ridge
-                    )
-
-                UtW = Ut @ W
         else:
-            raise ValueError(f"Unknown reconciliation method {self.method}")
+            UtW = Ut @ W
 
         try:
-            # improve stability of linalg.solve
             coef = UtW[:, n_aggs:] @ Ut.T[n_aggs:] + UtW[:, :n_aggs]
             coef[np.abs(coef) < 1e-10] = 0.0
             dep = UtW[:, n_aggs:] @ J.T[n_aggs:]
@@ -1411,16 +1438,11 @@ class MinTrace(HReconciler):
 
             P = J - np.linalg.solve(coef, dep).T @ Ut
         except np.linalg.LinAlgError:
-            if self.method == "mint_shrink":
-                raise Exception(
-                    f"min_trace ({self.method}) is ill-conditioned. Increase the value of parameter 'mint_shr_ridge' or use another reconciliation method."
-                )
-            else:
-                raise Exception(
-                    f"min_trace ({self.method}) is ill-conditioned. Please use another reconciliation method."
-                )
+            raise Exception(
+                "min_trace is ill-conditioned. Please use another reconciliation method or covariance estimator."
+            )
 
-        return P, W
+        return P
 
     def _get_PW_matrices_emint(
         self,
@@ -1489,6 +1511,7 @@ class MinTrace(HReconciler):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ):
         """MinTrace Fit Method.
 
@@ -1502,6 +1525,7 @@ class MinTrace(HReconciler):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods).
 
         Returns:
             self: object, fitted reconciler.
@@ -1511,6 +1535,7 @@ class MinTrace(HReconciler):
             y_hat=y_hat,
             y_insample=y_insample,
             y_hat_insample=y_hat_insample,
+            method_kwargs=method_kwargs,
         )
         self.y_hat = y_hat
 
@@ -1586,6 +1611,7 @@ class MinTrace(HReconciler):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ):
         """MinTrace Reconciliation Method.
 
@@ -1600,6 +1626,7 @@ class MinTrace(HReconciler):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments passed to `estimate_covariance()` (e.g. `agg_order` for temporal methods, `n_cs`/`n_te`/`S_cs`/`S_te` for cross-temporal methods).
 
         Returns:
             y_tilde: Reconciliated y_hat using the MinTrace approach.
@@ -1621,6 +1648,7 @@ class MinTrace(HReconciler):
             num_samples=num_samples,
             seed=seed,
             tags=tags,
+            method_kwargs=method_kwargs,
         )
 
         return self._reconcile(
@@ -1674,6 +1702,7 @@ class MinTraceSparse(MinTrace):
         y_hat: np.ndarray,
         y_insample: np.ndarray | None = None,
         y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
     ):
         # shape residuals_insample (n_hiers, obs)
         res_methods = ["wls_var", "mint_cov", "mint_shrink"]
@@ -1764,6 +1793,7 @@ class MinTraceSparse(MinTrace):
         num_samples: int | None = None,
         seed: int | None = None,
         tags: dict[str, np.ndarray] | None = None,
+        method_kwargs: dict | None = None,
     ) -> "MinTraceSparse":
         """MinTraceSparse Fit Method.
 
@@ -1777,6 +1807,7 @@ class MinTraceSparse(MinTrace):
             num_samples: Number of samples for probabilistic coherent distribution.
             seed: Seed for reproducibility.
             tags: Each key is a level and each value its `S` indices.
+            method_kwargs: Extra keyword arguments (unused in sparse variant, accepted for API compatibility).
 
         Returns:
             self: object, fitted reconciler.
@@ -2192,5 +2223,805 @@ class ERM(HReconciler):
         return self._reconcile(
             S=S, P=self.P, y_hat=y_hat, level=level, sampler=self.sampler
         )
+
+    __call__ = fit_predict
+
+
+class CTRec(HReconciler):
+    r"""Cross-Temporal Reconciliation Class.
+
+    Joint optimal cross-temporal reconciliation that solves the full
+    cross-temporal optimization directly.  Two computational paths are
+    available:
+
+    **Separable path** (``approach="separable"`` or auto-detected):
+    When the covariance method produces separable weights
+    (``W_ct = W_cs ⊗ W_te``), the projection matrix factors as
+    ``P_ct = P_cs ⊗ P_te`` and the reconciliation reduces to two
+    small matrix multiplications via the vec-trick:
+
+    ```math
+    \tilde{Y} = (S_{cs} P_{cs})\, \hat{Y}\, (S_{te} P_{te})^{\top}
+    ```
+
+    **Complexity**: O(n_cs² + n_te²) instead of O((n_cs · n_te)²).
+
+    **Non-separable path** (``approach="cg"`` or auto-detected):
+    For general (non-separable) covariance matrices, the system
+
+    ```math
+    (S_{ct}^{\top} W^{-1} S_{ct})\, g = S_{ct}^{\top} W^{-1} \hat{y}
+    ```
+
+    is solved with the conjugate-gradient method using implicit
+    Kronecker mat-vec products (never forming ``S_ct`` explicitly).
+
+    Args:
+        method (str): Covariance estimation method.  Any method from
+            :func:`~hierarchicalforecast.covariance.list_covariance_methods`
+            is accepted.  Separable methods (``ols``, ``wls_struct``,
+            ``csstr``, ``testr``) use the efficient vec-trick path.
+        approach (str): ``"auto"`` (default) selects the path based on
+            the covariance method; ``"separable"`` forces the vec-trick;
+            ``"cg"`` forces the conjugate-gradient solver.
+        mint_shr_ridge (float): Ridge regularization for shrinkage
+            covariance.  Default 2e-8.
+        cg_rtol (float): CG convergence tolerance (relative).  Default 1e-6.
+        cg_maxiter (int): CG maximum iterations.  Default 500.
+        num_threads (int): OpenMP threads for the C++ covariance backend.
+
+    References:
+        - Di Fonzo, T. & Girolimetto, D. (2023). "Cross-temporal forecast
+          reconciliation: Optimal combination method and heuristic
+          alternatives." International Journal of Forecasting.
+    """
+
+    is_strictly_hierarchical = False
+
+    # Covariance methods whose W factorizes as W_cs ⊗ W_te
+    _SEPARABLE_METHODS = {"ols", "wls_struct", "csstr", "testr"}
+
+    def __init__(
+        self,
+        method: str = "ols",
+        approach: str = "auto",
+        mint_shr_ridge: float = 2e-8,
+        cg_rtol: float = 1e-6,
+        cg_maxiter: int = 500,
+        num_threads: int = 1,
+    ):
+        _available = list_covariance_methods()
+        if method not in _available:
+            raise ValueError(
+                f"Unknown method `{method}`. Available: {sorted(_available)}."
+            )
+        if approach not in ("auto", "separable", "cg"):
+            raise ValueError(
+                f"Unknown approach `{approach}`. Choose from 'auto', 'separable', 'cg'."
+            )
+        self.method = method
+        self.approach = approach
+        self.mint_shr_ridge = mint_shr_ridge
+        self.cg_rtol = cg_rtol
+        self.cg_maxiter = cg_maxiter
+        self.num_threads = num_threads
+        self.insample = method in REQUIRES_RESIDUALS
+        self._init_params = {"method": method, "approach": approach}
+
+    def _is_separable(self) -> bool:
+        """Determine whether the chosen path is separable."""
+        if self.approach == "separable":
+            return True
+        if self.approach == "cg":
+            return False
+        # auto
+        return self.method in self._SEPARABLE_METHODS
+
+    # -- Separable path (vec-trick) ----------------------------------
+
+    def _reconcile_separable(
+        self,
+        S_cs: np.ndarray,
+        S_te: np.ndarray,
+        y_hat_ct: np.ndarray,
+        residuals_ct: np.ndarray | None,
+        method_kwargs: dict | None,
+    ) -> np.ndarray:
+        r"""Reconcile using the vec-trick.
+
+        For single horizon: :math:`\tilde{Y} = (S_{cs} P_{cs}) \hat{Y} (S_{te} P_{te})^\top`
+
+        Args:
+            S_cs: Cross-sectional summing matrix (n_cs, n_bottom_cs).
+            S_te: Temporal summing matrix (n_te, n_bottom_te).
+            y_hat_ct: Base forecasts in Kronecker order (n_cs * n_te, horizon).
+            residuals_ct: Residuals (n_cs * n_te, n_obs) or None.
+            method_kwargs: Extra kwargs for covariance estimation.
+
+        Returns:
+            Reconciled forecasts (n_cs * n_te, horizon).
+        """
+        n_cs, n_bottom_cs = S_cs.shape
+        n_te, n_bottom_te = S_te.shape
+
+        # Compute P_cs and P_te independently
+        P_cs, _ = self._compute_component_PW(
+            S_cs, y_hat_ct, residuals_ct, n_cs, n_te,
+            component="cs", method_kwargs=method_kwargs,
+        )
+        P_te, _ = self._compute_component_PW(
+            S_te, y_hat_ct, residuals_ct, n_cs, n_te,
+            component="te", method_kwargs=method_kwargs,
+        )
+
+        SP_cs = S_cs @ P_cs  # (n_cs, n_cs)
+        SP_te = S_te @ P_te  # (n_te, n_te)
+
+        horizon = y_hat_ct.shape[1] if y_hat_ct.ndim == 2 else 1
+
+        # Vec-trick: for each horizon step, reshape to (n_cs, n_te) matrix
+        # and apply: Y_tilde = SP_cs @ Y_hat @ SP_te'
+        result = np.empty_like(y_hat_ct)
+        for h_idx in range(horizon):
+            y_col = y_hat_ct[:, h_idx] if y_hat_ct.ndim == 2 else y_hat_ct
+            Y_mat = y_col.reshape(n_cs, n_te)
+            Y_tilde = SP_cs @ Y_mat @ SP_te.T  # (n_cs, n_te)
+            if y_hat_ct.ndim == 2:
+                result[:, h_idx] = Y_tilde.ravel()
+            else:
+                result = Y_tilde.ravel()
+
+        return result
+
+    def _compute_component_PW(
+        self,
+        S_comp: np.ndarray,
+        y_hat_ct: np.ndarray,
+        residuals_ct: np.ndarray | None,
+        n_cs: int,
+        n_te: int,
+        component: str,
+        method_kwargs: dict | None,
+    ):
+        """Compute P and W for one component (cs or te) of a separable method."""
+        comp_method = self._get_component_method(component)
+
+        cov_kwargs = {}
+        if comp_method in ("mint_shrink", "shr"):
+            cov_kwargs["mint_shr_ridge"] = self.mint_shr_ridge
+
+        if comp_method not in REQUIRES_RESIDUALS:
+            W_comp = estimate_covariance(
+                method=comp_method, S=S_comp, residuals=None, **cov_kwargs
+            )
+        else:
+            if residuals_ct is None:
+                raise ValueError(
+                    f"Method `{self.method}` requires residuals. "
+                    f"Pass y_insample and y_hat_insample."
+                )
+            if component == "cs":
+                res_comp = self._marginalize_residuals_cs(residuals_ct, n_cs, n_te)
+            else:
+                res_comp = self._marginalize_residuals_te(residuals_ct, n_cs, n_te)
+            W_comp = estimate_covariance(
+                method=comp_method, S=S_comp, residuals=res_comp, **cov_kwargs
+            )
+
+        P_comp = MinTrace._compute_P_from_W(
+            S_comp, W_comp, is_diagonal_method(comp_method)
+        )
+        return P_comp, W_comp
+
+    def _get_component_method(self, component: str) -> str:
+        """Map the CT method name to the appropriate component method."""
+        method_map = {
+            "ols": "ols",
+            "wls_struct": "wls_struct",
+            "csstr": "wls_struct" if component == "cs" else "ols",
+            "testr": "ols" if component == "cs" else "wls_struct",
+        }
+        return method_map.get(self.method, self.method)
+
+    @staticmethod
+    def _marginalize_residuals_cs(
+        residuals: np.ndarray, n_cs: int, n_te: int
+    ) -> np.ndarray:
+        """Marginalize CT residuals to CS dimension by averaging over temporal."""
+        n_obs = residuals.shape[1]
+        res_3d = residuals.reshape(n_cs, n_te, n_obs)
+        return res_3d.mean(axis=1)
+
+    @staticmethod
+    def _marginalize_residuals_te(
+        residuals: np.ndarray, n_cs: int, n_te: int
+    ) -> np.ndarray:
+        """Marginalize CT residuals to temporal dimension by averaging over CS."""
+        n_obs = residuals.shape[1]
+        res_3d = residuals.reshape(n_cs, n_te, n_obs)
+        return res_3d.mean(axis=0)
+
+    # -- Non-separable path (conjugate gradient) ---------------------
+
+    def _reconcile_cg(
+        self,
+        S_cs: np.ndarray,
+        S_te: np.ndarray,
+        y_hat_ct: np.ndarray,
+        residuals_ct: np.ndarray | None,
+        method_kwargs: dict | None,
+    ) -> np.ndarray:
+        r"""Reconcile using CG solver with implicit Kronecker products.
+
+        Solves :math:`(S_{ct}^\top W^{-1} S_{ct}) g = S_{ct}^\top W^{-1} \hat{y}`
+        for g, then recovers :math:`\tilde{y} = S_{ct} g`.
+        """
+        from hierarchicalforecast.utils import build_cross_temporal_S
+
+        n_cs, n_bottom_cs = S_cs.shape
+        n_te, n_bottom_te = S_te.shape
+        n_ct = n_cs * n_te
+        n_bottom_ct = n_bottom_cs * n_bottom_te
+
+        # Build the full S_ct and W for the CG solve
+        S_ct, row_order = build_cross_temporal_S(S_cs, S_te)
+
+        # Build covariance kwargs
+        cov_kwargs = {}
+        if self.method in ("mint_shrink", "shr"):
+            cov_kwargs["mint_shr_ridge"] = self.mint_shr_ridge
+        if method_kwargs:
+            cov_kwargs.update(method_kwargs)
+        cov_kwargs.setdefault("n_cs", n_cs)
+        cov_kwargs.setdefault("n_te", n_te)
+        cov_kwargs.setdefault("S_cs", S_cs)
+        cov_kwargs.setdefault("S_te", S_te)
+        agg_order_te = np.sum(S_te, axis=1).astype(int)
+        cov_kwargs.setdefault("agg_order", agg_order_te)
+
+        # Reorder to match S_ct row order
+        y_hat_reordered = y_hat_ct[row_order]
+        residuals_reordered = None
+        if residuals_ct is not None:
+            residuals_reordered = residuals_ct[row_order]
+
+        # Estimate W
+        W = estimate_covariance(
+            method=self.method,
+            S=S_ct,
+            residuals=residuals_reordered,
+            **cov_kwargs,
+        )
+
+        diag_W = is_diagonal_method(self.method)
+
+        # W^{-1} action
+        if diag_W:
+            w_inv_diag = 1.0 / np.diag(W)
+
+            def w_inv_action(x):
+                return w_inv_diag * x
+        else:
+            try:
+                L = np.linalg.cholesky(W)
+
+                def w_inv_action(x):
+                    z = np.linalg.solve(L, x)
+                    return np.linalg.solve(L.T, z)
+            except np.linalg.LinAlgError:
+                W_inv = np.linalg.pinv(W)
+
+                def w_inv_action(x):
+                    return W_inv @ x
+
+        # LHS operator: S_ct' W^{-1} S_ct
+        def lhs_action(g):
+            return S_ct.T @ w_inv_action(S_ct @ g)
+
+        A_op = LinearOperator(
+            shape=(n_bottom_ct, n_bottom_ct), matvec=lhs_action,
+            dtype=np.float64,
+        )
+
+        horizon = y_hat_reordered.shape[1] if y_hat_reordered.ndim == 2 else 1
+        result_reordered = np.empty((n_ct, horizon), dtype=np.float64)
+
+        for h_idx in range(horizon):
+            y_col = (
+                y_hat_reordered[:, h_idx]
+                if y_hat_reordered.ndim == 2
+                else y_hat_reordered
+            )
+            rhs = S_ct.T @ w_inv_action(y_col)
+
+            g, info = cg(A_op, rhs, rtol=self.cg_rtol, maxiter=self.cg_maxiter)
+            if info != 0:
+                warnings.warn(
+                    f"CG solver did not converge (info={info}). "
+                    f"Results may be inaccurate. Try increasing cg_maxiter or cg_rtol."
+                )
+            result_reordered[:, h_idx] = S_ct @ g
+
+        # Undo row reordering
+        inv_order = np.empty_like(row_order)
+        inv_order[row_order] = np.arange(len(row_order))
+        return result_reordered[inv_order]
+
+    # -- Public interface --------------------------------------------
+
+    def fit_predict(
+        self,
+        S_cs: np.ndarray,
+        S_te: np.ndarray,
+        y_hat: np.ndarray,
+        y_insample: np.ndarray | None = None,
+        y_hat_insample: np.ndarray | None = None,
+        method_kwargs: dict | None = None,
+    ) -> dict:
+        """Cross-temporal reconciliation.
+
+        Args:
+            S_cs: Cross-sectional summing matrix (n_cs, n_bottom_cs).
+            S_te: Temporal summing matrix (n_te, n_bottom_te).
+            y_hat: Base forecasts in Kronecker order (n_cs * n_te, horizon).
+                Row i corresponds to (cs_idx, te_idx) = (i // n_te, i % n_te).
+            y_insample: Insample actuals (n_cs * n_te, n_obs) or None.
+            y_hat_insample: Insample fitted values (n_cs * n_te, n_obs) or None.
+            method_kwargs: Extra kwargs for covariance estimation.
+
+        Returns:
+            dict with key ``"mean"`` containing reconciled forecasts
+            of shape (n_cs * n_te, horizon).
+        """
+        prev_threads = get_num_threads()
+        if self.num_threads != prev_threads:
+            set_num_threads(self.num_threads)
+        try:
+            return self._fit_predict_impl(
+                S_cs, S_te, y_hat, y_insample, y_hat_insample, method_kwargs,
+            )
+        finally:
+            if self.num_threads != prev_threads:
+                set_num_threads(prev_threads)
+
+    def _fit_predict_impl(
+        self,
+        S_cs: np.ndarray,
+        S_te: np.ndarray,
+        y_hat: np.ndarray,
+        y_insample: np.ndarray | None,
+        y_hat_insample: np.ndarray | None,
+        method_kwargs: dict | None,
+    ) -> dict:
+        n_cs = S_cs.shape[0]
+        n_te = S_te.shape[0]
+        expected_rows = n_cs * n_te
+
+        if y_hat.shape[0] != expected_rows:
+            raise ValueError(
+                f"y_hat has {y_hat.shape[0]} rows, expected {expected_rows} "
+                f"(n_cs={n_cs} * n_te={n_te})."
+            )
+
+        residuals = None
+        if self.insample:
+            if y_insample is None or y_hat_insample is None:
+                raise ValueError(
+                    f"Method `{self.method}` requires insample data. "
+                    f"Pass y_insample and y_hat_insample."
+                )
+            residuals = y_insample - y_hat_insample
+
+        if self._is_separable():
+            result = self._reconcile_separable(
+                S_cs, S_te, y_hat, residuals, method_kwargs,
+            )
+        else:
+            result = self._reconcile_cg(
+                S_cs, S_te, y_hat, residuals, method_kwargs,
+            )
+
+        self.fitted = True
+        return {"mean": result}
+
+    __call__ = fit_predict
+
+
+class EnsembleReconciler(HReconciler):
+    """Ensemble reconciler that combines outputs from multiple reconcilers.
+
+    Runs each inner reconciler independently on the same inputs and
+    combines their reconciled forecasts element-wise (e.g., pointwise
+    median or mean).  This is useful as an inner reconciler inside
+    ``IterativeRec`` to average over different covariance estimators.
+
+    Args:
+        reconcilers (list[HReconciler]): Inner reconcilers to ensemble.
+        combine (str): Combination strategy: ``"median"`` (default) or
+            ``"mean"``.
+
+    Examples:
+        >>> from hierarchicalforecast.methods import (
+        ...     EnsembleReconciler, MinTrace, IterativeRec,
+        ... )
+        >>> ensemble_cs = EnsembleReconciler([
+        ...     MinTrace(method='ols'),
+        ...     MinTrace(method='wls_struct'),
+        ...     MinTrace(method='mint_shrink'),
+        ... ])
+        >>> ensemble_te = EnsembleReconciler([
+        ...     MinTrace(method='ols'),
+        ...     MinTrace(method='wls_struct'),
+        ... ])
+        >>> rec = IterativeRec(
+        ...     cs_reconciler=ensemble_cs,
+        ...     te_reconciler=ensemble_te,
+        ... )
+    """
+
+    is_sparse_method = False
+
+    def __init__(
+        self,
+        reconcilers: list[HReconciler],
+        combine: str = "median",
+    ):
+        if not reconcilers:
+            raise ValueError("reconcilers list must not be empty.")
+        if combine not in ("median", "mean"):
+            raise ValueError(f"combine must be 'median' or 'mean', got '{combine}'.")
+        self.reconcilers = reconcilers
+        self.combine = combine
+        self.insample = any(getattr(r, "insample", False) for r in reconcilers)
+        self._init_params = {
+            "reconcilers": [
+                repr(r) if hasattr(r, '_init_params') and r._init_params else type(r).__name__
+                for r in reconcilers
+            ],
+            "combine": combine,
+        }
+
+    def fit_predict(
+        self,
+        S: np.ndarray,
+        y_hat: np.ndarray,
+        y_insample: np.ndarray | None = None,
+        y_hat_insample: np.ndarray | None = None,
+        tags: dict | None = None,
+        method_kwargs: dict | None = None,
+    ) -> dict:
+        """Run all inner reconcilers and combine their outputs.
+
+        Args:
+            S: Summing matrix.
+            y_hat: Base forecasts.
+            y_insample: Insample actuals (optional).
+            y_hat_insample: Insample fitted values (optional).
+            tags: Hierarchy tags (optional).
+            method_kwargs: Extra kwargs for covariance estimation (optional).
+
+        Returns:
+            dict with ``"mean"`` key containing the combined reconciled forecasts.
+        """
+        all_kwargs = {
+            "S": S,
+            "y_hat": y_hat,
+            "y_insample": y_insample,
+            "y_hat_insample": y_hat_insample,
+            "tags": tags,
+            "method_kwargs": method_kwargs,
+        }
+
+        outputs = []
+        for rec in self.reconcilers:
+            # Pass only kwargs that each inner reconciler accepts,
+            # so reconcilers with required positional args (e.g. TopDown
+            # requires `tags`) receive them, while reconcilers that don't
+            # accept certain params aren't given unexpected kwargs.
+            sig = signature(rec.fit_predict)
+            rec_kwargs = {
+                k: v for k, v in all_kwargs.items()
+                if k in sig.parameters
+            }
+            # Convert S to sparse for sparse reconcilers
+            if getattr(rec, "is_sparse_method", False) and "S" in rec_kwargs:
+                if not sparse.issparse(rec_kwargs["S"]):
+                    rec_kwargs["S"] = sparse.csr_matrix(rec_kwargs["S"])
+            out = rec.fit_predict(**rec_kwargs)
+            outputs.append(out["mean"])
+
+        stacked = np.stack(outputs, axis=0)  # (n_reconcilers, *y_hat.shape)
+
+        if self.combine == "median":
+            combined = np.median(stacked, axis=0)
+        else:
+            combined = np.mean(stacked, axis=0)
+
+        return {"mean": combined}
+
+    __call__ = fit_predict
+
+
+class IterativeRec(HReconciler):
+    """Iterative Cross-Temporal Reconciliation.
+
+    Alternates between cross-sectional and temporal reconciliation
+    until convergence, following the framework of Di Fonzo &
+    Girolimetto (2023).
+
+    Each iteration:
+      1. Reconcile in dimension A (CS or temporal)
+      2. Reconcile in dimension B (the other dimension)
+      3. Measure incoherence in both dimensions
+      4. Stop if below tolerance
+
+    Args:
+        cs_reconciler (HReconciler): Reconciler for the cross-sectional step.
+        te_reconciler (HReconciler): Reconciler for the temporal step.
+        start (str): Which dimension to reconcile first: ``"cs"`` or
+            ``"te"``.  Default ``"cs"``.
+        max_iter (int): Maximum number of iterations.  Default 100.
+        tol (float): Convergence tolerance on incoherence norm.
+            Default 1e-5.
+        norm (str): Norm for measuring incoherence: ``"inf"``, ``"one"``,
+            or ``"two"``.  Default ``"inf"``.
+
+    Attributes:
+        convergence_info (dict | None): After ``fit_predict``, contains
+            ``n_iter`` (int) and ``incoherence`` (list of float) per iteration.
+
+    References:
+        - Di Fonzo, T. & Girolimetto, D. (2023). "Cross-temporal forecast
+          reconciliation: Optimal combination method and heuristic
+          alternatives." International Journal of Forecasting.
+    """
+
+    is_sparse_method = False
+
+    def __init__(
+        self,
+        cs_reconciler: HReconciler,
+        te_reconciler: HReconciler,
+        start: str = "cs",
+        max_iter: int = 100,
+        tol: float = 1e-5,
+        norm: str = "inf",
+    ):
+        if start not in ("cs", "te"):
+            raise ValueError(f"start must be 'cs' or 'te', got '{start}'.")
+        if norm not in ("inf", "one", "two"):
+            raise ValueError(f"norm must be 'inf', 'one', or 'two', got '{norm}'.")
+        self.cs_reconciler = cs_reconciler
+        self.te_reconciler = te_reconciler
+        self.start = start
+        self.max_iter = max_iter
+        self.tol = tol
+        self.norm = norm
+        self.insample = (
+            getattr(cs_reconciler, "insample", False)
+            or getattr(te_reconciler, "insample", False)
+        )
+        self.convergence_info: dict | None = None
+        self._init_params = {
+            "cs": type(cs_reconciler).__name__,
+            "te": type(te_reconciler).__name__,
+            "start": start,
+        }
+
+    @staticmethod
+    def _tags_from_S(S: np.ndarray) -> dict[str, np.ndarray]:
+        """Derive hierarchy-level tags from a summing matrix.
+
+        Groups row indices by their aggregation level (row sum),
+        sorted from highest (total) to lowest (bottom).
+        """
+        row_sums = S.sum(axis=1).astype(int)
+        unique_sums = np.unique(row_sums)[::-1]
+        return {
+            f"level_{i}": np.where(row_sums == s)[0]
+            for i, s in enumerate(unique_sums)
+        }
+
+    @staticmethod
+    def _measure_incoherence(
+        Y_flat: np.ndarray, S: np.ndarray, norm: str
+    ) -> float:
+        """Measure incoherence: max‖y - S @ y_bottom‖ over columns.
+
+        Args:
+            Y_flat: (n, cols) array where n = len(S).
+            S: Summing matrix (n, n_bottom).
+            norm: "inf", "one", or "two".
+
+        Returns:
+            Scalar incoherence.
+        """
+        n, n_bottom = S.shape
+        bottom = Y_flat[-n_bottom:]
+        diff = Y_flat - S @ bottom
+
+        if norm == "inf":
+            return float(np.max(np.abs(diff)))
+        elif norm == "one":
+            return float(np.sum(np.abs(diff)))
+        else:
+            return float(np.sqrt(np.sum(diff**2)))
+
+    def fit_predict(
+        self,
+        S_cs: np.ndarray,
+        S_te: np.ndarray,
+        y_hat: np.ndarray,
+        y_insample: np.ndarray | None = None,
+        y_hat_insample: np.ndarray | None = None,
+        tags_cs: dict[str, np.ndarray] | None = None,
+        tags_te: dict[str, np.ndarray] | None = None,
+        method_kwargs_cs: dict | None = None,
+        method_kwargs_te: dict | None = None,
+    ) -> dict:
+        """Iterative cross-temporal reconciliation.
+
+        Args:
+            S_cs: Cross-sectional summing matrix (n_cs, n_bottom_cs).
+            S_te: Temporal summing matrix (n_te, n_bottom_te).
+            y_hat: Base forecasts in Kronecker order (n_cs * n_te, horizon)
+                or matrix form (n_cs, n_te) for single horizon.
+            y_insample: Insample actuals, same layout as y_hat, or None.
+            y_hat_insample: Insample fitted values, or None.
+            tags_cs: Tags for cross-sectional hierarchy.
+            tags_te: Tags for temporal hierarchy.
+            method_kwargs_cs: Extra kwargs for CS covariance estimation.
+            method_kwargs_te: Extra kwargs for temporal covariance estimation.
+
+        Returns:
+            dict with ``"mean"`` (reconciled forecasts, same shape as
+            y_hat) and ``"convergence_info"``.
+        """
+        n_cs, n_bottom_cs = S_cs.shape
+        n_te, n_bottom_te = S_te.shape
+
+        # Normalize input to 3D: (n_cs, n_te, horizon)
+        if y_hat.ndim == 2 and y_hat.shape == (n_cs, n_te):
+            Y = y_hat[:, :, np.newaxis]
+            input_was_matrix = True
+            horizon = 1
+        elif y_hat.ndim == 2 and y_hat.shape[0] == n_cs * n_te:
+            horizon = y_hat.shape[1]
+            Y = y_hat.reshape(n_cs, n_te, horizon)
+            input_was_matrix = False
+        else:
+            raise ValueError(
+                f"y_hat shape {y_hat.shape} not compatible with "
+                f"n_cs={n_cs}, n_te={n_te}."
+            )
+
+        # Reshape insample data
+        Y_in = None
+        Y_hat_in = None
+        if y_insample is not None:
+            n_obs_in = y_insample.shape[1] if y_insample.ndim == 2 else 1
+            Y_in = y_insample.reshape(n_cs, n_te, n_obs_in)
+        if y_hat_insample is not None:
+            n_obs_hat = y_hat_insample.shape[1] if y_hat_insample.ndim == 2 else 1
+            Y_hat_in = y_hat_insample.reshape(n_cs, n_te, n_obs_hat)
+
+        # Auto-derive tags from S when not provided (needed for
+        # inner reconcilers like TopDown that require tags).
+        if tags_cs is None:
+            tags_cs = self._tags_from_S(S_cs)
+        if tags_te is None:
+            tags_te = self._tags_from_S(S_te)
+
+        # Auto-derive agg_order for temporal step
+        if method_kwargs_te is None:
+            method_kwargs_te = {}
+        agg_order = np.sum(S_te, axis=1).astype(int)
+        method_kwargs_te.setdefault("agg_order", agg_order)
+
+        incoherence_history = []
+
+        for iteration in range(self.max_iter):
+            if self.start == "cs":
+                Y = self._step_cs(Y, S_cs, Y_in, Y_hat_in, tags_cs, method_kwargs_cs)
+                Y = self._step_te(Y, S_te, Y_in, Y_hat_in, tags_te, method_kwargs_te)
+            else:
+                Y = self._step_te(Y, S_te, Y_in, Y_hat_in, tags_te, method_kwargs_te)
+                Y = self._step_cs(Y, S_cs, Y_in, Y_hat_in, tags_cs, method_kwargs_cs)
+
+            # Measure incoherence in both dimensions
+            # CS: flatten (n_cs, n_te * horizon) and check CS coherence
+            Y_cs_flat = Y.reshape(n_cs, n_te * horizon)
+            incoh_cs = self._measure_incoherence(Y_cs_flat, S_cs, self.norm)
+
+            # TE: for each CS series, check temporal coherence
+            incoh_te = 0.0
+            for cs_idx in range(n_cs):
+                Y_te_slice = Y[cs_idx]  # (n_te, horizon)
+                incoh_te = max(
+                    incoh_te,
+                    self._measure_incoherence(Y_te_slice, S_te, self.norm),
+                )
+
+            incoh = max(incoh_cs, incoh_te)
+            incoherence_history.append(incoh)
+
+            if incoh < self.tol:
+                break
+
+        self.convergence_info = {
+            "n_iter": iteration + 1,
+            "incoherence": incoherence_history,
+            "converged": incoh < self.tol,
+        }
+
+        if input_was_matrix:
+            result = Y[:, :, 0]
+        else:
+            result = Y.reshape(n_cs * n_te, horizon)
+
+        return {"mean": result, "convergence_info": self.convergence_info}
+
+    def _step_cs(
+        self,
+        Y: np.ndarray,
+        S_cs: np.ndarray,
+        Y_in: np.ndarray | None,
+        Y_hat_in: np.ndarray | None,
+        tags: dict | None,
+        method_kwargs: dict | None,
+    ) -> np.ndarray:
+        """Apply cross-sectional reconciliation to all temporal columns at once.
+
+        Y shape: (n_cs, n_te, horizon).
+        """
+        n_cs, n_te, horizon = Y.shape
+
+        # Flatten temporal × horizon so CS reconciler sees all at once
+        Y_flat = Y.reshape(n_cs, n_te * horizon)
+
+        kwargs = {}
+        if Y_in is not None and Y_hat_in is not None:
+            kwargs["y_insample"] = Y_in.reshape(n_cs, -1)
+            kwargs["y_hat_insample"] = Y_hat_in.reshape(n_cs, -1)
+        if tags is not None:
+            kwargs["tags"] = tags
+        if method_kwargs is not None:
+            kwargs["method_kwargs"] = method_kwargs
+
+        out = self.cs_reconciler.fit_predict(S=S_cs, y_hat=Y_flat, **kwargs)
+        return out["mean"].reshape(n_cs, n_te, horizon)
+
+    def _step_te(
+        self,
+        Y: np.ndarray,
+        S_te: np.ndarray,
+        Y_in: np.ndarray | None,
+        Y_hat_in: np.ndarray | None,
+        tags: dict | None,
+        method_kwargs: dict | None,
+    ) -> np.ndarray:
+        """Apply temporal reconciliation to each cross-sectional series.
+
+        Y shape: (n_cs, n_te, horizon).
+        """
+        n_cs, n_te, horizon = Y.shape
+        result = np.empty_like(Y)
+
+        for cs_idx in range(n_cs):
+            y_slice = Y[cs_idx]  # (n_te, horizon)
+
+            kwargs = {}
+            if Y_in is not None and Y_hat_in is not None:
+                kwargs["y_insample"] = Y_in[cs_idx]
+                kwargs["y_hat_insample"] = Y_hat_in[cs_idx]
+            if tags is not None:
+                kwargs["tags"] = tags
+            if method_kwargs is not None:
+                kwargs["method_kwargs"] = method_kwargs
+
+            out = self.te_reconciler.fit_predict(S=S_te, y_hat=y_slice, **kwargs)
+            result[cs_idx] = out["mean"]
+
+        return result
 
     __call__ = fit_predict

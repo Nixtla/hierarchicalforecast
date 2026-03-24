@@ -1008,3 +1008,127 @@ class TestEstimateSigmah:
         df = self._make_df(y_hat, {"model": y_hat, "model-lo-90": lo, "model-hi-90": hi})
         sigmah = _estimate_sigmah(df, y_hat, model_name="model")
         assert np.all(sigmah >= 0)
+
+
+# ---------------------------------------------------------------------------
+# Phase 1+2: Temporal reconciliation with temporal covariance methods
+# ---------------------------------------------------------------------------
+
+def _make_temporal_data(n_periods=16):
+    """Helper to create temporal hierarchy data with insample values."""
+    df = pd.DataFrame({
+        'unique_id': ['A'] * n_periods,
+        'ds': pd.date_range('2020-01-01', periods=n_periods, freq='QS').tolist(),
+        'y': np.random.default_rng(42).normal(100, 10, n_periods).cumsum(),
+    })
+    spec_temporal = {"year": 4, "quarter": 1}
+    Y_df, S_df, tags = aggregate_temporal(df, spec_temporal)
+    return Y_df, S_df, tags
+
+
+@pytest.mark.parametrize("lib", ["pandas", "polars"])
+def test_temporal_reconcile_with_mintrace_ols(lib):
+    """Test temporal reconciliation with MinTrace(ols) — no insample needed."""
+    Y_df, S_df, tags = _make_temporal_data()
+    Y_hat_df = Y_df.rename(columns={'y': 'y_model'})
+    if lib == "polars":
+        Y_hat_df = pl.from_pandas(Y_hat_df)
+        S_df = pl.from_pandas(S_df)
+
+    hrec = HierarchicalReconciliation([MinTrace(method="ols")])
+    result = hrec.reconcile(Y_hat_df=Y_hat_df, S_df=S_df, tags=tags, temporal=True)
+    result_nw = nw.from_native(result)
+    assert 'y_model/MinTrace_method-ols' in result_nw.columns
+
+
+@pytest.mark.parametrize("lib", ["pandas", "polars"])
+@pytest.mark.parametrize("method", ["wlsv", "wlsh"])
+def test_temporal_reconcile_with_insample_diagonal_methods(lib, method):
+    """Test temporal reconciliation with diagonal temporal covariance methods that need residuals."""
+    Y_df, S_df, tags = _make_temporal_data()
+
+    # Create insample data (Y_df) and forecasts (Y_hat_df)
+    Y_train_df = Y_df.copy()
+    Y_hat_df = Y_df.rename(columns={'y': 'y_model'})
+    # Add the model column to Y_train_df (insample predictions with noise)
+    Y_train_df['y_model'] = Y_train_df['y'] + np.random.default_rng(123).normal(0, 5, len(Y_train_df))
+
+    if lib == "polars":
+        Y_hat_df = pl.from_pandas(Y_hat_df)
+        S_df = pl.from_pandas(S_df)
+        Y_train_df = pl.from_pandas(Y_train_df)
+
+    hrec = HierarchicalReconciliation([MinTrace(method=method)])
+    result = hrec.reconcile(
+        Y_hat_df=Y_hat_df, S_df=S_df, tags=tags,
+        Y_df=Y_train_df, temporal=True,
+    )
+    result_nw = nw.from_native(result)
+    assert f'y_model/MinTrace_method-{method}' in result_nw.columns
+
+
+@pytest.mark.parametrize("lib", ["pandas", "polars"])
+def test_temporal_reconcile_with_strar1(lib):
+    """Test temporal reconciliation with strar1 (full covariance, AR(1) + structural variance)."""
+    Y_df, S_df, tags = _make_temporal_data()
+
+    Y_train_df = Y_df.copy()
+    Y_hat_df = Y_df.rename(columns={'y': 'y_model'})
+    Y_train_df['y_model'] = Y_train_df['y'] + np.random.default_rng(99).normal(0, 5, len(Y_train_df))
+
+    if lib == "polars":
+        Y_hat_df = pl.from_pandas(Y_hat_df)
+        S_df = pl.from_pandas(S_df)
+        Y_train_df = pl.from_pandas(Y_train_df)
+
+    hrec = HierarchicalReconciliation([MinTrace(method="strar1")])
+    result = hrec.reconcile(
+        Y_hat_df=Y_hat_df, S_df=S_df, tags=tags,
+        Y_df=Y_train_df, temporal=True,
+    )
+    result_nw = nw.from_native(result)
+    assert 'y_model/MinTrace_method-strar1' in result_nw.columns
+
+
+@pytest.mark.parametrize("lib", ["pandas", "polars"])
+def test_temporal_agg_order_auto_derived(lib):
+    """Test that agg_order is automatically derived from S when temporal=True."""
+    Y_df, S_df, tags = _make_temporal_data()
+    Y_hat_df = Y_df.rename(columns={'y': 'y_model'})
+    if lib == "polars":
+        Y_hat_df = pl.from_pandas(Y_hat_df)
+        S_df = pl.from_pandas(S_df)
+
+    # MinTrace(ols) doesn't use agg_order, but passing method_kwargs should not break
+    hrec = HierarchicalReconciliation([MinTrace(method="ols")])
+    result = hrec.reconcile(
+        Y_hat_df=Y_hat_df, S_df=S_df, tags=tags, temporal=True,
+    )
+    assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: Cross-temporal reconciliation
+# ---------------------------------------------------------------------------
+
+def test_build_cross_temporal_S():
+    """Test build_cross_temporal_S produces correct reordered Kronecker product."""
+    from hierarchicalforecast.utils import build_cross_temporal_S
+
+    S_cs = np.array([
+        [1, 1],  # Total
+        [1, 0],  # Bottom 1
+        [0, 1],  # Bottom 2
+    ])
+    S_te = np.array([
+        [1, 1],  # Year (sum of 2 semesters)
+        [1, 0],  # Semester 1
+        [0, 1],  # Semester 2
+    ])
+    S_ct, row_order = build_cross_temporal_S(S_cs, S_te)
+    assert S_ct.shape == (9, 4)  # (3*3, 2*2)
+    # Bottom of S_ct must be identity (required by reconciliation framework)
+    np.testing.assert_array_equal(S_ct[-4:], np.eye(4))
+    # All rows of the Kronecker product are present (just reordered)
+    S_kron = np.kron(S_cs, S_te)
+    np.testing.assert_array_equal(S_ct, S_kron[row_order])
