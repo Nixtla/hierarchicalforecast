@@ -913,7 +913,7 @@ class HierarchicalReconciliation:
 
         Args:
             Y_hat_df (Frame): DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile.
-            S_df (Frame): DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate).
+            S_df (Frame): DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils.html#aggregate).
             tags (dict[str, np.ndarray]): Each key is a level and its value contains tags associated to that level.
             Y_df (Optional[Frame], optional): DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`.
                 If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None.
