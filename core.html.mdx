@@ -134,7 +134,7 @@ for the different reconciliation techniques instantiated in the `reconcilers` li
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `Y_hat_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame, base forecasts with columns ['unique_id', 'ds'] and models to reconcile. | *required*
-`S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils#function-aggregate). | *required*
+`S_df` | <code>[Frame](#narwhals.typing.Frame)</code> | DataFrame with summing matrix of size `(base, bottom)`, see [aggregate method](./utils.html#aggregate). | *required*
 `tags` | <code>[dict](#dict)[[str](#str), [ndarray](#numpy.ndarray)]</code> | Each key is a level and its value contains tags associated to that level. | *required*
 `Y_df` | <code>[Optional](#Optional)[[Frame](#narwhals.typing.Frame)]</code> | DataFrame, training set of base time series with columns `['unique_id', 'ds', 'y']`. If a class of `self.reconciles` receives `y_hat_insample`, `Y_df` must include them as columns. Default is None. | <code>None</code>
 `level` | <code>[Optional](#Optional)[[list](#list)[[int](#int)]]</code> | positive float list [0,100), confidence levels for prediction intervals. Default is None. | <code>None</code>
