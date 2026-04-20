@@ -228,8 +228,8 @@ class HierarchicalReconciliation:
     HierarchicaForecast methods for a collection of time series and base predictions stored in
     pandas DataFrames. The `Y_df` dataframe identifies series and datestamps with the unique_id and ds columns while the
     y column denotes the target time series variable. The `Y_h` dataframe stores the base predictions,
-    example ([AutoARIMA](../../../statsforecast/src/core/models.html#autoarima),
-    [ETS](../../../statsforecast/src/core/models.html#autoets), etc.).
+    example ([AutoARIMA](../statsforecast/src/core/models.html#autoarima),
+    [ETS](../statsforecast/src/core/models.html#autoets), etc.).
 
     Args:
         - reconcilers (list[HReconciler]): A list of instantiated classes of the [reconciliation methods](./methods.html) module.
