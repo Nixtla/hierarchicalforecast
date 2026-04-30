@@ -21,7 +21,7 @@ A vast amount of time series datasets are organized into structures with differe
 
 * Classic reconciliation methods:
     - `BottomUp`: Simple addition to the upper levels.
-    - `TopDown`: Distributes the top levels forecasts trough the hierarchies.
+    - `TopDown`: Distributes the top levels forecasts through the hierarchies.
 * Alternative reconciliation methods:
     - `MiddleOut`: It anchors the base predictions in a middle level. The levels above the base predictions use the bottom-up approach, while the levels below use a top-down.
     - `MinTrace`: Minimizes the total forecast variance of the space of coherent forecasts, with the Minimum Trace reconciliation.
