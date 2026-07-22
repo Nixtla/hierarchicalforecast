@@ -164,10 +164,10 @@ Length: 85, dtype: int64
 ## Computing base forecasts
 
 The following cell computes the **base forecasts** for each time series
-in `Y_df` using the `AutoARIMA` and model. Observe that `Y_hat_df`
-contains the forecasts but they are not coherent. To reconcile the
-prediction intervals we need to calculate the uncoherent intervals using
-the `level` argument of `StatsForecast`.
+in `Y_df` using the `AutoARIMA` model. Observe that `Y_hat_df` contains
+the forecasts but they are not coherent. To reconcile the prediction
+intervals we need to calculate the incoherent intervals using the
+`level` argument of `StatsForecast`.
 
 ```python
 fcst = StatsForecast(models=[AutoARIMA(season_length=4)], 
@@ -212,7 +212,8 @@ Y_rec_df.head()
 
 ## Plot forecasts
 
-Then we can plot the probabilist forecasts using the following function.
+Then we can plot the probabilistic forecasts using the following
+function.
 
 ```python
 plot_df = Y_df.merge(Y_rec_df, on=['unique_id', 'ds'], how="outer")
@@ -234,7 +235,7 @@ hplot.plot_series(
 
 ![](./australiandomestictourism-permbu-intervals_files/figure-markdown_strict/cell-19-output-1.png)
 
-### Plot hierarchichally linked time series
+### Plot hierarchically linked time series
 
 ```python
 hplot.plot_hierarchically_linked_series(

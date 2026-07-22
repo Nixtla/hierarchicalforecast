@@ -87,12 +87,12 @@ Y_df_local.query("temporal_id == 'month-1'")
 | 39  | month-1     | 0         | 2000-03-16 | 93.574676 |
 | 87  | month-1     | 1         | 2000-07-19 | 91.506421 |
 
-## 2. Global aggregation
+## 3. Global aggregation
 
 In global aggregation, we examine all unique timestamps across all
 timeseries, and base our temporal aggregations on the unique list of
 timestamps across all timeseries. We can specify the aggregation type by
-setting the `aggregation_type` attritbue in `aggregate_temporal`.
+setting the `aggregation_type` attribute in `aggregate_temporal`.
 
 ```python
 Y_df_global, S_df_global, tags_globval = aggregate_temporal(df, spec, aggregation_type="global")
@@ -128,7 +128,7 @@ Y_df_global.query("temporal_id == 'month-5'")
 Hence, the global aggregation ensures temporal alignment across all
 series.
 
-## 3. What to choose?
+## 4. What to choose?
 
 -   If all timeseries have the same length and same timestamps, `global`
     and `local` yield the same results.
