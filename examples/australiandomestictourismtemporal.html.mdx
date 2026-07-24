@@ -87,7 +87,7 @@ Y_test_df = Y_df.groupby("unique_id", as_index=False).tail(horizon)
 Y_train_df = Y_df.drop(Y_test_df.index)
 ```
 
-### 2b. Aggregating the dataset according to temporal hierarchy
+### 2a. Aggregating the dataset according to temporal hierarchy
 
 We first define the temporal aggregation spec. The spec is a dictionary
 in which the keys are the name of the aggregation and the value is the
@@ -269,7 +269,7 @@ Y_test_df_new
 | 4254 | quarter-7   | Australia/Western Australia/Experience Perth/V... | 2017-07-01 |
 | 4255 | quarter-8   | Australia/Western Australia/Experience Perth/V... | 2017-10-01 |
 
-### 2c. Computing base forecasts
+### 3b. Computing base forecasts
 
 Now, we need to compute base forecasts for each temporal aggregation.
 The following cell computes the **base forecasts** for each temporal
@@ -317,13 +317,13 @@ Y_hat_df = pd.concat(Y_hat_dfs, ignore_index=True)
 
 ```
 
-### 2d. Reconcile forecasts
+### 3c. Reconcile forecasts
 
 We can use the `HierarchicalReconciliation` class to reconcile the
 forecasts. In this example we use `BottomUp` and `MinTrace`. Note that
 we have to set `temporal=True` in the `reconcile` function.
 
-Note that temporal reconciliation currently isn’t supported for insample
+Note that temporal reconcilation currently isn’t supported for insample
 reconciliation methods, such as `MinTrace(method='mint_shrink')`.
 
 ```python
@@ -345,7 +345,7 @@ Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df,
                           level=[80, 90])
 ```
 
-## 3. Evaluation
+## 4. Evaluation
 
 The `HierarchicalForecast` package includes the `evaluate` function to
 evaluate the different hierarchies.

@@ -70,9 +70,9 @@ spec = [
 
 Using the `aggregate` function from `HierarchicalForecast` we can
 generate: 1. `Y_df`: the hierarchical structured series
-$\mathbf{y}_{[a,b]\tau}$ 2. `S_df`: the aggregation constraints
+$\mathbf{y}_{[a,b]\tau}$ 2. `S_df`: the aggregation constraings
 dataframe with $S_{[a,b]}$ 3. `tags`: a list with the ‘unique_ids’
-conforming to each aggregation level.
+conforming each aggregation level.
 
 ```python
 Y_df, S_df, tags = aggregate(df=Y_df, spec=spec)
@@ -168,10 +168,10 @@ Length: 425, dtype: int64
 ## Computing base forecasts
 
 The following cell computes the **base forecasts** for each time series
-in `Y_df` using the `AutoARIMA` model. Observe that `Y_hat_df` contains
-the forecasts but they are not coherent. To reconcile the prediction
-intervals we need to calculate the incoherent intervals using the
-`level` argument of `StatsForecast`.
+in `Y_df` using the `AutoARIMA` and model. Observe that `Y_hat_df`
+contains the forecasts but they are not coherent. To reconcile the
+prediction intervals we need to calculate the uncoherent intervals using
+the `level` argument of `StatsForecast`.
 
 ```python
 fcst = StatsForecast(models=[AutoARIMA(season_length=4)], 
@@ -249,7 +249,7 @@ hplot.plot_series(
 
 ![](./australiandomestictourism-intervals_files/figure-markdown_strict/cell-20-output-1.png)
 
-### Plot hierarchically linked time series
+### Plot hierarchichally linked time series
 
 ```python
 hplot.plot_hierarchically_linked_series(

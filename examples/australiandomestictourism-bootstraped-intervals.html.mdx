@@ -70,9 +70,9 @@ spec = [
 
 Using the `aggregate` function from `HierarchicalForecast` we can
 generate: 1. `Y_df`: the hierarchical structured series
-$\mathbf{y}_{[a,b]\tau}$ 2. `S_df`: the aggregation constraints
+$\mathbf{y}_{[a,b]\tau}$ 2. `S_df`: the aggregation constraings
 dataframe with $S_{[a,b]}$ 3. `tags`: a list with the ‘unique_ids’
-conforming to each aggregation level.
+conforming each aggregation level.
 
 ```python
 Y_df, S_df, tags = aggregate(df=Y_df, spec=spec)
@@ -168,8 +168,8 @@ Length: 425, dtype: int64
 ## Computing Base Forecasts
 
 The following cell computes the **base forecasts** for each time series
-in `Y_df` using the `AutoETS` model. Observe that `Y_hat_df` contains
-the forecasts but they are not coherent. Since we are computing
+in `Y_df` using the `AutoETS` and model. Observe that `Y_hat_df`
+contains the forecasts but they are not coherent. Since we are computing
 prediction intervals using bootstrapping, we only need the fitted values
 of the models.
 
@@ -217,8 +217,7 @@ Y_rec_df.head()
 
 ## Plot Predictions
 
-Then we can plot the probabilistic forecasts using the following
-function.
+Then we can plot the probabilist forecasts using the following function.
 
 ```python
 plot_df = Y_df.merge(Y_rec_df, on=['unique_id', 'ds'], how="outer")
@@ -251,7 +250,7 @@ hplot.plot_series(
 
 ![](./australiandomestictourism-bootstraped-intervals_files/figure-markdown_strict/cell-20-output-1.png)
 
-### Plot hierarchically linked time series
+### Plot hierarchichally linked time series
 
 ```python
 hplot.plot_hierarchically_linked_series(
