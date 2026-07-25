@@ -4,6 +4,7 @@ __all__ = ['HierarchicalReconciliation']
 import re
 import reprlib
 import time
+import warnings
 from inspect import signature
 
 import narwhals.stable.v2 as nw
@@ -507,6 +508,7 @@ class HierarchicalReconciliation:
         temporal: bool = False,
         diagnostics: bool = False,
         diagnostics_atol: float = 1e-6,
+        skip_bottom_identity_check: bool = False,
     ) -> FrameT:
         r"""Hierarchical Reconciliation Method.
 
@@ -552,6 +554,11 @@ class HierarchicalReconciliation:
             temporal (bool, optional): if True, perform temporal reconciliation. Default is False.
             diagnostics (bool, optional): if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False.
             diagnostics_atol (float, optional): absolute tolerance for numerical coherence check. Default is 1e-6.
+            skip_bottom_identity_check (bool, optional): if True, skip validation that
+                the bottom block of `S_df` is an identity matrix. Use this only when
+                `S_df` and `tags` come directly from `aggregate` or `aggregate_temporal`
+                and have not been reordered, subset, renamed, joined, or otherwise
+                modified. Default is False.
 
         Returns:
             (FrameT): DataFrame, with reconciled predictions.
@@ -569,12 +576,22 @@ class HierarchicalReconciliation:
         Y_hat_nw = nw.from_native(Y_hat_df)
         # Accept SMatrix or DataFrame for S_df
         self._s_matrix = None
-        skip_identity_check = False
+        skip_identity_check = skip_bottom_identity_check
+        if skip_bottom_identity_check:
+            warnings.warn(
+                "`skip_bottom_identity_check=True` assumes `S_df` and `tags` "
+                "come directly from `aggregate` or `aggregate_temporal` and "
+                "have not been reordered, subset, renamed, joined, or otherwise "
+                "modified. If that assumption is false, reconciliation results "
+                "may be incorrect.",
+                UserWarning,
+                stacklevel=2,
+            )
         if isinstance(S_df, SMatrix):
             self._s_matrix = S_df
             # Validate identity property on sparse data (avoids dense allocation)
             n_bottom = S_df.sparse_shape[1]
-            if not S_df.check_bottom_identity():
+            if not skip_bottom_identity_check and not S_df.check_bottom_identity():
                 raise ValueError(
                     f"The bottom {n_bottom}x{n_bottom} part of S must be an identity matrix."
                 )

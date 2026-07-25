@@ -1191,3 +1191,87 @@ def test_smatrix_check_bottom_identity_rejects_bad_matrix():
             S_df=smat,
             tags={"top": np.array(["top"]), "mid": np.array(["mid"]), "bottom": np.array(["a", "b", "c"])},
         )
+
+
+def test_reconcile_can_skip_bottom_identity_check_with_warning():
+    """Tests the trusted-input fast path for a corrupted dense bottom block."""
+    S_df = pd.DataFrame(
+        {
+            "unique_id": ["top", "mid", "a", "b", "c"],
+            "a": [1.0, 1.0, 0.0, 0.0, 0.0],
+            "b": [1.0, 1.0, 1.0, 1.0, 0.0],
+            "c": [1.0, 0.0, 0.0, 0.0, 1.0],
+        }
+    )
+    Y_hat_df = pd.DataFrame(
+        {
+            "unique_id": ["top", "mid", "a", "b", "c"],
+            "ds": [1, 1, 1, 1, 1],
+            "model": [6.0, 3.0, 1.0, 2.0, 3.0],
+        }
+    )
+    tags = {
+        "top": np.array(["top"]),
+        "mid": np.array(["mid"]),
+        "bottom": np.array(["a", "b", "c"]),
+    }
+
+    hrec = HierarchicalReconciliation([BottomUp()])
+    with pytest.raises(ValueError, match="identity matrix"):
+        hrec.reconcile(Y_hat_df=Y_hat_df, S_df=S_df, tags=tags)
+
+    with pytest.warns(UserWarning, match="come directly from `aggregate`"):
+        result = hrec.reconcile(
+            Y_hat_df=Y_hat_df,
+            S_df=S_df,
+            tags=tags,
+            skip_bottom_identity_check=True,
+        )
+
+    assert "model/BottomUp" in result.columns
+
+
+def test_smatrix_can_skip_bottom_identity_check_with_warning():
+    """Tests the trusted-input fast path for a corrupted SMatrix bottom block."""
+    from scipy import sparse as sp
+
+    from hierarchicalforecast.utils import SMatrix
+
+    data = np.array(
+        [
+            [1, 1, 1],
+            [1, 1, 0],
+            [0, 1, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+        ],
+        dtype=np.float64,
+    )
+    smat = SMatrix(
+        sparse_matrix=sp.csc_matrix(data),
+        row_labels=np.array(["top", "mid", "a", "b", "c"]),
+        col_labels=np.array(["a", "b", "c"]),
+    )
+    Y_hat_df = pd.DataFrame(
+        {
+            "unique_id": ["top", "mid", "a", "b", "c"],
+            "ds": [1, 1, 1, 1, 1],
+            "model": [6.0, 3.0, 1.0, 2.0, 3.0],
+        }
+    )
+    tags = {
+        "top": np.array(["top"]),
+        "mid": np.array(["mid"]),
+        "bottom": np.array(["a", "b", "c"]),
+    }
+
+    hrec = HierarchicalReconciliation([BottomUp()])
+    with pytest.warns(UserWarning, match="come directly from `aggregate`"):
+        result = hrec.reconcile(
+            Y_hat_df=Y_hat_df,
+            S_df=smat,
+            tags=tags,
+            skip_bottom_identity_check=True,
+        )
+
+    assert "model/BottomUp" in result.columns
