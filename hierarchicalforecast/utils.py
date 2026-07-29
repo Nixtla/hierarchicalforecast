@@ -355,6 +355,7 @@ def aggregate(
             col_labels=np.asarray(list(bottom_levels)),
             id_col=_id_col,
             backend=backend,
+            _bottom_identity_verified=True,
         )
 
     return Y_df, S_df, tags
@@ -1063,6 +1064,7 @@ class SMatrix:
         col_labels: np.ndarray,
         id_col: str = "unique_id",
         backend: Any = "pandas",
+        _bottom_identity_verified: bool = False,
     ):
         self._sparse = sparse.csc_matrix(sparse_matrix)
         self.row_labels = np.asarray(row_labels)
@@ -1070,6 +1072,7 @@ class SMatrix:
         self.id_col = id_col
         self.backend = backend
         self._col_index = {name: i for i, name in enumerate(col_labels)}
+        self._bottom_identity_verified = _bottom_identity_verified
         # Lazily cached representations
         self._dense: np.ndarray | None = None
         self._csr: sparse.csr_matrix | None = None
@@ -1082,28 +1085,37 @@ class SMatrix:
     def check_bottom_identity(self) -> bool:
         """Check that the bottom n_bottom x n_bottom block of S is an identity matrix.
 
-        Uses sparse operations to avoid dense allocations.
+        Uses sparse operations to avoid dense allocations. Successful checks
+        are cached because ``SMatrix`` is commonly reused across calls to
+        :meth:`HierarchicalReconciliation.reconcile`.
         """
+        if self._bottom_identity_verified:
+            return True
+
         n_bottom = self._sparse.shape[1]
         bottom_block = self._sparse[-n_bottom:, :]
         bottom_coo = bottom_block.tocoo()
-        return (
+        is_identity = (
             bottom_coo.shape[0] == bottom_coo.shape[1]
             and bottom_coo.nnz == n_bottom
             and np.allclose(bottom_coo.data, 1.0)
             and np.array_equal(bottom_coo.row, bottom_coo.col)
         )
+        self._bottom_identity_verified = is_identity
+        return is_identity
 
     def clear_cache(self) -> None:
-        """Release cached dense, CSR, and DataFrame representations.
+        """Release cached representations and identity verification.
 
         Call this after reconciliation to free memory when the
         ``SMatrix`` is long-lived but cached representations are no
-        longer needed.
+        longer needed. Call it after mutating the zero-copy matrix returned
+        by :meth:`to_sparse` so its bottom identity is validated again.
         """
         self._dense = None
         self._csr = None
         self._frames = {}
+        self._bottom_identity_verified = False
 
     def to_sparse(self) -> sparse.csc_matrix:
         """Return the underlying sparse matrix (zero-copy)."""
