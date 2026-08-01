@@ -255,6 +255,7 @@ class HierarchicalReconciliation:
         target_col: str = "y",
         id_time_col: str = "temporal_id",
         temporal: bool = False,
+        skip_identity_check: bool = False,
     ) -> tuple[FrameT, FrameT, FrameT, list[str], str]:
         """Performs preliminary wrangling and protections."""
         Y_hat_nw_cols = Y_hat_nw.columns
@@ -394,33 +395,34 @@ class HierarchicalReconciliation:
 
         # Assert S is an identity matrix at the bottom
         S_nw_cols.remove(id_col)
-        n = len(S_nw_cols)
-        # Slice rows first so only the n x n bottom block is materialised.
-        S_bottom_nw = S_nw[-n:][S_nw_cols]
-        S_bottom = S_bottom_nw.to_native()
-        is_sparse_df = hasattr(S_bottom, "sparse") and hasattr(S_bottom, "dtypes") and all(
-            str(dtype).startswith("Sparse") for dtype in S_bottom.dtypes
-        )
-        if is_sparse_df:
-            # Sparse-aware identity check: verify diagonal is 1 and off-diagonal is 0.
-            S_bottom_coo = S_bottom.sparse.to_coo()
-            is_identity = (
-                S_bottom_coo.shape[0] == S_bottom_coo.shape[1]
-                and S_bottom_coo.nnz == n
-                and np.allclose(S_bottom_coo.data, 1.0)
-                and np.array_equal(S_bottom_coo.row, S_bottom_coo.col)
+        if not skip_identity_check:
+            n = len(S_nw_cols)
+            # Slice rows first so only the n x n bottom block is materialised.
+            S_bottom_nw = S_nw[-n:][S_nw_cols]
+            S_bottom = S_bottom_nw.to_native()
+            is_sparse_df = hasattr(S_bottom, "sparse") and hasattr(S_bottom, "dtypes") and all(
+                str(dtype).startswith("Sparse") for dtype in S_bottom.dtypes
             )
-        else:
-            B = S_bottom_nw.to_numpy()
-            is_identity = (
-                B.shape == (n, n)
-                and np.count_nonzero(B) == n
-                and np.all(np.diagonal(B) == 1.0)
-            )
-        if not is_identity:
-            raise ValueError(
-                f"The bottom {n}x{n} part of S must be an identity matrix."
-            )
+            if is_sparse_df:
+                # Sparse-aware identity check: verify diagonal is 1 and off-diagonal is 0.
+                S_bottom_coo = S_bottom.sparse.to_coo()
+                is_identity = (
+                    S_bottom_coo.shape[0] == S_bottom_coo.shape[1]
+                    and S_bottom_coo.nnz == n
+                    and np.allclose(S_bottom_coo.data, 1.0)
+                    and np.array_equal(S_bottom_coo.row, S_bottom_coo.col)
+                )
+            else:
+                B = S_bottom_nw.to_numpy()
+                is_identity = (
+                    B.shape == (n, n)
+                    and np.count_nonzero(B) == n
+                    and np.all(np.diagonal(B) == 1.0)
+                )
+            if not is_identity:
+                raise ValueError(
+                    f"The bottom {n}x{n} part of S must be an identity matrix."
+                )
 
         # Check Y_hat_df\S_df series difference
         # TODO: this logic should be method specific
@@ -597,6 +599,7 @@ class HierarchicalReconciliation:
             target_col=target_col,
             id_time_col=id_time_col,
             temporal=temporal,
+            skip_identity_check=self._s_matrix is not None,
         )
 
         # Initialize reconciler arguments
