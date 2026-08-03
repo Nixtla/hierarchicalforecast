@@ -570,6 +570,12 @@ class Bootstrap:
 
         Returns:
             samples: Coherent samples of size (`base`, `horizon`, `num_samples`).
+
+        Note:
+            When `S` and/or `P` are sparse, `SP = S @ P` stays sparse and the
+            reconciliation matmul is a sparse-dense product; `SP` is never
+            densified, so memory stays proportional to `S`/`P`'s nonzeros
+            instead of `base x base`.
         """
         residuals = self.y_insample - self.y_hat_insample
         h = self.y_hat.shape[1]
@@ -581,11 +587,34 @@ class Bootstrap:
         samples_idx = rng.choice(sample_idx, size=num_samples)
         samples = [self.y_hat + residuals[:, idx : (idx + h)] for idx in samples_idx]
         SP = self.S @ self.P
-        samples = np.apply_along_axis(lambda path: SP @ path, axis=1, arr=samples)
-        samples_np = np.stack(samples)
 
-        # [samples, N, H] -> [N, H, samples]
-        samples_np = samples_np.transpose((1, 2, 0))
+        # Stack into a single (num_samples, n_series, h) array and reconcile all
+        # samples with one batched matmul instead of looping via
+        # `np.apply_along_axis` (which calls the lambda once per (sample, horizon)
+        # pair under the hood). Flattening (samples, horizon) into one axis lets
+        # this go through a single BLAS `dgemm` call (or scipy sparse matmul,
+        # when `SP` is sparse, which is left sparse here so large hierarchies
+        # don't force an OOM-inducing dense `SP` allocation) rather than
+        # `np.einsum`, which is dramatically slower here since it can't
+        # express this contraction as a plain matrix product without
+        # `optimize=True`.
+        samples_arr = np.stack(samples)
+        # samples_arr.shape[-1] is `h` by construction (each entry is
+        # `y_hat + residuals[:, idx:(idx+h)]`), so we reuse the outer `h`
+        # instead of rebinding it to a shadowing local of the same value.
+        n_samples, n_series, _ = samples_arr.shape
+        flat = np.moveaxis(samples_arr, 1, 0).reshape(n_series, n_samples * h)
+        # `samples` and `samples_arr` are independent copies of the sampled
+        # paths at this point (the moveaxis+reshape above produced its own
+        # copy in `flat`), so drop them before the matmul to keep peak memory
+        # to roughly 2x the output buffer instead of holding every
+        # intermediate alive at once.
+        del samples, samples_arr
+        reconciled = SP @ flat
+        samples_np = reconciled.reshape(SP.shape[0], n_samples, h)
+
+        # [N, samples, H] -> [N, H, samples]
+        samples_np = samples_np.transpose((0, 2, 1))
         return samples_np
 
     def get_prediction_levels(self, res, level):
