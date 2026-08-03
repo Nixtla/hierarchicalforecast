@@ -340,24 +340,54 @@ class BottomUpSparse(BottomUp):
         return P, W
 
 
+def _rows_to_bool_csr(S: np.ndarray | sparse.spmatrix, rows: np.ndarray) -> sparse.csr_matrix:
+    """Extract `rows` from `S` as a boolean sparse matrix.
+
+    Only the requested rows are ever materialized, so this never densifies a
+    (potentially huge) sparse `S`, unlike a blanket `S.toarray()`.
+    """
+    if sparse.issparse(S):
+        sub = S.tocsr()[rows].astype(bool)
+        sub.eliminate_zeros()
+        return sub
+    return sparse.csr_matrix(np.asarray(S)[rows] != 0)
+
+
 def _get_child_nodes(
     S: np.ndarray | sparse.csr_matrix, tags: dict[str, np.ndarray]
 ):
-    if isinstance(S, sparse.spmatrix):
-        S = S.toarray()
+    """Build, for each level, a mapping from parent index to its child indices.
+
+    Note:
+        The child-parent overlap test assumes `S` is nonnegative (true for
+        standard 0/1 hierarchical summing matrices): it checks for any shared
+        nonzero bottom-level column between a child row and a parent row,
+        which only matches "sum of overlapping values > 0" when there is no
+        sign cancellation between entries.
+    """
     level_names = list(tags.keys())
     nodes = OrderedDict()
     for i_level, level in enumerate(level_names[:-1]):
         parent = tags[level]
-        child = np.zeros_like(S)
         idx_child = tags[level_names[i_level + 1]]
-        child[idx_child] = S[idx_child]
+
+        parent_bool = _rows_to_bool_csr(S, parent)
+        child_bool = _rows_to_bool_csr(S, idx_child)
+
+        # overlap[c, p] is nonzero iff child row `c` and parent row `p` share at
+        # least one nonzero bottom-level column (i.e. child `c` descends from
+        # parent `p`). This replaces the dense `child * parent_node.astype(bool)`
+        # check (and the O(n_bottom^2)-worst-case `idx in idx_node` membership
+        # scan) with a single sparse matmul plus O(1) column lookups.
+        overlap = (child_bool @ parent_bool.T).tocsc()
+        overlap.sort_indices()
+
         nodes_level = {}
-        for idx_parent_node in parent:
-            parent_node = S[idx_parent_node]
-            idx_node = child * parent_node.astype(bool)
-            (idx_node,) = np.where(idx_node.sum(axis=1) > 0)
-            nodes_level[idx_parent_node] = [idx for idx in idx_child if idx in idx_node]
+        for p_pos, idx_parent_node in enumerate(parent):
+            start, end = overlap.indptr[p_pos], overlap.indptr[p_pos + 1]
+            nodes_level[idx_parent_node] = [
+                idx_child[c_pos] for c_pos in overlap.indices[start:end]
+            ]
         nodes[level] = nodes_level
     return nodes
 
