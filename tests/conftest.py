@@ -10,6 +10,60 @@ def assert_raises_with_message(func, expected_msg, *args, **kwargs):
         func(*args, **kwargs)
     assert expected_msg in str(exc_info.value)
 
+
+def _random_partition(rng, n_items, n_parts):
+    """Split `n_items` (shuffled) indices into `n_parts` non-empty groups."""
+    order = rng.permutation(n_items)
+    if n_parts > 1:
+        cuts = sorted(rng.choice(np.arange(1, n_items), size=n_parts - 1, replace=False))
+    else:
+        cuts = []
+    groups = []
+    prev = 0
+    for cut in [*cuts, n_items]:
+        groups.append(order[prev:cut])
+        prev = cut
+    return groups
+
+
+def _make_random_strict_hierarchy(rng, level_sizes, shuffle_tags=True):
+    """Build a random strictly hierarchical `S` matrix and `tags` for testing.
+
+    `level_sizes` goes from top to bottom, e.g. `[1, 5, 9, 40]`. Each node's
+    children are a random non-empty partition of the level below, so the
+    result is guaranteed strictly hierarchical. Row order within each level's
+    `tags` entry is shuffled by default (row indices are still valid, but not
+    in ascending order) to make sure ordering isn't accidentally assumed to
+    follow `np.where`'s ascending output.
+
+    Shared by `tests/test_methods.py` (correctness fuzzing) and
+    `tests/test_benchmarks.py` (synthetic benchmark hierarchies) so the two
+    suites don't drift apart on their own copies of the same generator.
+    """
+    n_bottom = level_sizes[-1]
+    memberships = [np.eye(n_bottom, dtype=np.float64)]
+    current_size = n_bottom
+    for size in reversed(level_sizes[:-1]):
+        groups = _random_partition(rng, current_size, size)
+        prev_membership = memberships[-1]
+        new_membership = np.zeros((size, n_bottom))
+        for i, grp in enumerate(groups):
+            new_membership[i] = prev_membership[grp].sum(axis=0)
+        memberships.append(new_membership)
+        current_size = size
+    memberships = list(reversed(memberships))
+    S = np.vstack(memberships)
+
+    tags = {}
+    row_offset = 0
+    for i, size in enumerate(level_sizes):
+        idx = np.arange(row_offset, row_offset + size)
+        if shuffle_tags:
+            idx = rng.permutation(idx)
+        tags[f"level{i}"] = idx
+        row_offset += size
+    return S, tags
+
 @pytest.fixture(scope="module")
 def tourism_df():
     df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/tourism.csv')

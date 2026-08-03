@@ -1093,3 +1093,196 @@ class TestConformal:
             conformal.get_samples(num_samples=-5)
         assert "positive integer" in str(exc_info.value)
 
+
+class TestBootstrapVectorization:
+    """Regression tests for the vectorized `Bootstrap.get_samples` reconciliation step.
+
+    `get_samples` used to reconcile each bootstrap sample path with
+    `np.apply_along_axis`, which invokes a Python lambda once per
+    (sample, horizon) pair. It was replaced with a batched reshape + matmul
+    (a single BLAS `dgemm`/sparse matmul call over all samples at once,
+    deliberately not `np.einsum`, which can't express this contraction as a
+    plain matrix product without `optimize=True`); these tests pin the old,
+    known-correct behavior so a future change can't silently alter the
+    result.
+    """
+
+    @staticmethod
+    def _old_reconcile(y_hat, residuals, S, P, num_samples, seed):
+        """Reimplementation of the pre-vectorization reconciliation step."""
+        h = y_hat.shape[1]
+        residuals = residuals[:, np.isnan(residuals).sum(axis=0) == 0]
+        sample_idx = np.arange(residuals.shape[1] - h)
+        rng = np.random.default_rng(seed)
+        samples_idx = rng.choice(sample_idx, size=num_samples)
+        samples = [y_hat + residuals[:, idx : (idx + h)] for idx in samples_idx]
+        SP = S @ P
+        samples = np.apply_along_axis(lambda path: SP @ path, axis=1, arr=samples)
+        samples_np = np.stack(samples)
+        return samples_np.transpose((1, 2, 0))
+
+    def test_matches_apply_along_axis_reference(self, test_data):
+        """New reshape+matmul reconciliation matches the old apply_along_axis result."""
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        sampler = Bootstrap(
+            S=test_data["S"],
+            P=P,
+            W=W,
+            y_hat=test_data["y_hat_base"],
+            y_insample=test_data["y_base"],
+            y_hat_insample=test_data["y_hat_base_insample"],
+            num_samples=200,
+            seed=7,
+        )
+        new_samples = sampler.get_samples(num_samples=200)
+
+        residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
+        old_samples = self._old_reconcile(
+            y_hat=test_data["y_hat_base"],
+            residuals=residuals,
+            S=test_data["S"],
+            P=P.toarray() if sp.issparse(P) else P,
+            num_samples=200,
+            seed=7,
+        )
+
+        np.testing.assert_allclose(new_samples, old_samples, rtol=1e-10, atol=1e-10)
+
+    def test_matches_apply_along_axis_reference_with_sparse_S(self, test_data):
+        """The vectorized path also matches the reference when S/P are sparse."""
+        cls_bottom_up = BottomUp()
+        S_sparse = sp.csr_matrix(test_data["S"])
+        P, W = cls_bottom_up._get_PW_matrices(S=S_sparse)
+
+        sampler = Bootstrap(
+            S=S_sparse,
+            P=P,
+            W=W,
+            y_hat=test_data["y_hat_base"],
+            y_insample=test_data["y_base"],
+            y_hat_insample=test_data["y_hat_base_insample"],
+            num_samples=150,
+            seed=3,
+        )
+        new_samples = sampler.get_samples(num_samples=150)
+
+        residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
+        old_samples = self._old_reconcile(
+            y_hat=test_data["y_hat_base"],
+            residuals=residuals,
+            S=test_data["S"],
+            P=P.toarray() if sp.issparse(P) else P,
+            num_samples=150,
+            seed=3,
+        )
+
+        np.testing.assert_allclose(new_samples, old_samples, rtol=1e-10, atol=1e-10)
+
+    def test_matches_apply_along_axis_reference_single_sample_single_horizon(
+        self, test_data
+    ):
+        """Degenerate `num_samples=1`, `h=1` case.
+
+        The reshape/matmul path collapses to a single (n_series, 1) vector,
+        which is the shape most likely to trip up axis-juggling bugs in the
+        batched reshape.
+        """
+        cls_bottom_up = BottomUp()
+        P, W = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+
+        y_hat_h1 = test_data["y_hat_base"][:, :1]
+
+        sampler = Bootstrap(
+            S=test_data["S"],
+            P=P,
+            W=W,
+            y_hat=y_hat_h1,
+            y_insample=test_data["y_base"],
+            y_hat_insample=test_data["y_hat_base_insample"],
+            num_samples=1,
+            seed=11,
+        )
+        new_samples = sampler.get_samples(num_samples=1)
+
+        residuals = test_data["y_base"] - test_data["y_hat_base_insample"]
+        old_samples = self._old_reconcile(
+            y_hat=y_hat_h1,
+            residuals=residuals,
+            S=test_data["S"],
+            P=P.toarray() if sp.issparse(P) else P,
+            num_samples=1,
+            seed=11,
+        )
+
+        assert new_samples.shape == (test_data["S"].shape[0], 1, 1)
+        np.testing.assert_allclose(new_samples, old_samples, rtol=1e-10, atol=1e-10)
+
+
+class TestPermbuObtainRanksVectorization:
+    """Regression tests for the vectorized `PERMBU._obtain_ranks`.
+
+    The old implementation filled the ranks matrix with a Python `for` loop
+    over rows; the new one uses a single `np.put_along_axis` call. Ranks are
+    integer positions, so the two implementations must match *exactly*.
+    """
+
+    @staticmethod
+    def _old_obtain_ranks(array):
+        temp = array.argsort(axis=1)
+        ranks = np.empty_like(temp)
+        a_range = np.arange(temp.shape[1])
+        for i_row in range(temp.shape[0]):
+            ranks[i_row, temp[i_row, :]] = a_range
+        return ranks
+
+    @pytest.mark.parametrize("shape", [(1, 1), (1, 5), (5, 1), (7, 4), (50, 30)])
+    def test_matches_loop_reference(self, test_data, shape):
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+        permbu_sampler = PERMBU(
+            S=test_data["S"],
+            P=P,
+            tags=test_data["tags"],
+            y_hat=test_data["y_hat_base"],
+            y_insample=test_data["y_base"],
+            y_hat_insample=test_data["y_hat_base_insample"],
+            sigmah=test_data["sigmah"],
+        )
+
+        rng = np.random.default_rng(42)
+        array = rng.standard_normal(shape)
+
+        new_ranks = permbu_sampler._obtain_ranks(array)
+        old_ranks = self._old_obtain_ranks(array)
+
+        np.testing.assert_array_equal(new_ranks, old_ranks)
+
+    def test_matches_loop_reference_with_ties(self, test_data):
+        """Ties (equal values) exercise argsort's tie-breaking; ranks must still match."""
+        cls_bottom_up = BottomUp()
+        P, _ = cls_bottom_up._get_PW_matrices(S=test_data["S"])
+        permbu_sampler = PERMBU(
+            S=test_data["S"],
+            P=P,
+            tags=test_data["tags"],
+            y_hat=test_data["y_hat_base"],
+            y_insample=test_data["y_base"],
+            y_hat_insample=test_data["y_hat_base_insample"],
+            sigmah=test_data["sigmah"],
+        )
+
+        array = np.array(
+            [
+                [1.0, 2.0, 2.0, 1.0, 3.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0],
+                [5.0, 4.0, 3.0, 2.0, 1.0],
+            ]
+        )
+
+        new_ranks = permbu_sampler._obtain_ranks(array)
+        old_ranks = self._old_obtain_ranks(array)
+
+        np.testing.assert_array_equal(new_ranks, old_ranks)
+

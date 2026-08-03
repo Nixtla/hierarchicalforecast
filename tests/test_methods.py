@@ -1,3 +1,4 @@
+import zlib
 from dataclasses import dataclass
 
 import numpy as np
@@ -14,10 +15,13 @@ from hierarchicalforecast.methods import (
     OptimalCombination,
     TopDown,
     TopDownSparse,
+    _get_child_nodes,
     _is_strictly_hierarchical,
     is_strictly_hierarchical,
 )
 from hierarchicalforecast.utils import _construct_adjacency_matrix
+
+from .conftest import _make_random_strict_hierarchy
 
 
 @dataclass
@@ -1104,3 +1108,144 @@ def test_emint_nonnegative_raises_on_bootstrap_permbu(hierarchical_data, interva
             seed=42,
             tags=data.tags,
             )
+
+
+def _get_child_nodes_old(S, tags):
+    """Reference (pre-optimization) implementation of `_get_child_nodes`.
+
+    Densifies `S` unconditionally and, for every parent node, filters the
+    child-level indices with a Python `idx in idx_node` membership scan. Kept
+    here only to assert the vectorized/sparse-aware rewrite in
+    `hierarchicalforecast.methods._get_child_nodes` is exactly equivalent.
+    """
+    if sparse.issparse(S):
+        S = S.toarray()
+    level_names = list(tags.keys())
+    nodes = {}
+    for i_level, level in enumerate(level_names[:-1]):
+        parent = tags[level]
+        child = np.zeros_like(S)
+        idx_child = tags[level_names[i_level + 1]]
+        child[idx_child] = S[idx_child]
+        nodes_level = {}
+        for idx_parent_node in parent:
+            parent_node = S[idx_parent_node]
+            idx_node = child * parent_node.astype(bool)
+            (idx_node,) = np.where(idx_node.sum(axis=1) > 0)
+            nodes_level[idx_parent_node] = [idx for idx in idx_child if idx in idx_node]
+        nodes[level] = nodes_level
+    return nodes
+
+
+class TestGetChildNodes:
+    """Regression tests for the sparse-aware, vectorized `_get_child_nodes`.
+
+    The old implementation always densified `S` and filtered each parent's
+    children with a Python `idx in idx_node` scan (worst case
+    O(n_parents * n_bottom**2)). The rewrite uses a boolean sparse matmul
+    plus O(1) column lookups per parent but must return the exact same
+    `{level: {parent_idx: [child_idx, ...]}}` structure, in the exact same
+    order.
+    """
+
+    def test_matches_reference_dense_fixture(self, hierarchical_data):
+        data = hierarchical_data
+        new_nodes = _get_child_nodes(S=data.S, tags=data.tags)
+        old_nodes = _get_child_nodes_old(S=data.S, tags=data.tags)
+
+        assert list(new_nodes.keys()) == list(old_nodes.keys())
+        for level in old_nodes:
+            assert list(new_nodes[level].keys()) == list(old_nodes[level].keys())
+            for parent in old_nodes[level]:
+                assert list(new_nodes[level][parent]) == list(old_nodes[level][parent])
+
+    def test_matches_reference_sparse_input(self, hierarchical_data):
+        data = hierarchical_data
+        S_sparse = sparse.csr_matrix(data.S)
+        new_nodes = _get_child_nodes(S=S_sparse, tags=data.tags)
+        old_nodes = _get_child_nodes_old(S=data.S, tags=data.tags)
+
+        for level in old_nodes:
+            for parent in old_nodes[level]:
+                assert list(new_nodes[level][parent]) == list(old_nodes[level][parent])
+
+    @pytest.mark.parametrize(
+        "level_sizes",
+        [
+            [1, 2, 4],
+            [1, 5, 9, 40],
+            [1, 3, 7, 100],
+            [1, 40],
+        ],
+    )
+    @pytest.mark.parametrize("as_sparse", [False, True])
+    def test_matches_reference_random_hierarchies(self, level_sizes, as_sparse):
+        """Fuzz `_get_child_nodes` against the reference on random trees.
+
+        Covers multi-level hierarchies, uneven fan-out per parent, and
+        shuffled (non-ascending) `tags` ordering, for both dense and sparse
+        `S`.
+        """
+        # `hash()` on a tuple is salted per-process (PYTHONHASHSEED), so it
+        # would give an unreproducible seed across runs/machines. crc32 over a
+        # fixed string representation is deterministic instead.
+        seed = zlib.crc32(
+            repr(("get_child_nodes", tuple(level_sizes), as_sparse)).encode()
+        )
+        rng = np.random.default_rng(seed)
+        S, tags = _make_random_strict_hierarchy(rng, level_sizes)
+        S_input = sparse.csr_matrix(S) if as_sparse else S
+
+        new_nodes = _get_child_nodes(S=S_input, tags=tags)
+        old_nodes = _get_child_nodes_old(S=S, tags=tags)
+
+        assert list(new_nodes.keys()) == list(old_nodes.keys())
+        for level in old_nodes:
+            assert list(new_nodes[level].keys()) == list(old_nodes[level].keys())
+            for parent in old_nodes[level]:
+                new_children = list(new_nodes[level][parent])
+                old_children = list(old_nodes[level][parent])
+                assert new_children == old_children, (
+                    f"level={level!r} parent={parent}: {new_children} != {old_children}"
+                )
+
+    @pytest.mark.parametrize("as_sparse", [False, True])
+    def test_singleton_child_parent(self, as_sparse):
+        """Hand-written hierarchy with a parent that has exactly one child.
+
+        Random hierarchies from `_make_random_strict_hierarchy` aren't
+        guaranteed to ever produce a singleton-child parent, so this pins
+        that edge case explicitly: level0 has two parents, one ("A") with
+        two children and one ("B") with a single child.
+        """
+        # 3 bottom series b1, b2, b3.
+        # level0: A (row 0) = A1 + A2, B (row 1) = B1 -- B has only one child.
+        # level1: A1 (row 2), A2 (row 3), B1 (row 4).
+        S = np.array(
+            [
+                [1.0, 1.0, 0.0],  # A = A1 + A2
+                [0.0, 0.0, 1.0],  # B = B1
+                [1.0, 0.0, 0.0],  # A1
+                [0.0, 1.0, 0.0],  # A2
+                [0.0, 0.0, 1.0],  # B1
+            ]
+        )
+        tags = {
+            "level0": np.array([0, 1]),
+            "level1": np.array([2, 3, 4]),
+        }
+        S_input = sparse.csr_matrix(S) if as_sparse else S
+
+        new_nodes = _get_child_nodes(S=S_input, tags=tags)
+        old_nodes = _get_child_nodes_old(S=S, tags=tags)
+
+        assert new_nodes["level0"] == old_nodes["level0"]
+        assert list(new_nodes["level0"][0]) == [2, 3]
+        assert list(new_nodes["level0"][1]) == [4]
+
+    def test_feeds_top_down_forecast_proportions_correctly(self, hierarchical_data):
+        """End-to-end: TopDown's `forecast_proportions` output is unaffected."""
+        data = hierarchical_data
+        cls_top_down = TopDown(method="forecast_proportions")
+        result = cls_top_down(S=data.S, y_hat=data.S @ data.y_hat_bottom, tags=data.tags)["mean"]
+        np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
