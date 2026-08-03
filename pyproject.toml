@@ -111,3 +111,6 @@ addopts = [
     "--cov-report=html",
     "--cov-fail-under=70", #TODO: Update tests to increase coverage to 80
 ]
+markers = [
+    "benchmark: pytest-benchmark timing tests (excluded from the wheel test matrix in CI; run explicitly with `-m benchmark`)",
+]
