@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 from scipy import sparse
 
-from hierarchicalforecast.methods import _get_child_nodes
+from hierarchicalforecast.methods import (
+    _flatten_child_nodes,
+    _get_child_nodes,
+    _reconcile_fcst_proportions_bootstrap,
+    _reconcile_fcst_proportions_native,
+)
 from hierarchicalforecast.probabilistic_methods import Bootstrap
 from hierarchicalforecast.utils import (
     _lasso,
@@ -11,7 +16,12 @@ from hierarchicalforecast.utils import (
     _shrunk_covariance_schaferstrimmer_with_nans,
 )
 
-from .conftest import _make_random_strict_hierarchy
+from .conftest import (
+    _make_random_strict_hierarchy,
+    _reconcile_fcst_proportions_bootstrap_python,
+    _reconcile_fcst_proportions_columns_python,
+    _topdown_idxs_top,
+)
 
 pytestmark = pytest.mark.benchmark
 
@@ -109,3 +119,123 @@ def test_bench_get_child_nodes(benchmark, child_nodes_bench_data, as_sparse):
     if as_sparse:
         S = sparse.csr_matrix(S)
     benchmark(_get_child_nodes, S=S, tags=tags)
+
+
+@pytest.fixture
+def fcst_proportions_bench_data():
+    """1000-bottom-series/3-level hierarchy, h=12, for benchmarking the
+    forecast-proportions traversal (old per-column Python loop vs the native
+    batched kernel)."""
+    rng = np.random.default_rng(789)
+    S, tags = _make_random_strict_hierarchy(
+        rng, level_sizes=[1, 20, 1000], shuffle_tags=False
+    )
+    n_hiers = S.shape[0]
+    h = 12
+    insample_size = 60
+
+    y_hat = 100.0 + 10.0 * rng.standard_normal((n_hiers, h))
+    y_insample = 100.0 + 10.0 * rng.standard_normal((n_hiers, insample_size))
+    y_hat_insample = y_insample + rng.standard_normal((n_hiers, insample_size))
+
+    levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
+    nodes = _get_child_nodes(S=S, tags=levels_)
+    flat = _flatten_child_nodes(nodes)
+    idxs_top = _topdown_idxs_top(S)
+    return {
+        "S": S,
+        "tags": levels_,
+        "nodes": nodes,
+        "flat": flat,
+        "idxs_top": idxs_top,
+        "y_hat": y_hat,
+        "y_insample": y_insample,
+        "y_hat_insample": y_hat_insample,
+    }
+
+
+@pytest.mark.parametrize("impl", ["python", "native"])
+def test_bench_fcst_proportions_mean(benchmark, fcst_proportions_bench_data, impl):
+    """TopDown `forecast_proportions` mean path: traversal over all 12
+    horizon columns."""
+    d = fcst_proportions_bench_data
+    if impl == "python":
+        benchmark(
+            _reconcile_fcst_proportions_columns_python,
+            S=d["S"],
+            y_hat=d["y_hat"],
+            tags=d["tags"],
+            nodes=d["nodes"],
+            idxs_top=d["idxs_top"],
+        )
+    else:
+        benchmark(
+            _reconcile_fcst_proportions_native,
+            d["y_hat"][None, :, :],
+            idxs_top=d["idxs_top"],
+            flat=d["flat"],
+        )
+
+
+@pytest.mark.parametrize("impl", ["python", "native"])
+def test_bench_fcst_proportions_bootstrap_100(
+    benchmark, fcst_proportions_bench_data, impl
+):
+    """Bootstrap prediction intervals with 100 samples (the per-sample
+    multiplier is what made the Python loop explode)."""
+    d = fcst_proportions_bench_data
+    if impl == "python":
+        benchmark.pedantic(
+            _reconcile_fcst_proportions_bootstrap_python,
+            kwargs=dict(
+                S=d["S"],
+                y_hat=d["y_hat"],
+                tags=d["tags"],
+                y_insample=d["y_insample"],
+                y_hat_insample=d["y_hat_insample"],
+                num_samples=100,
+                seed=0,
+                level=[80, 95],
+                nodes=d["nodes"],
+                idxs_top=d["idxs_top"],
+            ),
+            rounds=3,
+            iterations=1,
+        )
+    else:
+        benchmark(
+            _reconcile_fcst_proportions_bootstrap,
+            S=d["S"],
+            y_hat=d["y_hat"],
+            tags=d["tags"],
+            y_insample=d["y_insample"],
+            y_hat_insample=d["y_hat_insample"],
+            num_samples=100,
+            seed=0,
+            level=[80, 95],
+            nodes=d["nodes"],
+            idxs_top=d["idxs_top"],
+            flat=d["flat"],
+        )
+
+
+def test_bench_fcst_proportions_bootstrap_1000_native(
+    benchmark, fcst_proportions_bench_data
+):
+    """Native-only: bootstrap with 1000 samples (12,000 traversals per call),
+    infeasible to benchmark with the old Python loop at this size."""
+    d = fcst_proportions_bench_data
+    benchmark(
+        _reconcile_fcst_proportions_bootstrap,
+        S=d["S"],
+        y_hat=d["y_hat"],
+        tags=d["tags"],
+        y_insample=d["y_insample"],
+        y_hat_insample=d["y_hat_insample"],
+        num_samples=1000,
+        seed=0,
+        level=[80, 95],
+        nodes=d["nodes"],
+        idxs_top=d["idxs_top"],
+        flat=d["flat"],
+    )

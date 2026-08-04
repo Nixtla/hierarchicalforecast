@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from scipy import sparse
 
+import hierarchicalforecast.methods as hf_methods
 from hierarchicalforecast.methods import (
     ERM,
     BottomUp,
@@ -15,13 +16,22 @@ from hierarchicalforecast.methods import (
     OptimalCombination,
     TopDown,
     TopDownSparse,
+    _flatten_child_nodes,
     _get_child_nodes,
     _is_strictly_hierarchical,
+    _reconcile_fcst_proportions,
+    _reconcile_fcst_proportions_bootstrap,
+    _reconcile_fcst_proportions_native,
     is_strictly_hierarchical,
 )
 from hierarchicalforecast.utils import _construct_adjacency_matrix
 
-from .conftest import _make_random_strict_hierarchy
+from .conftest import (
+    _make_random_strict_hierarchy,
+    _reconcile_fcst_proportions_bootstrap_python,
+    _reconcile_fcst_proportions_columns_python,
+    _topdown_idxs_top,
+)
 
 
 @dataclass
@@ -1249,3 +1259,476 @@ class TestGetChildNodes:
         cls_top_down = TopDown(method="forecast_proportions")
         result = cls_top_down(S=data.S, y_hat=data.S @ data.y_hat_bottom, tags=data.tags)["mean"]
         np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
+
+
+def _native_via_python_reference(y_hat_samples, idxs_top, flat):
+    """Drop-in replacement for `_reconcile_fcst_proportions_native` that
+    routes every (sample, column) pair through the pure-Python
+    `_reconcile_fcst_proportions` reference.
+
+    The flat parent list is presented to the reference as a single-level
+    `nodes`/`tags` pair: a flat pass in traversal order is exactly the
+    reference's level-by-level traversal (every parent's value is written
+    before it is read), so this reconstructs the pre-native runtime path from
+    the same inputs the kernel sees. Used to monkeypatch the native call and
+    assert end-to-end bit-identical public API outputs.
+    """
+    parent_idx, child_indptr, child_idx = flat
+    nodes_stub = {
+        "parents": {
+            int(p): child_idx[child_indptr[i] : child_indptr[i + 1]].tolist()
+            for i, p in enumerate(parent_idx)
+        }
+    }
+    tags_stub = {"parents": None, "children": None}
+    out = np.empty_like(y_hat_samples)
+    for s in range(y_hat_samples.shape[0]):
+        out[s] = np.hstack(
+            [
+                _reconcile_fcst_proportions(
+                    S=None,
+                    y_hat=y_hat_samples[s][:, [c]],
+                    tags=tags_stub,
+                    nodes=nodes_stub,
+                    idxs_top=idxs_top,
+                )
+                for c in range(y_hat_samples.shape[2])
+            ]
+        )
+    return out
+
+
+class TestForecastProportionsNative:
+    """Regression tests for the native batched forecast-proportions traversal.
+
+    The pre-native runtime re-ran the 4-level Python traversal
+    (`_reconcile_fcst_proportions`) once per horizon column and, for bootstrap
+    prediction intervals, once per bootstrap sample. The native kernel
+    (`_forecast_proportions_traversal`) performs the traversal for all
+    (sample, horizon) pairs in one call but must stay bit-identical to the
+    pure-Python reference: it ports NumPy's pairwise summation for the child
+    sums and disables fast-math transforms for the scalar multiply/divide
+    chain, so every assertion here is exact equality, not allclose.
+    """
+
+    @staticmethod
+    def _setup(S, tags):
+        levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
+        nodes = _get_child_nodes(S=S, tags=levels_)
+        flat = _flatten_child_nodes(nodes)
+        idxs_top = _topdown_idxs_top(S)
+        return levels_, nodes, flat, idxs_top
+
+    def test_flatten_child_nodes_structure(self, hierarchical_data):
+        data = hierarchical_data
+        levels_, nodes, flat, _ = self._setup(data.S, data.tags)
+        parent_idx, child_indptr, child_idx = flat
+
+        expected_parents = []
+        expected_children = []
+        for nodes_level in nodes.values():
+            for idx_parent, idx_childs in nodes_level.items():
+                expected_parents.append(idx_parent)
+                expected_children.append(list(idx_childs))
+
+        assert parent_idx.dtype == np.int64
+        assert child_indptr.dtype == np.int64
+        assert child_idx.dtype == np.int64
+        assert list(parent_idx) == expected_parents
+        assert child_indptr[0] == 0
+        assert child_indptr[-1] == len(child_idx)
+        for p, childs in enumerate(expected_children):
+            got = child_idx[child_indptr[p] : child_indptr[p + 1]]
+            assert list(got) == childs
+
+    @pytest.mark.parametrize(
+        "level_sizes",
+        [
+            [1, 2, 4],
+            [1, 5, 9, 40],
+            [1, 3, 7, 100],
+            [1, 40],
+            [2, 6, 30],
+            [1, 200],
+        ],
+    )
+    def test_matches_reference_random_hierarchies(self, level_sizes):
+        """Fuzz the native traversal against the per-column Python reference.
+
+        Covers small fan-outs (sequential summation), fan-outs above NumPy's
+        8-element unroll, and a 200-child parent that exercises the recursive
+        pairwise-summation split above the 128-element block size.
+        """
+        seed = zlib.crc32(
+            repr(("fcst_proportions_native", tuple(level_sizes))).encode()
+        )
+        rng = np.random.default_rng(seed)
+        for _ in range(3):
+            S, tags = _make_random_strict_hierarchy(rng, level_sizes)
+            levels_, nodes, flat, idxs_top = self._setup(S, tags)
+            y_hat = rng.normal(100.0, 20.0, size=(S.shape[0], 5))
+
+            expected = _reconcile_fcst_proportions_columns_python(
+                S=S, y_hat=y_hat, tags=levels_, nodes=nodes, idxs_top=idxs_top
+            )
+            result = _reconcile_fcst_proportions_native(
+                y_hat[None, :, :], idxs_top=idxs_top, flat=flat
+            )[0]
+            np.testing.assert_array_equal(result, expected)
+
+    def test_matches_reference_zero_children_sum(self):
+        """Parents whose children sum to ~0 take the `fcst_parent / n` branch."""
+        rng = np.random.default_rng(zlib.crc32(b"fcst_proportions_zero_sum"))
+        S, tags = _make_random_strict_hierarchy(rng, [1, 4, 12])
+        levels_, nodes, flat, idxs_top = self._setup(S, tags)
+        y_hat = rng.normal(100.0, 20.0, size=(S.shape[0], 4))
+
+        # Zero out the children of one parent per level (including one column
+        # left at exactly 0.0 and one at values summing below the 1e-8
+        # threshold).
+        for nodes_level in nodes.values():
+            idx_childs = next(iter(nodes_level.values()))
+            y_hat[list(idx_childs), :] = 0.0
+            y_hat[list(idx_childs), 1] = 1e-10 / len(idx_childs)
+
+        expected = _reconcile_fcst_proportions_columns_python(
+            S=S, y_hat=y_hat, tags=levels_, nodes=nodes, idxs_top=idxs_top
+        )
+        result = _reconcile_fcst_proportions_native(
+            y_hat[None, :, :], idxs_top=idxs_top, flat=flat
+        )[0]
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "bad_children",
+        [
+            pytest.param([1.0, np.nan, 2.0], id="nan_child"),
+            pytest.param([np.inf, -np.inf, 2.0], id="inf_minus_inf_children"),
+        ],
+    )
+    def test_non_finite_child_sums_propagate_like_reference(self, bad_children):
+        """NaN child sums must propagate NaN, bit-identical to the reference.
+
+        Guards the fast-math regression: under -ffast-math (finite-math-only)
+        the kernel's `|child_sum| < 1e-8` guard is allowed to assume no NaNs,
+        so a NaN child sum silently took the equal-split branch and produced
+        finite output (e.g. [10, 3.33, 3.33, 3.33]) where the reference
+        propagates NaN ([10, nan, nan, nan]). The kernel's translation unit
+        is now compiled without fast-math (STRICT_FP_SOURCES in setup.py);
+        this test fails loudly if that per-source flag ever regresses.
+        Covers both a literal NaN child and an inf + -inf pair whose sum is
+        NaN.
+        """
+        # Star hierarchy: one total on top of three bottom series.
+        S = np.array(
+            [
+                [1.0, 1.0, 1.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ]
+        )
+        tags = {"level0": np.array([0]), "level1": np.array([1, 2, 3])}
+        levels_, nodes, flat, idxs_top = self._setup(S, tags)
+        y_hat = np.array([10.0, *bad_children])[:, None]
+
+        with np.errstate(invalid="ignore"):
+            expected = _reconcile_fcst_proportions_columns_python(
+                S=S, y_hat=y_hat, tags=levels_, nodes=nodes, idxs_top=idxs_top
+            )
+        result = _reconcile_fcst_proportions_native(
+            y_hat[None, :, :], idxs_top=idxs_top, flat=flat
+        )[0]
+
+        # The reference propagates NaN into every child of the poisoned
+        # parent; assert_array_equal treats positionally-matching NaNs as
+        # equal, so this is still an exact (bit-identical) comparison.
+        assert np.isnan(expected[1:]).all()
+        np.testing.assert_array_equal(result, expected)
+
+    def test_non_float64_input_falls_back_to_reference(self):
+        """float32 input bypasses the kernel and preserves dtype end-to-end.
+
+        The kernel computes in float64 only; pybind11's `forcecast` would
+        silently upcast float32 `y_hat` from direct TopDown/MiddleOut callers,
+        changing both the arithmetic and the output dtype.
+        `_reconcile_fcst_proportions_native` instead falls back to the
+        pure-Python reference, reproducing the pre-native behavior exactly in
+        the input's native dtype (`core.reconcile` coerces to float64
+        upstream, so the main reconcile() path is unaffected).
+        """
+        rng = np.random.default_rng(zlib.crc32(b"fcst_proportions_float32"))
+        S, tags = _make_random_strict_hierarchy(rng, [1, 4, 12])
+        levels_, nodes, flat, idxs_top = self._setup(S, tags)
+        y_hat = rng.normal(100.0, 20.0, size=(S.shape[0], 5)).astype(np.float32)
+
+        # Old behavior: the pure-Python traversal per column, float32 in/out.
+        expected = _reconcile_fcst_proportions_columns_python(
+            S=S, y_hat=y_hat, tags=levels_, nodes=nodes, idxs_top=idxs_top
+        )
+        assert expected.dtype == np.float32
+
+        result = _reconcile_fcst_proportions_native(
+            y_hat[None, :, :], idxs_top=idxs_top, flat=flat
+        )[0]
+        assert result.dtype == np.float32
+        np.testing.assert_array_equal(result, expected)
+
+        # Same through the public mean path.
+        result_api = TopDown(method="forecast_proportions")(
+            S=S, y_hat=y_hat, tags=tags
+        )["mean"]
+        assert result_api.dtype == np.float32
+        np.testing.assert_array_equal(result_api, expected)
+
+    def test_non_float64_bootstrap_falls_back_to_reference(self):
+        """float32 bootstrap intervals match the pre-native Python loop
+        exactly and preserve the input dtype."""
+        rng = np.random.default_rng(zlib.crc32(b"fcst_proportions_float32_boot"))
+        S, tags = _make_random_strict_hierarchy(rng, [1, 3, 9])
+        levels_, nodes, flat, idxs_top = self._setup(S, tags)
+        n = S.shape[0]
+        h, insample_size = 5, 30
+        y_hat = rng.normal(100.0, 20.0, size=(n, h)).astype(np.float32)
+        y_insample = rng.normal(100.0, 20.0, size=(n, insample_size)).astype(
+            np.float32
+        )
+        y_hat_insample = y_insample + rng.normal(
+            0.0, 5.0, size=(n, insample_size)
+        ).astype(np.float32)
+
+        expected = _reconcile_fcst_proportions_bootstrap_python(
+            S=S,
+            y_hat=y_hat,
+            tags=levels_,
+            y_insample=y_insample,
+            y_hat_insample=y_hat_insample,
+            num_samples=20,
+            seed=42,
+            level=[80, 95],
+            nodes=nodes,
+            idxs_top=idxs_top,
+        )
+        result = _reconcile_fcst_proportions_bootstrap(
+            S=S,
+            y_hat=y_hat,
+            tags=levels_,
+            y_insample=y_insample,
+            y_hat_insample=y_hat_insample,
+            num_samples=20,
+            seed=42,
+            level=[80, 95],
+            nodes=nodes,
+            idxs_top=idxs_top,
+            flat=flat,
+        )
+        assert result.dtype == expected.dtype
+        np.testing.assert_array_equal(result, expected)
+
+    def test_partial_top_nodes_leave_other_subtrees_untouched(self):
+        """Nodes outside the seeded top nodes' traversal stay identical to the
+        reference (which propagates the unseeded root's 0.0)."""
+        rng = np.random.default_rng(zlib.crc32(b"fcst_proportions_partial_top"))
+        S, tags = _make_random_strict_hierarchy(rng, [2, 5, 20])
+        levels_, nodes, flat, _ = self._setup(S, tags)
+        y_hat = rng.normal(100.0, 20.0, size=(S.shape[0], 3))
+
+        # Seed only one of the two roots.
+        idxs_top = np.asarray([tags["level0"][0]], dtype=np.int64)
+        expected = _reconcile_fcst_proportions_columns_python(
+            S=S, y_hat=y_hat, tags=levels_, nodes=nodes, idxs_top=idxs_top
+        )
+        result = _reconcile_fcst_proportions_native(
+            y_hat[None, :, :], idxs_top=idxs_top, flat=flat
+        )[0]
+        np.testing.assert_array_equal(result, expected)
+
+    def test_batched_samples_match_per_sample_calls(self):
+        """One batched call over S samples equals S single-sample calls."""
+        rng = np.random.default_rng(zlib.crc32(b"fcst_proportions_batched"))
+        S, tags = _make_random_strict_hierarchy(rng, [1, 5, 9, 40])
+        _, _, flat, idxs_top = self._setup(S, tags)
+        y_hat_samples = rng.normal(100.0, 20.0, size=(7, S.shape[0], 6))
+
+        batched = _reconcile_fcst_proportions_native(
+            y_hat_samples, idxs_top=idxs_top, flat=flat
+        )
+        for s in range(y_hat_samples.shape[0]):
+            single = _reconcile_fcst_proportions_native(
+                y_hat_samples[s][None, :, :], idxs_top=idxs_top, flat=flat
+            )[0]
+            np.testing.assert_array_equal(batched[s], single)
+
+    def test_topdown_end_to_end_matches_python_reference(
+        self, hierarchical_data, monkeypatch
+    ):
+        """Public API: TopDown `forecast_proportions` output is bit-identical
+        with the native kernel and with the pure-Python reference."""
+        data = hierarchical_data
+        y_hat = data.S @ data.y_hat_bottom
+
+        result_native = TopDown(method="forecast_proportions")(
+            S=data.S, y_hat=y_hat, tags=data.tags
+        )["mean"]
+        monkeypatch.setattr(
+            hf_methods,
+            "_reconcile_fcst_proportions_native",
+            _native_via_python_reference,
+        )
+        result_python = TopDown(method="forecast_proportions")(
+            S=data.S, y_hat=y_hat, tags=data.tags
+        )["mean"]
+
+        np.testing.assert_array_equal(result_native, result_python)
+
+    def test_middle_out_end_to_end_matches_python_reference(
+        self, hierarchical_data, monkeypatch
+    ):
+        """Public API: MiddleOut with `forecast_proportions` (which re-enters
+        TopDown once per cut node) is bit-identical to the Python reference."""
+        data = hierarchical_data
+        y_hat = data.S @ data.y_hat_bottom
+
+        result_native = MiddleOut(
+            middle_level="level2", top_down_method="forecast_proportions"
+        )(S=data.S, y_hat=y_hat, tags=data.tags)["mean"]
+        monkeypatch.setattr(
+            hf_methods,
+            "_reconcile_fcst_proportions_native",
+            _native_via_python_reference,
+        )
+        result_python = MiddleOut(
+            middle_level="level2", top_down_method="forecast_proportions"
+        )(S=data.S, y_hat=y_hat, tags=data.tags)["mean"]
+
+        np.testing.assert_array_equal(result_native, result_python)
+
+    def test_middle_out_random_hierarchy_matches_python_reference(
+        self, monkeypatch
+    ):
+        """MiddleOut equivalence on a larger random strict hierarchy."""
+        rng = np.random.default_rng(zlib.crc32(b"fcst_proportions_middle_out"))
+        S, tags = _make_random_strict_hierarchy(
+            rng, [1, 4, 10, 60], shuffle_tags=False
+        )
+        y_hat = rng.normal(100.0, 20.0, size=(S.shape[0], 4))
+
+        result_native = MiddleOut(
+            middle_level="level1", top_down_method="forecast_proportions"
+        )(S=S, y_hat=y_hat, tags=tags)["mean"]
+        monkeypatch.setattr(
+            hf_methods,
+            "_reconcile_fcst_proportions_native",
+            _native_via_python_reference,
+        )
+        result_python = MiddleOut(
+            middle_level="level1", top_down_method="forecast_proportions"
+        )(S=S, y_hat=y_hat, tags=tags)["mean"]
+
+        np.testing.assert_array_equal(result_native, result_python)
+
+    def test_bootstrap_matches_python_reference_seeded(self):
+        """Dense bootstrap quantiles are bit-identical to the pre-native
+        per-sample/per-column Python loop for the same seed."""
+        rng = np.random.default_rng(zlib.crc32(b"fcst_proportions_bootstrap"))
+        for level_sizes in ([1, 3, 9], [1, 5, 9, 40]):
+            S, tags = _make_random_strict_hierarchy(rng, level_sizes)
+            levels_, nodes, flat, idxs_top = self._setup(S, tags)
+            n = S.shape[0]
+            h, insample_size = 6, 40
+            y_hat = rng.normal(100.0, 20.0, size=(n, h))
+            y_insample = rng.normal(100.0, 20.0, size=(n, insample_size))
+            y_hat_insample = y_insample + rng.normal(0.0, 5.0, size=(n, insample_size))
+
+            expected = _reconcile_fcst_proportions_bootstrap_python(
+                S=S,
+                y_hat=y_hat,
+                tags=levels_,
+                y_insample=y_insample,
+                y_hat_insample=y_hat_insample,
+                num_samples=50,
+                seed=42,
+                level=[80, 95],
+                nodes=nodes,
+                idxs_top=idxs_top,
+            )
+            result = _reconcile_fcst_proportions_bootstrap(
+                S=S,
+                y_hat=y_hat,
+                tags=levels_,
+                y_insample=y_insample,
+                y_hat_insample=y_hat_insample,
+                num_samples=50,
+                seed=42,
+                level=[80, 95],
+                nodes=nodes,
+                idxs_top=idxs_top,
+                flat=flat,
+            )
+            np.testing.assert_array_equal(result, expected)
+
+    def test_topdown_bootstrap_end_to_end_matches_python_reference(
+        self, hierarchical_data, monkeypatch
+    ):
+        """Public API with prediction intervals: mean and quantiles are
+        bit-identical between the native path and the Python reference."""
+        data = hierarchical_data
+        y_hat = data.S @ data.y_hat_bottom
+        y_insample = data.S @ data.y_bottom
+        y_hat_insample = data.S @ data.y_hat_bottom_insample
+        kwargs = dict(
+            S=data.S,
+            y_hat=y_hat,
+            tags=data.tags,
+            y_insample=y_insample,
+            y_hat_insample=y_hat_insample,
+            level=[80, 90],
+            intervals_method="bootstrap",
+            num_samples=100,
+            seed=42,
+        )
+
+        result_native = TopDown(method="forecast_proportions")(**kwargs)
+        monkeypatch.setattr(
+            hf_methods,
+            "_reconcile_fcst_proportions_native",
+            _native_via_python_reference,
+        )
+        result_python = TopDown(method="forecast_proportions")(**kwargs)
+
+        np.testing.assert_array_equal(result_native["mean"], result_python["mean"])
+        np.testing.assert_array_equal(
+            result_native["quantiles"], result_python["quantiles"]
+        )
+
+    def test_kernel_validates_inputs(self):
+        """Malformed flat arrays raise instead of reading out of bounds."""
+        from hierarchicalforecast._lib import reconciliation as _lib_recon
+
+        y = np.zeros((1, 3, 2))
+        i64 = lambda *xs: np.asarray(xs, dtype=np.int64)  # noqa: E731
+
+        with pytest.raises(ValueError, match="child_indptr"):
+            _lib_recon._forecast_proportions_traversal(
+                y, i64(0), i64(0), i64(1), i64(0)
+            )
+        with pytest.raises(ValueError, match="start at 0"):
+            _lib_recon._forecast_proportions_traversal(
+                y, i64(0, 1), i64(1, 1, 1), i64(1), i64(0)
+            )
+        with pytest.raises(ValueError, match="non-decreasing"):
+            _lib_recon._forecast_proportions_traversal(
+                y, i64(0, 1), i64(0, 2, 1), i64(1), i64(0)
+            )
+        with pytest.raises(ValueError, match="parent_idx"):
+            _lib_recon._forecast_proportions_traversal(
+                y, i64(3), i64(0, 1), i64(1), i64(0)
+            )
+        with pytest.raises(ValueError, match="child_idx"):
+            _lib_recon._forecast_proportions_traversal(
+                y, i64(0), i64(0, 1), i64(3), i64(0)
+            )
+        with pytest.raises(ValueError, match="top_idx"):
+            _lib_recon._forecast_proportions_traversal(
+                y, i64(0), i64(0, 1), i64(1), i64(-1)
+            )
