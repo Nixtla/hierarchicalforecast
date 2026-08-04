@@ -719,7 +719,8 @@ def test_optimal_combination_works_with_grouped_hierarchy(common_test_data, meth
 def test_erm_works_with_grouped_hierarchy(common_test_data):
     """Test that ERM works correctly with grouped data.
 
-    Note: Only testing 'closed' method as 'reg' and 'reg_bu' are computationally expensive.
+    Note: Only testing 'closed' method here; 'reg' and 'reg_bu' on this same
+    grouped hierarchy are covered by test_erm_lasso_methods_work_through_reconcile.
     """
     data = common_test_data["grouped"]
     Y_hat, Y_train, S, tags = data["Y_hat_df"], data["Y_train_df"], data["S_df"], data["tags"]
@@ -734,6 +735,28 @@ def test_erm_works_with_grouped_hierarchy(common_test_data):
     assert reconciled is not None
     expected_col = f'y_model/ERM_method-{method}_lambda_reg-0.01'
     assert expected_col in reconciled.columns
+
+
+@pytest.mark.parametrize("method", ["reg", "reg_bu"])
+@pytest.mark.parametrize("hierarchy", ["strict", "grouped"])
+def test_erm_lasso_methods_work_through_reconcile(common_test_data, hierarchy, method):
+    """Test ERM reg/reg_bu end to end through the public reconcile API.
+
+    These methods run the matrix-free Kronecker Lasso; before that kernel the
+    materialized np.kron design matrix made them too expensive to test here,
+    especially on the full grouped hierarchy (425 series, 304 bottom).
+    """
+    data = common_test_data[hierarchy]
+    Y_hat, Y_train, S, tags = data["Y_hat_df"], data["Y_train_df"], data["S_df"], data["tags"]
+
+    reconciler = ERM(method=method, lambda_reg=1e-2)
+    hrec = HierarchicalReconciliation([reconciler])
+
+    reconciled = hrec.reconcile(Y_hat_df=Y_hat, Y_df=Y_train, S_df=S, tags=tags)
+
+    expected_col = f'y_model/ERM_method-{method}_lambda_reg-0.01'
+    assert expected_col in reconciled.columns
+    assert not reconciled[expected_col].isna().any()
 
 
 # Tests for methods that require strictly hierarchical structures working with strict data

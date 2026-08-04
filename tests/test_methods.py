@@ -17,7 +17,11 @@ from hierarchicalforecast.methods import (
     _is_strictly_hierarchical,
     is_strictly_hierarchical,
 )
-from hierarchicalforecast.utils import _construct_adjacency_matrix
+from hierarchicalforecast.utils import (
+    _construct_adjacency_matrix,
+    _lasso,
+    _lasso_kron,
+)
 
 
 @dataclass
@@ -510,6 +514,168 @@ def test_erm_forecast_recovery(hierarchical_data):
     )["mean"]
 
     np.testing.assert_allclose(result, data.S @ data.y_hat_bottom)
+
+
+def _summing_matrix_from_groups(rng, n_bottom, n_extra_agg_rows):
+    """Build a summing-matrix-like S: total + random aggregates + identity."""
+    rows = [np.ones((1, n_bottom))]
+    for _ in range(n_extra_agg_rows):
+        rows.append(rng.integers(0, 2, (1, n_bottom)).astype(np.float64))
+    rows.append(np.eye(n_bottom))
+    return np.vstack(rows)
+
+
+@pytest.mark.parametrize(
+    "n_bottom,n_extra_agg_rows,h",
+    [
+        (1, 0, 1),  # single bottom series, single step
+        (1, 0, 4),  # single bottom series
+        (4, 0, 1),  # single step horizon
+        (4, 0, 3),  # total + identity only (single-level)
+        (5, 2, 4),  # grouped aggregates
+        (8, 3, 6),  # deeper hierarchy
+    ],
+)
+def test_lasso_kron_matches_materialized_kron(n_bottom, n_extra_agg_rows, h):
+    """_lasso_kron(S, Y, y) must match _lasso(np.kron(S, Y), y) to round-off.
+
+    The matrix-free kernel performs the same cyclic coordinate descent with
+    the same iteration order, soft-threshold formula and convergence
+    criterion; only the summations are reassociated through the Kronecker
+    factors, so results agree to floating-point round-off.
+    """
+    rng = np.random.default_rng(n_bottom * 100 + n_extra_agg_rows * 10 + h)
+    S = _summing_matrix_from_groups(rng, n_bottom, n_extra_agg_rows)
+    n_hiers = S.shape[0]
+    Y = rng.standard_normal((h, n_hiers))
+    y = rng.standard_normal(n_hiers * h)
+    for lambda_reg in (1e-3, 1e-1):
+        beta_dense = _lasso(np.kron(S, Y), y, lambda_reg, max_iters=1000, tol=1e-4)
+        beta_free = _lasso_kron(S, Y, y, lambda_reg, max_iters=1000, tol=1e-4)
+        np.testing.assert_allclose(beta_free, beta_dense, rtol=1e-8, atol=1e-11)
+
+
+def test_lasso_kron_fuzz_random_shapes():
+    """Fuzz _lasso_kron vs the materialized-kron path over random shapes."""
+    rng = np.random.default_rng(0)
+    for _ in range(25):
+        n_bottom = int(rng.integers(1, 9))
+        n_extra_agg_rows = int(rng.integers(0, 4))
+        h = int(rng.integers(1, 8))
+        S = _summing_matrix_from_groups(rng, n_bottom, n_extra_agg_rows)
+        n_hiers = S.shape[0]
+        Y = rng.standard_normal((h, n_hiers))
+        y = rng.standard_normal(n_hiers * h)
+        lambda_reg = 10.0 ** rng.uniform(-4, 0)
+        beta_dense = _lasso(np.kron(S, Y), y, lambda_reg, max_iters=1000, tol=1e-4)
+        beta_free = _lasso_kron(S, Y, y, lambda_reg, max_iters=1000, tol=1e-4)
+        np.testing.assert_allclose(beta_free, beta_dense, rtol=1e-8, atol=1e-11)
+
+
+def test_lasso_kron_validates_target_length():
+    """_lasso_kron rejects a target that does not match kron(S, Y) rows."""
+    rng = np.random.default_rng(42)
+    S = _summing_matrix_from_groups(rng, 3, 0)
+    Y = rng.standard_normal((2, S.shape[0]))
+    with pytest.raises(ValueError, match="S.rows"):
+        _lasso_kron(S, Y, np.zeros(5), 1e-2)
+
+
+def test_lasso_kron_validates_kronecker_shapes():
+    """_lasso_kron rejects S/Y whose Kronecker shapes don't line up.
+
+    S.rows() indexes the hierarchy and must match Y.cols(); a mismatch would
+    silently pair the wrong rows of S with the wrong columns of Y.
+    """
+    rng = np.random.default_rng(7)
+    S = _summing_matrix_from_groups(rng, 3, 0)
+    n_hiers = S.shape[0]
+    Y = rng.standard_normal((2, n_hiers + 1))  # Y.cols() != S.rows()
+    y = rng.standard_normal(n_hiers * 2)
+    with pytest.raises(ValueError, match="S.rows.*Y.cols"):
+        _lasso_kron(S, Y, y, 1e-2)
+
+
+def test_lasso_kron_zeroed_column_matches_materialized_kron():
+    """A zeroed Y column drives norms_i below the 1e-8 skip guard.
+
+    Regression case for the skip guard in `lasso_kron`: when an entire Y
+    column is zero, `s_norm_j1 * y_norms(j2)` is exactly 0 for every j1 at
+    that j2, so the coordinate is skipped for every S column. The matrix-free
+    kernel must still match the materialized path exactly in that regime.
+    """
+    rng = np.random.default_rng(123)
+    n_bottom, n_extra_agg_rows, h = 5, 2, 4
+    S = _summing_matrix_from_groups(rng, n_bottom, n_extra_agg_rows)
+    n_hiers = S.shape[0]
+    Y = rng.standard_normal((h, n_hiers))
+    Y[:, 0] = 0.0  # zero out one full column -> norms_i < 1e-8 for j2=0
+    y = rng.standard_normal(n_hiers * h)
+    for lambda_reg in (1e-3, 1e-1):
+        beta_dense = _lasso(np.kron(S, Y), y, lambda_reg, max_iters=1000, tol=1e-4)
+        beta_free = _lasso_kron(S, Y, y, lambda_reg, max_iters=1000, tol=1e-4)
+        np.testing.assert_allclose(beta_free, beta_dense, rtol=1e-8, atol=1e-11)
+
+
+def _erm_pw_materialized_kron(S, y_hat, y_insample, y_hat_insample, method, lambda_reg):
+    """Reference implementation: the pre-matrix-free ERM reg/reg_bu path."""
+    n_hiers, n_bottom = S.shape
+    idx_bottom = list(range(n_hiers - n_bottom, n_hiers))
+    h = min(y_hat.shape[1], y_hat_insample.shape[1])
+    y_hat_insample = y_hat_insample[:, -h:]
+    y_insample = y_insample[:, -h:]
+    X = np.kron(S, y_hat_insample.T)
+    if method == "reg":
+        z = y_insample.reshape(-1)
+        lam = np.max(np.abs(X.T.dot(z))) if lambda_reg is None else lambda_reg
+        beta = _lasso(X, z, lam, max_iters=1000, tol=1e-4)
+        P = beta.reshape(S.shape).T
+    else:
+        Pbu = np.zeros_like(S)
+        Pbu[idx_bottom] = S[idx_bottom]
+        z = y_insample.reshape(-1) - X @ Pbu.reshape(-1)
+        lam = np.max(np.abs(X.T.dot(z))) if lambda_reg is None else lambda_reg
+        beta = _lasso(X, z, lam, max_iters=1000, tol=1e-4)
+        P = (beta + Pbu.reshape(-1)).reshape(S.shape).T
+    return P
+
+
+@pytest.mark.parametrize("method", ["reg", "reg_bu"])
+@pytest.mark.parametrize("lambda_reg", [1e-2, None])
+def test_erm_reg_matches_materialized_kron(hierarchical_data, method, lambda_reg):
+    """ERM reg/reg_bu must reproduce the old np.kron + _lasso path."""
+    data = hierarchical_data
+    S = data.S
+    y_hat = S @ data.y_hat_bottom
+    y_insample = S @ data.y_bottom
+    y_hat_insample = S @ np.nan_to_num(data.y_hat_bottom_insample, nan=1.0)
+
+    P_expected = _erm_pw_materialized_kron(
+        S, y_hat, y_insample, y_hat_insample, method, lambda_reg
+    )
+    P_actual, W = ERM(method=method, lambda_reg=lambda_reg)._get_PW_matrices(
+        S, y_hat, y_insample, y_hat_insample
+    )
+    np.testing.assert_allclose(P_actual, P_expected, rtol=1e-8, atol=1e-11)
+    np.testing.assert_array_equal(W, np.eye(S.shape[0]))
+
+
+@pytest.mark.parametrize("method", ["closed", "reg", "reg_bu"])
+def test_erm_accepts_sparse_S(hierarchical_data, method):
+    """ERM densifies a sparse summing matrix and matches the dense result."""
+    data = hierarchical_data
+    S = data.S
+    y_hat = S @ data.y_hat_bottom
+    y_insample = S @ data.y_bottom
+    y_hat_insample = S @ np.nan_to_num(data.y_hat_bottom_insample, nan=1.0)
+
+    P_dense, _ = ERM(method=method, lambda_reg=1e-2)._get_PW_matrices(
+        S, y_hat, y_insample, y_hat_insample
+    )
+    P_sparse, _ = ERM(method=method, lambda_reg=1e-2)._get_PW_matrices(
+        sparse.csr_matrix(S), y_hat, y_insample, y_hat_insample
+    )
+    np.testing.assert_allclose(P_sparse, P_dense, rtol=1e-12, atol=0)
 
 
 @pytest.fixture

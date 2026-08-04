@@ -3,6 +3,7 @@ import pytest
 
 from hierarchicalforecast.utils import (
     _lasso,
+    _lasso_kron,
     _ma_cov,
     _shrunk_covariance_schaferstrimmer_no_nans,
     _shrunk_covariance_schaferstrimmer_with_nans,
@@ -45,3 +46,40 @@ def lasso_data():
 def test_bench_lasso(benchmark, lasso_data):
     X, y = lasso_data
     benchmark(_lasso, X, y, 0.1, 1000, 1e-4)
+
+
+@pytest.fixture
+def lasso_kron_data():
+    """Kronecker factors shaped like the ERM reg/reg_bu design matrix.
+
+    S is a summing-matrix-like factor (total + 5 groups + identity) and Y is
+    the transposed insample forecast matrix; the implicit design matrix
+    X = np.kron(S, Y) has shape (n_hiers * h, n_bottom * n_hiers).
+    """
+    rng = np.random.default_rng(42)
+    n_bottom, h = 50, 8
+    S = np.vstack(
+        [
+            np.ones((1, n_bottom)),
+            np.repeat(np.eye(5), n_bottom // 5, axis=1),
+            np.eye(n_bottom),
+        ]
+    )
+    Y = rng.standard_normal((h, S.shape[0]))
+    y = rng.standard_normal(S.shape[0] * h)
+    return S, Y, y
+
+
+def test_bench_lasso_kron(benchmark, lasso_kron_data):
+    S, Y, y = lasso_kron_data
+    benchmark(_lasso_kron, S, Y, y, 0.1, 1000, 1e-4)
+
+
+def test_bench_lasso_kron_materialized_baseline(benchmark, lasso_kron_data):
+    """Old ERM path: materialize np.kron(S, Y), then run the dense Lasso."""
+    S, Y, y = lasso_kron_data
+
+    def _materialized():
+        return _lasso(np.kron(S, Y), y, 0.1, 1000, 1e-4)
+
+    benchmark(_materialized)
