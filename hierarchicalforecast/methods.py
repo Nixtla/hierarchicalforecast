@@ -11,6 +11,7 @@ import numpy as np
 from qpsolvers import solve_qp
 from scipy import sparse
 
+from hierarchicalforecast._lib import reconciliation as _lib_recon
 from hierarchicalforecast.utils import (
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
@@ -392,6 +393,93 @@ def _get_child_nodes(
     return nodes
 
 
+def _flatten_child_nodes(
+    nodes: dict[str, dict[int, np.ndarray]],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Flatten `_get_child_nodes` output into CSR-style int64 arrays.
+
+    Returns `(parent_idx, child_indptr, child_idx)` where parents appear in
+    traversal order (levels top-to-bottom, insertion order within each level)
+    and `child_idx[child_indptr[p]:child_indptr[p + 1]]` are the children of
+    node `parent_idx[p]`, preserving the exact ordering the pure-Python
+    reference `_reconcile_fcst_proportions` iterates in.
+    """
+    parent_idx: list[int] = []
+    child_indptr: list[int] = [0]
+    child_idx: list[int] = []
+    for nodes_level in nodes.values():
+        for idx_parent, idx_childs in nodes_level.items():
+            parent_idx.append(idx_parent)
+            child_idx.extend(idx_childs)
+            child_indptr.append(len(child_idx))
+    return (
+        np.asarray(parent_idx, dtype=np.int64),
+        np.asarray(child_indptr, dtype=np.int64),
+        np.asarray(child_idx, dtype=np.int64),
+    )
+
+
+def _reconcile_fcst_proportions_native(
+    y_hat_samples: np.ndarray,
+    idxs_top: np.ndarray,
+    flat: tuple[np.ndarray, np.ndarray, np.ndarray],
+) -> np.ndarray:
+    """Native batched forecast-proportions traversal.
+
+    Runs the `_reconcile_fcst_proportions` tree traversal for every
+    (sample, horizon) pair of `y_hat_samples` (`(n_samples, n_nodes, h)`) in
+    one C++ call, OpenMP-parallel across the independent pairs. The kernel
+    reproduces the reference's arithmetic exactly (NumPy's pairwise summation
+    for each parent's child sum, then the scalar multiply/divide chain), so
+    the output is bit-identical to running the pure-Python reference per
+    column.
+
+    The kernel computes in float64 only, so non-float64 input falls back to
+    the pure-Python reference, preserving the input dtype end-to-end.
+    """
+    parent_idx, child_indptr, child_idx = flat
+    if y_hat_samples.dtype != np.float64:
+        # The kernel accepts float64 only -- pybind11's `forcecast` would
+        # silently upcast e.g. float32 `y_hat` from direct TopDown/MiddleOut
+        # callers, changing both the arithmetic and the output dtype.
+        # `core.reconcile` coerces base forecasts to float64 upstream, so the
+        # main reconcile() path always takes the kernel; any other dtype runs
+        # the pure-Python reference below, which reproduces the pre-native
+        # behavior exactly in the input's native dtype. Presenting the flat
+        # parent list as a single level is equivalent to the reference's
+        # level-by-level traversal: parents are stored in traversal order, so
+        # every parent's reconciled value is written before it is read.
+        nodes_flat = {
+            "flat": {
+                int(p): child_idx[child_indptr[i] : child_indptr[i + 1]]
+                for i, p in enumerate(parent_idx)
+            }
+        }
+        tags_flat = {"flat": None, "leaves": None}
+        out = np.empty_like(y_hat_samples)
+        for s, y_hat_sample in enumerate(y_hat_samples):
+            out[s] = np.hstack(
+                [
+                    _reconcile_fcst_proportions(
+                        S=None,
+                        y_hat=y_hat_sample[:, [c]],
+                        tags=tags_flat,
+                        nodes=nodes_flat,
+                        idxs_top=idxs_top,
+                    )
+                    for c in range(y_hat_sample.shape[1])
+                ]
+            )
+        return out
+    return _lib_recon._forecast_proportions_traversal(
+        y_hat_samples,
+        parent_idx,
+        child_indptr,
+        child_idx,
+        np.ascontiguousarray(idxs_top, dtype=np.int64),
+    )
+
+
 def _reconcile_fcst_proportions(
     S: np.ndarray,
     y_hat: np.ndarray,
@@ -399,6 +487,13 @@ def _reconcile_fcst_proportions(
     nodes: dict[str, dict[int, np.ndarray]],
     idxs_top: np.ndarray,
 ):
+    """Pure-Python reference for the forecast-proportions traversal.
+
+    The runtime path is `_reconcile_fcst_proportions_native`; this
+    implementation is kept as the behavioral reference the regression tests
+    assert bit-identical equality against, and as the runtime fallback for
+    non-float64 input (the native kernel is float64-only).
+    """
     reconciled = np.zeros_like(y_hat)
     level_names = list(tags.keys())
     for idx_top in idxs_top:
@@ -431,12 +526,15 @@ def _reconcile_fcst_proportions_bootstrap(
     nodes: dict[str, dict[int, np.ndarray]] | None = None,
     idxs_top: np.ndarray | None = None,
     A: sparse.csr_matrix | None = None,
+    flat: tuple[np.ndarray, np.ndarray, np.ndarray] | None = None,
 ):
     """Generate prediction intervals for forecast_proportions using bootstrap.
 
     This function generates bootstrap samples by adding resampled residuals to
     the base forecasts, then reconciles each sample using forecast proportions.
-    Supports both dense and sparse summing matrices.
+    Supports both dense and sparse summing matrices. For dense `S`, all
+    samples are reconciled by a single call into the native batched traversal
+    kernel instead of re-running the Python traversal per sample and column.
 
     Args:
         S: Summing matrix of size (`base`, `bottom`). Can be dense or sparse.
@@ -450,6 +548,7 @@ def _reconcile_fcst_proportions_bootstrap(
         nodes: Child nodes structure from _get_child_nodes (required for dense S).
         idxs_top: Indices of top-level nodes (required for dense S).
         A: Adjacency matrix (required for sparse S).
+        flat: Optional precomputed `_flatten_child_nodes(nodes)` arrays.
 
     Returns:
         quantiles: Array of shape (`base`, `horizon`, `num_quantiles`).
@@ -469,38 +568,40 @@ def _reconcile_fcst_proportions_bootstrap(
 
     # Generate bootstrap samples
     samples_idx = rng.choice(sample_idx, size=num_samples)
-    bootstrap_samples = []
 
-    for idx in samples_idx:
-        # Add residual block to forecasts
-        y_hat_sample = y_hat + residuals[:, idx : (idx + h)]
-
-        if is_sparse:
+    if is_sparse:
+        bootstrap_samples = []
+        for idx in samples_idx:
+            # Add residual block to forecasts
+            y_hat_sample = y_hat + residuals[:, idx : (idx + h)]
             # Reconcile the bootstrap sample using sparse forecast proportions
-            reconciled_sample = _reconcile_fcst_proportions_sparse(
-                S=S,
-                y_hat=y_hat_sample,
-                A=A,
-                tags=tags,
+            bootstrap_samples.append(
+                _reconcile_fcst_proportions_sparse(
+                    S=S,
+                    y_hat=y_hat_sample,
+                    A=A,
+                    tags=tags,
+                )
             )
-        else:
-            # Reconcile the bootstrap sample using dense forecast proportions
-            reconciled_sample = np.hstack(
-                [
-                    _reconcile_fcst_proportions(
-                        S=S,
-                        y_hat=y_hat_sample_col[:, None],
-                        tags=tags,
-                        nodes=nodes, # type: ignore[arg-type]
-                        idxs_top=idxs_top,
-                    )
-                    for y_hat_sample_col in y_hat_sample.T
-                ]
-            )
-        bootstrap_samples.append(reconciled_sample)
-
-    # Stack samples: [num_samples, n_series, horizon]
-    samples = np.stack(bootstrap_samples)
+        # Stack samples: [num_samples, n_series, horizon]
+        samples = np.stack(bootstrap_samples)
+    else:
+        if flat is None:
+            flat = _flatten_child_nodes(nodes)  # type: ignore[arg-type]
+        # Materialize every bootstrap sample's base forecasts at once:
+        # samples[s] == y_hat + residuals[:, idx_s : idx_s + h], elementwise
+        # identical to the per-sample construction above.
+        block_cols = samples_idx[:, None] + np.arange(h)[None, :]
+        y_hat_samples = y_hat[None, :, :] + residuals.T[block_cols].transpose(
+            0, 2, 1
+        )
+        # Reconcile all samples and horizon columns in one native call:
+        # [num_samples, n_series, horizon].
+        samples = _reconcile_fcst_proportions_native(
+            y_hat_samples,
+            idxs_top=idxs_top,  # type: ignore[arg-type]
+            flat=flat,
+        )
     # Transpose to [n_series, horizon, num_samples]
     samples = samples.transpose((1, 2, 0))
 
@@ -742,17 +843,14 @@ class TopDown(HReconciler):
                 idxs_top = np.array([np.argmax(S_sum)])
             levels_ = dict(sorted(tags.items(), key=lambda x: len(x[1])))
             nodes = _get_child_nodes(S=S, tags=levels_)
-            reconciled = [
-                _reconcile_fcst_proportions(
-                    S=S,
-                    y_hat=y_hat_[:, None],
-                    tags=levels_,
-                    nodes=nodes,
-                    idxs_top=idxs_top,
-                )
-                for y_hat_ in y_hat.T
-            ]
-            reconciled = np.hstack(reconciled)
+            flat = _flatten_child_nodes(nodes)
+            # Reconcile every horizon column in a single native traversal
+            # call (bit-identical to the per-column pure-Python reference).
+            reconciled = _reconcile_fcst_proportions_native(
+                y_hat[None, :, :],
+                idxs_top=idxs_top,
+                flat=flat,
+            )[0].astype(y_hat.dtype, copy=False)
             res = {"mean": reconciled}
 
             # Compute prediction intervals using bootstrap if requested
@@ -782,6 +880,7 @@ class TopDown(HReconciler):
                     level=level,
                     nodes=nodes,
                     idxs_top=idxs_top,
+                    flat=flat,
                 )
             return res
         else:
