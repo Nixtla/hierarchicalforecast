@@ -14,7 +14,7 @@ from scipy import sparse
 from hierarchicalforecast.utils import (
     _construct_adjacency_matrix,
     _is_strictly_hierarchical,
-    _lasso,
+    _lasso_kron,
     _ma_cov,
     _shrunk_covariance_schaferstrimmer_no_nans,
     _shrunk_covariance_schaferstrimmer_with_nans,
@@ -2041,6 +2041,11 @@ class ERM(HReconciler):
         y_insample: np.ndarray,
         y_hat_insample: np.ndarray,
     ):
+        if sparse.issparse(S):
+            # S is the small Kronecker factor (n_hiers, n_bottom); every ERM
+            # variant needs it dense, so densify it here. The insample
+            # matrices dominate memory, not S.
+            S = S.toarray()
         n_hiers, n_bottom = S.shape
         # y_hat_insample shape (n_hiers, obs)
         if y_insample is None or y_hat_insample is None:
@@ -2071,28 +2076,43 @@ class ERM(HReconciler):
             P = np.linalg.pinv(y_hat_insample.T) @ B
             P = P.T
         elif self.method == "reg":
-            X = np.kron(S, y_hat_insample.T)
+            # The Lasso design matrix X = np.kron(S, y_hat_insample.T) has
+            # shape (n_hiers * h, n_bottom * n_hiers), i.e.
+            # O(n_hiers^2 * n_bottom * h) memory, which OOMs for a few
+            # thousand series. `_lasso_kron` runs the same cyclic coordinate
+            # descent directly on the Kronecker factors S and Y, so X is
+            # never materialized. Column j = j1 * n_hiers + j2 of X equals
+            # np.kron(S[:, j1], Y[:, j2]).
+            Y = y_hat_insample.T
             z = y_insample.reshape(-1)
 
             if self.lambda_reg is None:
-                lambda_reg = np.max(np.abs(X.T.dot(z)))
+                # max |X.T @ z|: (X.T @ z)[j1 * n_hiers + j2]
+                # = S[:, j1] @ y_insample @ Y[:, j2]
+                lambda_reg = np.max(np.abs(S.T @ y_insample @ Y))
             else:
                 lambda_reg = self.lambda_reg
 
-            beta = _lasso(X, z, lambda_reg, max_iters=1000, tol=1e-4)
+            beta = _lasso_kron(S, Y, z, lambda_reg, max_iters=1000, tol=1e-4)
             P = beta.reshape(S.shape).T
         elif self.method == "reg_bu":
-            X = np.kron(S, y_hat_insample.T)
+            Y = y_hat_insample.T
             Pbu = np.zeros_like(S)
             Pbu[idx_bottom] = S[idx_bottom]
-            z = y_insample.reshape(-1) - X @ Pbu.reshape(-1)
+            # X @ Pbu.reshape(-1) with X = np.kron(S, Y): grouping the flat
+            # index as j = j1 * n_hiers + j2 gives V[j1, j2] = Pbu.flat[j]
+            # and (X @ Pbu.reshape(-1)).reshape(n_hiers, h) = S @ V @ Y.T,
+            # with Y.T = y_hat_insample.
+            V = Pbu.reshape(n_bottom, n_hiers)
+            z = (y_insample - S @ V @ y_hat_insample).reshape(-1)
 
             if self.lambda_reg is None:
-                lambda_reg = np.max(np.abs(X.T.dot(z)))
+                # max |X.T @ z| via the Kronecker factors (see `reg` above)
+                lambda_reg = np.max(np.abs(S.T @ z.reshape(n_hiers, -1) @ Y))
             else:
                 lambda_reg = self.lambda_reg
 
-            beta = _lasso(X, z, lambda_reg, max_iters=1000, tol=1e-4)
+            beta = _lasso_kron(S, Y, z, lambda_reg, max_iters=1000, tol=1e-4)
             P = beta + Pbu.reshape(-1)
             P = P.reshape(S.shape).T
         else:
