@@ -362,8 +362,13 @@ VectorXd lasso(const Eigen::Ref<const MatrixXd> &X,
 }
 
 // ---------- Module init ----------
+// Defined in forecast_proportions.cpp (kept in its own translation unit so
+// its strict floating-point pragmas don't affect the kernels in this file).
+void init_forecast_proportions(py::module_ &recon);
+
 void init(py::module_ &m) {
   py::module_ recon = m.def_submodule("reconciliation");
+  init_forecast_proportions(recon);
   recon.def("get_num_threads", &get_num_threads,
             "Return the maximum number of OpenMP threads.");
   recon.def("set_num_threads", &set_num_threads, py::arg("n"),
