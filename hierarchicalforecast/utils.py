@@ -1034,6 +1034,34 @@ def _lasso(
     return _lib_recon._lasso(np.asfortranarray(X), y, lambda_reg, max_iters, tol)
 
 
+# Matrix-free Lasso for X = np.kron(S, Y)
+def _lasso_kron(
+    S: np.ndarray,
+    Y: np.ndarray,
+    y: np.ndarray,
+    lambda_reg: float,
+    max_iters: int = 1_000,
+    tol: float = 1e-4,
+):
+    """Matrix-free Lasso cyclic coordinate descent for X = np.kron(S, Y).
+
+    :meta private:
+    """
+    # Unlike `_lasso` above, which relies on pybind11's implicit copy to
+    # coerce its input, the dtype/order coercion here is explicit: S and Y
+    # are the small Kronecker factors, so casting them up front is cheap and
+    # gives a clear error if a sparse S slips through instead of a mismatched
+    # pybind11 overload error.
+    return _lib_recon._lasso_kron(
+        np.asfortranarray(S, dtype=np.float64),
+        np.asfortranarray(Y, dtype=np.float64),
+        np.ascontiguousarray(y, dtype=np.float64),
+        lambda_reg,
+        max_iters,
+        tol,
+    )
+
+
 class SMatrix:
     """Lightweight wrapper around a scipy.sparse summing matrix with labels.
 

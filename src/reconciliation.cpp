@@ -1,6 +1,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include <Eigen/Dense>
 #include <pybind11/eigen.h>
@@ -361,6 +364,119 @@ VectorXd lasso(const Eigen::Ref<const MatrixXd> &X,
   return beta;
 }
 
+// ---------- _lasso_kron ----------
+// Matrix-free Lasso cyclic coordinate descent for X = np.kron(S, Y).
+// Numerically equivalent to lasso(np.kron(S, Y), y, ...) without ever
+// materializing X, which has shape (S.rows()*Y.rows(), S.cols()*Y.cols())
+// and therefore O(n_hiers^2 * n_bottom * h) memory.
+//
+// np.kron layout: X[i1*h + i2, j1*n_y + j2] = S(i1, j1) * Y(i2, j2), so
+// column j = j1*n_y + j2 of X equals kron(S.col(j1), Y.col(j2)). Every
+// quantity the dense kernel needs factors through S and Y:
+//   X.col(j).squaredNorm() = ||S.col(j1)||^2 * ||Y.col(j2)||^2
+//   X.col(j).dot(r)        = sum_i1 S(i1,j1) * Y.col(j2).dot(r.segment(i1*h, h))
+//   r += a * X.col(j)      -> r.segment(i1*h, h) += a * S(i1,j1) * Y.col(j2)
+// Zero entries of S.col(j1) (summing matrices are mostly zeros) contribute
+// exactly zero to the sums above and are skipped, so each coordinate update
+// costs O(nnz(S.col(j1)) * h) instead of O(n_hiers * h).
+//
+// Iteration order, convergence criterion, soft-threshold formula and the
+// column-norm skip guard mirror lasso() exactly; only the summations are
+// reassociated, so results match the dense kernel to floating-point
+// round-off (see tests/test_methods.py equivalence tests).
+// S: (n_hiers, n_bottom) column-major float64
+// Y: (h, n_hiers) column-major float64 (y_hat_insample transposed)
+// y: (n_hiers * h,) float64 target
+// Returns: (n_bottom * n_hiers,) float64 beta coefficients
+VectorXd lasso_kron(const Eigen::Ref<const MatrixXd> &S,
+                    const Eigen::Ref<const MatrixXd> &Y,
+                    const Eigen::Ref<const VectorXd> &y, double lambda_reg,
+                    int64_t max_iters, double tol) {
+  const Eigen::Index n_rows_s = S.rows();
+  const Eigen::Index n_cols_s = S.cols();
+  const Eigen::Index h = Y.rows();
+  const Eigen::Index n_cols_y = Y.cols();
+  const Eigen::Index n = n_rows_s * h;         // rows of the implicit X
+  const Eigen::Index feats = n_cols_s * n_cols_y; // cols of the implicit X
+
+  if (n_rows_s != n_cols_y) {
+    throw std::invalid_argument("S.rows() must equal Y.cols()");
+  }
+  if (y.size() != n) {
+    throw std::invalid_argument(
+        "y must have S.rows() * Y.rows() elements to match kron(S, Y)");
+  }
+
+  // Sparsity pattern of each S column: summing matrices are 0/1 with
+  // O(depth) nonzeros per column, so this collapses the per-coordinate
+  // cost from O(n_hiers * h) to O(depth * h).
+  std::vector<std::vector<std::pair<Eigen::Index, double>>> s_nonzeros(
+      n_cols_s);
+  for (Eigen::Index j1 = 0; j1 < n_cols_s; ++j1) {
+    for (Eigen::Index i1 = 0; i1 < n_rows_s; ++i1) {
+      const double v = S(i1, j1);
+      if (v != 0.0) {
+        s_nonzeros[j1].emplace_back(i1, v);
+      }
+    }
+  }
+
+  // Column norms of the implicit X factor through the Kronecker product.
+  const VectorXd s_norms = S.colwise().squaredNorm();
+  const VectorXd y_norms = Y.colwise().squaredNorm();
+
+  VectorXd beta = VectorXd::Zero(feats);
+  VectorXd beta_changes = VectorXd::Zero(feats);
+  VectorXd residuals = y; // copy
+
+  for (int64_t it = 0; it < max_iters; ++it) {
+    for (Eigen::Index j1 = 0; j1 < n_cols_s; ++j1) {
+      const auto &nz = s_nonzeros[j1];
+      const double s_norm_j1 = s_norms(j1);
+      for (Eigen::Index j2 = 0; j2 < n_cols_y; ++j2) {
+        // Same coordinate order as the dense kernel: i = j1 * n_cols_y + j2
+        const Eigen::Index i = j1 * n_cols_y + j2;
+        // Product of the two factor norms vs. the dense kernel's single
+        // reduction over the materialized column: can differ by ~1 ulp right
+        // at the 1e-8 boundary. Accepted, same reassociation class documented
+        // in the function comment above.
+        const double norms_i = s_norm_j1 * y_norms(j2);
+        if (norms_i < 1e-8)
+          continue;
+
+        const double inv_norms_i = 1.0 / norms_i;
+
+        // X.col(i).dot(residuals) via the Kronecker factors
+        double dot = 0.0;
+        for (const auto &[i1, s_val] : nz) {
+          dot += s_val * Y.col(j2).dot(residuals.segment(i1 * h, h));
+        }
+        const double rho = beta(i) + dot * inv_norms_i;
+
+        // Soft threshold (identical to lasso())
+        const double threshold = lambda_reg * n * inv_norms_i;
+        const double sign_rho = (rho > 0.0) ? 1.0 : ((rho < 0.0) ? -1.0 : 0.0);
+        const double beta_i_next =
+            sign_rho * std::max(std::abs(rho) - threshold, 0.0);
+        const double beta_delta = beta(i) - beta_i_next;
+        beta_changes(i) = std::abs(beta_delta);
+
+        if (beta_delta != 0.0) {
+          // residuals += beta_delta * X.col(i) via the Kronecker factors
+          for (const auto &[i1, s_val] : nz) {
+            residuals.segment(i1 * h, h).noalias() +=
+                (beta_delta * s_val) * Y.col(j2);
+          }
+          beta(i) = beta_i_next;
+        }
+      }
+    }
+    if (beta_changes.maxCoeff() < tol)
+      break;
+  }
+  return beta;
+}
+
 // ---------- Module init ----------
 void init(py::module_ &m) {
   py::module_ recon = m.def_submodule("reconciliation");
@@ -377,6 +493,9 @@ void init(py::module_ &m) {
             py::call_guard<py::gil_scoped_release>());
   recon.def("_lasso", &lasso, py::arg("X"), py::arg("y"),
             py::arg("lambda_reg"), py::arg("max_iters") = 1000,
+            py::arg("tol") = 1e-4, py::call_guard<py::gil_scoped_release>());
+  recon.def("_lasso_kron", &lasso_kron, py::arg("S"), py::arg("Y"),
+            py::arg("y"), py::arg("lambda_reg"), py::arg("max_iters") = 1000,
             py::arg("tol") = 1e-4, py::call_guard<py::gil_scoped_release>());
 }
 
