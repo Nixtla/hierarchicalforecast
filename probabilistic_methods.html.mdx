@@ -203,16 +203,6 @@ Name | Type | Description
 ---- | ---- | -----------
 `samples` |  | Coherent samples of size (`base`, `horizon`, `num_samples`).
 
-<details class="note" open markdown="1">
-<summary>Note</summary>
-
-When `S` and/or `P` are sparse, `SP = S @ P` stays sparse and the
-reconciliation matmul is a sparse-dense product; `SP` is never
-densified, so memory stays proportional to `S`/`P`'s nonzeros
-instead of `base x base`.
-
-</details>
-
 
 ## 3. PERMBU
 
