@@ -396,35 +396,33 @@ class HierarchicalReconciliation:
         # Assert S is an identity matrix at the bottom
         S_nw_cols.remove(id_col)
         if not skip_identity_check:
-            # Check if S_nw is backed by a sparse pandas DataFrame (check value columns only)
-            S_bottom_nw = S_nw[S_nw_cols][-len(S_nw_cols) :]
+            n = len(S_nw_cols)
+            # Slice rows first so only the n x n bottom block is materialised.
+            S_bottom_nw = S_nw[-n:][S_nw_cols]
             S_bottom = S_bottom_nw.to_native()
             is_sparse_df = hasattr(S_bottom, "sparse") and hasattr(S_bottom, "dtypes") and all(
                 str(dtype).startswith("Sparse") for dtype in S_bottom.dtypes
             )
             if is_sparse_df:
-                # Sparse-aware identity check: verify diagonal is 1 and off-diagonal is 0
-                # by checking nnz equals n and all non-zero values are 1
+                # Sparse-aware identity check: verify diagonal is 1 and off-diagonal is 0.
                 S_bottom_coo = S_bottom.sparse.to_coo()
-                n = S_bottom_coo.shape[0]
                 is_identity = (
                     S_bottom_coo.shape[0] == S_bottom_coo.shape[1]
                     and S_bottom_coo.nnz == n
                     and np.allclose(S_bottom_coo.data, 1.0)
-                    and np.array_equal(S_bottom_coo.row, S_bottom_coo.col)  # diagonal only
+                    and np.array_equal(S_bottom_coo.row, S_bottom_coo.col)
                 )
-                if not is_identity:
-                    raise ValueError(
-                        f"The bottom {n}x{n} part of S must be an identity matrix."
-                    )
             else:
-                # Dense path (original)
-                if not np.allclose(
-                    S_bottom_nw, np.eye(len(S_nw_cols))
-                ):
-                    raise ValueError(
-                        f"The bottom {S_nw.shape[1]}x{S_nw.shape[1]} part of S must be an identity matrix."
-                    )
+                B = S_bottom_nw.to_numpy()
+                is_identity = (
+                    B.shape == (n, n)
+                    and np.count_nonzero(B) == n
+                    and np.all(np.diagonal(B) == 1.0)
+                )
+            if not is_identity:
+                raise ValueError(
+                    f"The bottom {n}x{n} part of S must be an identity matrix."
+                )
 
         # Check Y_hat_df\S_df series difference
         # TODO: this logic should be method specific
@@ -552,7 +550,6 @@ class HierarchicalReconciliation:
             temporal (bool, optional): if True, perform temporal reconciliation. Default is False.
             diagnostics (bool, optional): if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False.
             diagnostics_atol (float, optional): absolute tolerance for numerical coherence check. Default is 1e-6.
-
         Returns:
             (FrameT): DataFrame, with reconciled predictions.
 
@@ -569,7 +566,6 @@ class HierarchicalReconciliation:
         Y_hat_nw = nw.from_native(Y_hat_df)
         # Accept SMatrix or DataFrame for S_df
         self._s_matrix = None
-        skip_identity_check = False
         if isinstance(S_df, SMatrix):
             self._s_matrix = S_df
             # Validate identity property on sparse data (avoids dense allocation)
@@ -578,7 +574,6 @@ class HierarchicalReconciliation:
                 raise ValueError(
                     f"The bottom {n_bottom}x{n_bottom} part of S must be an identity matrix."
                 )
-            skip_identity_check = True
             # Build lightweight id-only frame for _prepare_fit (avoids dense materialisation)
             S_nw = nw.from_dict(
                 {S_df.id_col: S_df.row_labels}, backend=S_df.backend
@@ -604,7 +599,7 @@ class HierarchicalReconciliation:
             target_col=target_col,
             id_time_col=id_time_col,
             temporal=temporal,
-            skip_identity_check=skip_identity_check,
+            skip_identity_check=self._s_matrix is not None,
         )
 
         # Initialize reconciler arguments

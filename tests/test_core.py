@@ -1191,3 +1191,58 @@ def test_smatrix_check_bottom_identity_rejects_bad_matrix():
             S_df=smat,
             tags={"top": np.array(["top"]), "mid": np.array(["mid"]), "bottom": np.array(["a", "b", "c"])},
         )
+
+
+def test_reconcile_rejects_bad_dense_bottom_identity_block():
+    """A malformed dense summing matrix is never accepted."""
+    S_df = pd.DataFrame(
+        {
+            "unique_id": ["top", "mid", "a", "b", "c"],
+            "a": [1.0, 1.0, 0.0, 0.0, 0.0],
+            "b": [1.0, 1.0, 1.0, 1.0, 0.0],
+            "c": [1.0, 0.0, 0.0, 0.0, 1.0],
+        }
+    )
+    Y_hat_df = pd.DataFrame(
+        {
+            "unique_id": ["top", "mid", "a", "b", "c"],
+            "ds": [1, 1, 1, 1, 1],
+            "model": [6.0, 3.0, 1.0, 2.0, 3.0],
+        }
+    )
+    tags = {
+        "top": np.array(["top"]),
+        "mid": np.array(["mid"]),
+        "bottom": np.array(["a", "b", "c"]),
+    }
+
+    hrec = HierarchicalReconciliation([BottomUp()])
+    with pytest.raises(ValueError, match="identity matrix"):
+        hrec.reconcile(Y_hat_df=Y_hat_df, S_df=S_df, tags=tags)
+
+def test_aggregate_marks_sparse_summing_matrix_as_verified(tourism_df, hiers_strictly):
+    """Sparse summing matrices created by aggregate need no identity recheck."""
+    _, S_df, _ = aggregate(tourism_df, hiers_strictly, sparse_s=True)
+
+    assert S_df._bottom_identity_verified
+
+
+def test_smatrix_caches_successful_bottom_identity_check():
+    """A manually created valid SMatrix validates once and caches the result."""
+    from scipy import sparse as sp
+
+    from hierarchicalforecast.utils import SMatrix
+
+    smat = SMatrix(
+        sparse_matrix=sp.eye(3, format="csc"),
+        row_labels=np.array(["a", "b", "c"]),
+        col_labels=np.array(["a", "b", "c"]),
+    )
+
+    assert not smat._bottom_identity_verified
+    assert smat.check_bottom_identity()
+    assert smat._bottom_identity_verified
+    assert smat.check_bottom_identity()
+
+    smat.clear_cache()
+    assert not smat._bottom_identity_verified
