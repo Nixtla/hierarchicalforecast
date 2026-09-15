@@ -1375,8 +1375,8 @@ def test_reconcile_checks_bottom_identity_of_sparse_pandas_summing_matrix(fill_v
         )
 
 
-def test_smatrix_revalidates_bottom_identity_after_clear_cache():
-    """clear_cache() forces revalidation of a matrix mutated through to_sparse()."""
+def test_smatrix_revalidates_bottom_identity_after_sparse_matrix_is_exposed():
+    """An exposed mutable sparse matrix disables identity-result caching."""
     from scipy import sparse as sp
 
     from hierarchicalforecast.utils import SMatrix
@@ -1388,11 +1388,12 @@ def test_smatrix_revalidates_bottom_identity_after_clear_cache():
     )
     assert smat.check_bottom_identity()
 
-    # to_sparse() is zero-copy, so this corrupts the already verified matrix.
-    smat.to_sparse().data[0] = 0.0
-
-    # Documented trade-off: the cached verification is trusted until cleared.
+    # Keep the zero-copy reference across checks to ensure later mutations are
+    # visible even if the matrix was valid during an intervening check.
+    sparse_matrix = smat.to_sparse()
     assert smat.check_bottom_identity()
+    assert not smat._bottom_identity_verified
 
-    smat.clear_cache()
+    sparse_matrix.data[0] = 0.0
+
     assert not smat.check_bottom_identity()

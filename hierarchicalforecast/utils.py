@@ -1095,6 +1095,7 @@ class SMatrix:
         self.backend = backend
         self._col_index = {name: i for i, name in enumerate(col_labels)}
         self._bottom_identity_verified = False
+        self._bottom_identity_cacheable = True
         # Lazily cached representations
         self._dense: np.ndarray | None = None
         self._csr: sparse.csr_matrix | None = None
@@ -1110,11 +1111,12 @@ class SMatrix:
         Uses sparse operations to avoid dense allocations. Successful checks
         are cached, and matrices built by `aggregate` are trusted by
         construction, because an ``SMatrix`` is commonly reused across calls
-        to `HierarchicalReconciliation.reconcile`. Call :meth:`clear_cache`
-        after mutating the matrix returned by :meth:`to_sparse` to force a
-        revalidation.
+        to `HierarchicalReconciliation.reconcile`. Once :meth:`to_sparse`
+        exposes the mutable backing matrix, caching is disabled and every call
+        revalidates the bottom block.
         """
-        if self._bottom_identity_verified:
+        cacheable = getattr(self, "_bottom_identity_cacheable", True)
+        if cacheable and getattr(self, "_bottom_identity_verified", False):
             return True
 
         n_bottom = self._sparse.shape[1]
@@ -1126,7 +1128,7 @@ class SMatrix:
             and np.allclose(bottom_coo.data, 1.0)
             and np.array_equal(bottom_coo.row, bottom_coo.col)
         )
-        self._bottom_identity_verified = is_identity
+        self._bottom_identity_verified = is_identity if cacheable else False
         return is_identity
 
     def clear_cache(self) -> None:
@@ -1134,8 +1136,8 @@ class SMatrix:
 
         Call this after reconciliation to free memory when the
         ``SMatrix`` is long-lived but cached representations are no
-        longer needed. Call it after mutating the zero-copy matrix returned
-        by :meth:`to_sparse` so its bottom identity is validated again.
+        longer needed. This does not re-enable identity caching after the
+        mutable matrix returned by :meth:`to_sparse` has been exposed.
         """
         self._dense = None
         self._csr = None
@@ -1145,10 +1147,13 @@ class SMatrix:
     def to_sparse(self) -> sparse.csc_matrix:
         """Return the underlying sparse matrix (zero-copy).
 
-        Mutating the returned matrix invalidates every cached representation,
-        including the cached bottom identity verification. Call
-        :meth:`clear_cache` afterwards so the next reconciliation revalidates.
+        Because the returned matrix is mutable, calling this method permanently
+        disables bottom-identity caching for this ``SMatrix``. Subsequent
+        reconciliations revalidate the bottom block, including mutations made
+        through references retained by the caller.
         """
+        self._bottom_identity_verified = False
+        self._bottom_identity_cacheable = False
         return self._sparse
 
     def to_csr(self) -> sparse.csr_matrix:
