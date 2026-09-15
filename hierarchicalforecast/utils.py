@@ -71,6 +71,27 @@ class CodeTimer:
             )
 
 
+def _is_bottom_identity(B: np.ndarray, n: int) -> bool:
+    """Check that the bottom block of a dense summing matrix is an identity matrix.
+
+    Args:
+        B (np.ndarray): Bottom block of a summing matrix S.
+        n (int): Number of bottom-level series.
+
+    Returns:
+        (bool): True if `B` is an `n` x `n` identity matrix.
+    """
+    if B.shape != (n, n):
+        return False
+    # Fast path: `aggregate` emits an exact 0/1 matrix, so this settles the
+    # common case without allocating the n x n temporaries `np.allclose` needs.
+    if np.count_nonzero(B) == n and np.all(np.diagonal(B) == 1.0):
+        return True
+    # Fall back to a tolerant comparison, so summing matrices built by the user
+    # that carry floating point noise stay acceptable.
+    return bool(np.allclose(B, np.eye(n)))
+
+
 def _construct_adjacency_matrix(
     S: sparse.csr_matrix, tags: dict[str, np.ndarray]
 ) -> sparse.csr_matrix:
@@ -355,8 +376,10 @@ def aggregate(
             col_labels=np.asarray(list(bottom_levels)),
             id_col=_id_col,
             backend=backend,
-            _bottom_identity_verified=True,
         )
+        # Built by one-hot encoding the bottom level, so the bottom block is an
+        # identity matrix by construction and needs no further validation.
+        S_df._bottom_identity_verified = True
 
     return Y_df, S_df, tags
 
@@ -1064,7 +1087,6 @@ class SMatrix:
         col_labels: np.ndarray,
         id_col: str = "unique_id",
         backend: Any = "pandas",
-        _bottom_identity_verified: bool = False,
     ):
         self._sparse = sparse.csc_matrix(sparse_matrix)
         self.row_labels = np.asarray(row_labels)
@@ -1072,7 +1094,7 @@ class SMatrix:
         self.id_col = id_col
         self.backend = backend
         self._col_index = {name: i for i, name in enumerate(col_labels)}
-        self._bottom_identity_verified = _bottom_identity_verified
+        self._bottom_identity_verified = False
         # Lazily cached representations
         self._dense: np.ndarray | None = None
         self._csr: sparse.csr_matrix | None = None
@@ -1086,8 +1108,11 @@ class SMatrix:
         """Check that the bottom n_bottom x n_bottom block of S is an identity matrix.
 
         Uses sparse operations to avoid dense allocations. Successful checks
-        are cached because ``SMatrix`` is commonly reused across calls to
-        :meth:`HierarchicalReconciliation.reconcile`.
+        are cached, and matrices built by `aggregate` are trusted by
+        construction, because an ``SMatrix`` is commonly reused across calls
+        to `HierarchicalReconciliation.reconcile`. Call :meth:`clear_cache`
+        after mutating the matrix returned by :meth:`to_sparse` to force a
+        revalidation.
         """
         if self._bottom_identity_verified:
             return True
@@ -1118,7 +1143,12 @@ class SMatrix:
         self._bottom_identity_verified = False
 
     def to_sparse(self) -> sparse.csc_matrix:
-        """Return the underlying sparse matrix (zero-copy)."""
+        """Return the underlying sparse matrix (zero-copy).
+
+        Mutating the returned matrix invalidates every cached representation,
+        including the cached bottom identity verification. Call
+        :meth:`clear_cache` afterwards so the next reconciliation revalidates.
+        """
         return self._sparse
 
     def to_csr(self) -> sparse.csr_matrix:

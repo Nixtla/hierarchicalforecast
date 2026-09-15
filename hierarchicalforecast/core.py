@@ -16,6 +16,7 @@ from .methods import HReconciler
 from .utils import (
     SMatrix,
     _construct_adjacency_matrix,
+    _is_bottom_identity,
     _is_strictly_hierarchical,
     is_strictly_hierarchical,
 )
@@ -400,8 +401,14 @@ class HierarchicalReconciliation:
             # Slice rows first so only the n x n bottom block is materialised.
             S_bottom_nw = S_nw[-n:][S_nw_cols]
             S_bottom = S_bottom_nw.to_native()
-            is_sparse_df = hasattr(S_bottom, "sparse") and hasattr(S_bottom, "dtypes") and all(
-                str(dtype).startswith("Sparse") for dtype in S_bottom.dtypes
+            is_sparse_df = (
+                hasattr(S_bottom, "sparse")
+                and hasattr(S_bottom, "dtypes")
+                and all(str(dtype).startswith("Sparse") for dtype in S_bottom.dtypes)
+                # Only a zero fill value can be converted to COO. Any other fill
+                # value falls through to the dense path, which reads the same
+                # values, rather than raising from `.sparse.to_coo()`.
+                and all(dtype.fill_value == 0 for dtype in S_bottom.dtypes)
             )
             if is_sparse_df:
                 # Sparse-aware identity check: verify diagonal is 1 and off-diagonal is 0.
@@ -413,12 +420,7 @@ class HierarchicalReconciliation:
                     and np.array_equal(S_bottom_coo.row, S_bottom_coo.col)
                 )
             else:
-                B = S_bottom_nw.to_numpy()
-                is_identity = (
-                    B.shape == (n, n)
-                    and np.count_nonzero(B) == n
-                    and np.all(np.diagonal(B) == 1.0)
-                )
+                is_identity = _is_bottom_identity(S_bottom_nw.to_numpy(), n)
             if not is_identity:
                 raise ValueError(
                     f"The bottom {n}x{n} part of S must be an identity matrix."
@@ -550,6 +552,7 @@ class HierarchicalReconciliation:
             temporal (bool, optional): if True, perform temporal reconciliation. Default is False.
             diagnostics (bool, optional): if True, compute coherence diagnostics and store in `self.diagnostics`. Default is False.
             diagnostics_atol (float, optional): absolute tolerance for numerical coherence check. Default is 1e-6.
+
         Returns:
             (FrameT): DataFrame, with reconciled predictions.
 
