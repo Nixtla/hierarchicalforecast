@@ -128,9 +128,13 @@ hrec = HierarchicalReconciliation(reconcilers=[MinTraceSparse(method='ols')])
 Y_rec_df = hrec.reconcile(Y_hat_df=Y_hat_df, S_df=S_df, tags=tags)
 ```
 
+For the best performance, pass the returned `SMatrix` directly to
+`reconcile()`. The library knows that matrices created by `aggregate()`
+are valid, so repeated reconciliation calls avoid unnecessary checks.
+
 **When to use**: Always beneficial for large hierarchies (thousands of
 bottom-level series). For small hierarchies the overhead is negligible
-either way, so `sparse_s=True` is a safe default.
+either way, so `sparse_s=True` is a safe explicit choice.
 
 ### Tip 3: Set `is_balanced=True`
 
