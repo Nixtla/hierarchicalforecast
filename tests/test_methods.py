@@ -415,6 +415,27 @@ def test_min_trace_mint_cov_error(hierarchical_data, nonnegative):
         )
 
 
+def test_min_trace_wls_var_with_nan_residuals():
+    """wls_var averages each series' squared residuals over its non-nan values."""
+    rng = np.random.default_rng(0)
+    S = np.array([[1.0, 1.0], [1.0, 0.0], [0.0, 1.0]])
+    y_insample = S @ rng.normal(10.0, 1.0, (2, 40))
+    y_hat_insample = y_insample + rng.normal(0.0, [[2.0], [1.0], [1.0]], (3, 40))
+    # the second series has no insample fitted values for the first half
+    y_hat_insample[1, :20] = np.nan
+
+    _, W = MinTrace(method="wls_var")._get_PW_matrices(
+        S=S,
+        y_hat=y_hat_insample[:, -2:],
+        y_insample=y_insample,
+        y_hat_insample=y_hat_insample,
+    )
+
+    residuals = y_insample - y_hat_insample
+    expected = np.nanmean(residuals**2, axis=1) + 2e-8
+    np.testing.assert_allclose(np.diag(W), expected)
+
+
 def test_min_trace_shrink_covariance_stress(hierarchical_data):
     """Test MinTrace-shr covariance with different length data."""
     data = hierarchical_data
