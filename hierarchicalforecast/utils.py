@@ -752,7 +752,7 @@ class HierarchicalPlot:
         cols_wo_levels = [
             col for col in cols if ("-lo-" not in col and "-hi-" not in col)
         ]
-        cmap = plt.cm.get_cmap("tab10", 10)
+        cmap = plt.get_cmap("tab10", 10)
         cmap = [cmap(i) for i in range(10)][: len(cols_wo_levels)]
         cmap_dict = dict(zip(cols_wo_levels, cmap, strict=False))
         for idx, series in enumerate(linked_series):
