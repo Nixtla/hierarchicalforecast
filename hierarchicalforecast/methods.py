@@ -1369,10 +1369,11 @@ class MinTrace(HReconciler):
                 )
 
             if self.method == "wls_var":
-                Wdiag = (
-                    np.nansum(residuals**2, axis=0, dtype=np.float64)
-                    / residuals.shape[0]
-                )
+                # Average over the available (non-nan) residuals of each series
+                n_obs = np.sum(~np.isnan(residuals), axis=0)
+                Wdiag = np.nansum(
+                    residuals**2, axis=0, dtype=np.float64
+                ) / np.maximum(n_obs, 1)
                 Wdiag += np.full(n_hiers, 2e-8, dtype=np.float64)
                 W = np.diag(Wdiag)
                 UtW = Ut * Wdiag
