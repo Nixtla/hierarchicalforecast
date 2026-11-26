@@ -7,6 +7,7 @@ from utilsforecast.data import generate_series as util_generate_series
 
 from hierarchicalforecast.utils import (
     CodeTimer,
+    HierarchicalPlot,
     _ma_cov,
     _shrunk_covariance_schaferstrimmer_no_nans,
     _shrunk_covariance_schaferstrimmer_with_nans,
@@ -43,6 +44,13 @@ def df_pl(df):
 def spec():
     spec = [['country'], ['country', 'cat1'], ['country', 'cat1', 'cat2']]
     return spec
+
+def test_plot_hierarchically_linked_series(df, spec):
+    Y_df, S_df, tags = aggregate(df, spec)
+    fig = HierarchicalPlot(S=S_df, tags=tags).plot_hierarchically_linked_series(
+        bottom_series="COUNTRY/a/1", Y_df=Y_df
+    )
+    assert len(fig.axes) == 3
 
 # simple case
 def test_simple_case(df, spec):
