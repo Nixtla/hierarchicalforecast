@@ -319,9 +319,22 @@ class HierarchicalReconciliation:
                 )
 
         # Check if Y_hat_df has the right shape
-        if len(Y_hat_nw.group_by(id_col).agg(nw.len()).unique(subset="len")) != 1:
+        forecast_counts = Y_hat_nw.group_by(id_col).agg(nw.len())
+        if len(forecast_counts.unique(subset="len")) != 1:
             raise ValueError(
                 "Check `Y_hat_df`, there are missing timestamps. All series should have the same number of predictions."
+            )
+
+        # Equal row counts alone do not guarantee alignment when reshaping forecasts.
+        # Temporal reconciliation aligns temporal_ids rather than shared timestamps.
+        if not temporal and (
+            Y_hat_nw[time_col].n_unique() != forecast_counts["len"][0]
+            or Y_hat_nw.select(id_col, time_col).unique()[id_col].len()
+            != Y_hat_nw[id_col].len()
+        ):
+            raise ValueError(
+                "Check `Y_hat_df`, all series must have the same timestamps "
+                "with no duplicate (id, time) pairs."
             )
 
         # -------------------------------- Match Y_hat/Y/S index order --------------------------------#
