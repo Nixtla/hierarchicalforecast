@@ -904,6 +904,33 @@ def test_coherent_samples_shape(samplers):
     assert bootstrap_samples.shape == permbu_samples.shape
 
 
+@pytest.mark.parametrize("direction, expected_var", [(1.0, 9.0), (-1.0, 1.0)])
+def test_permbu_restores_residual_dependence(direction, expected_var):
+    """PERMBU reorders the bottom samples with the ranks of the residuals.
+
+    With comonotonic (or countermonotonic) residuals, the children samples get
+    perfectly dependent, so for N(0, 1) and N(0, 2^2) marginals the total has
+    variance (1 + 2)^2 = 9 (or (2 - 1)^2 = 1), not the 1 + 4 = 5 of independent
+    children.
+    """
+    S = np.array([[1.0, 1.0], [1.0, 0.0], [0.0, 1.0]])
+    tags = {"total": np.array([0]), "bottom": np.array([1, 2])}
+    num_samples = 2_000
+    res = np.random.default_rng(0).normal(size=num_samples)
+    residuals = np.vstack([(1 + direction) * res, res, direction * res])
+    sampler = PERMBU(
+        S=S,
+        tags=tags,
+        y_hat=np.zeros((3, 1)),
+        y_insample=residuals,
+        y_hat_insample=np.zeros_like(residuals),
+        sigmah=np.array([[3.0], [1.0], [2.0]]),
+        num_samples=num_samples,
+    )
+    samples = sampler.get_samples(num_samples=num_samples)
+    np.testing.assert_allclose(samples[0, 0].var(), expected_var, rtol=0.1)
+
+
 class TestConformal:
     """Tests for Conformal class."""
 
