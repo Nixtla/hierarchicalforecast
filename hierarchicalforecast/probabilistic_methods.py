@@ -707,8 +707,9 @@ class PERMBU:
         aux_row_idx = np.repeat(aux_row_idx, repeats=n_cols, axis=1)
         permutate_idxs = permutations.flatten() + aux_row_idx.flatten()
 
-        # Apply flat permutation indexes and recover original shape
-        permutated_samples = samples.flatten()
+        # Apply flat permutation indexes to the sorted samples, so that each
+        # sample takes the rank given by `permutations`, and recover original shape
+        permutated_samples = np.sort(samples, axis=1).flatten()
         permutated_samples = permutated_samples[permutate_idxs]
         permutated_samples = permutated_samples.reshape(n_rows, n_cols)
         return permutated_samples
